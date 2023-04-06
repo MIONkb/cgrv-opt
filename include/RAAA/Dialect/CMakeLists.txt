@@ -1,0 +1,5 @@
+# add_subdirectory(SODA)
+# add_subdirectory(SNN)
+# add_subdirectory(ComplexOP)
+# add_subdirectory(MyTest)
+add_subdirectory(FDRA)
