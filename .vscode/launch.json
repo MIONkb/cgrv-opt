@@ -17,8 +17,8 @@
             // "/home/tianyi/MLIRCGRA/CGRA-Flow/mlir-cgra/experiments/LJHtest/gemm/0_gemm.mlir"
             // "--extract-kernel-to-function=kernel-gen-dir=/home/tianyi/MLIRCGRA/CGRA-Flow/mlir-cgra/experiments/LJHtest/gemm",
             "--adjust-kernel-mem-footprint=cachesize=5",
-            "/home/tianyi/MLIRCGRA/CGRA-Flow/mlir-cgra/experiments/LJHtest/gemm/1_gemm_kernel_change.mlir"
-            // "~/MLIRCGRA/CGRA-Flow/mlir-cgra/experiments/LJHtest/three_mm_32/1_mm_kernel.mlir"
+            // "/home/tianyi/MLIRCGRA/CGRA-Flow/mlir-cgra/experiments/LJHtest/gemm/1_gemm_kernel_change.mlir"
+            "~/MLIRCGRA/CGRA-Flow/mlir-cgra/experiments/LJHtest/three_mm_32/1_mm_kernel.mlir"
         ],
         "stopAtEntry": false,
         "cwd": "${fileDirname}",

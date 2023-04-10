@@ -50,7 +50,9 @@ def AdjustKernelMemoryFootprint : Pass<"adjust-kernel-mem-footprint", "ModuleOp"
   ];
   let options = [
     Option<"Cachesize_Kib", "cachesize", "unsigned", /*default=*/"512",
-           "Set a cachesize(Kib) for kernel to be iterated">,
+           "Set a cachesize(Kib) for kernel to be iterated(default to be 512Kib)">,
+    Option<"SingleArray_Size", "singlearraysize", "unsigned", /*default=*/"0",
+           "Set a cachesize(Kib) constrain for a single array or tensor in a kernel(default to be the same with Cachesize_Kib)">,
   ];
 }
 

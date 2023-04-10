@@ -26,6 +26,7 @@
 
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/Twine.h"
+#include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/Support/CommandLine.h"
 // #include "llvm/Support/raw_ostream.h"
 // #include "llvm/Support/FileSystem.h"
@@ -54,11 +55,146 @@ namespace
     uint64_t excessFactor_toCachesize(FDRA::KernelOp &Kernel);
     FDRA::KernelOp check_AllKernelMemoryFootprint(func::FuncOp topFunc, unsigned &Part_Factor);
     void outloop_partition(func::FuncOp Func, FDRA::KernelOp &Kernel, unsigned Part_Factor);
-
+    Optional<int64_t> getSingleMemrefFootprintBytes(AffineForOp forOp);  
+    void simplifyAffileLoopLevel(func::FuncOp topFunc);
     /// Utilities
     mlir::AffineForOp constructOuterLoopNest(mlir::AffineForOp &OriginforOp);
   };
 } // namespace
+
+
+Optional<int64_t> AdjustMemoryFootprintPass::
+    getSingleMemrefFootprintBytes(AffineForOp forOp){
+  auto *forInst = forOp.getOperation();
+  Block &block = *forInst->getBlock();
+  Block::iterator start = Block::iterator(forInst);
+  Block::iterator end = std::next(Block::iterator(forInst));
+  SmallDenseMap<mlir::Value, std::unique_ptr<MemRefRegion>, 4> regions;
+  // Walk this 'affine.for' operation to gather all memory regions.
+  auto result = block.walk(start, end, [&](Operation *opInst) -> WalkResult {
+    if (!isa<AffineReadOpInterface, AffineWriteOpInterface>(opInst)) {
+      // Neither load nor a store op.
+      return WalkResult::advance();
+    }
+
+    // Compute the memref region symbolic in any IVs enclosing this block.
+    auto region = std::make_unique<MemRefRegion>(opInst->getLoc());
+    if (failed(
+            region->compute(opInst,
+                            /*loopDepth=*/getNestingDepth(&*block.begin())))) {
+      return opInst->emitError("error obtaining memory region\n");
+    }
+
+    auto it = regions.find(region->memref);
+    if (it == regions.end()) {
+      regions[region->memref] = std::move(region);
+    } else if (failed(it->second->unionBoundingBox(*region))) {
+      return opInst->emitWarning(
+          "getMemoryFootprintBytes: unable to perform a union on a memory "
+          "region");
+    }
+    return WalkResult::advance();
+  });
+  if (result.wasInterrupted())
+    return None;
+
+  int64_t MaxSizeInBytes = 0;
+  for (const auto &region : regions) {
+    Optional<int64_t> size = region.second->getRegionSize();
+    // errs() << " [debug] size:" << size.value() << "\n";
+    if (!size.has_value())
+      return None;
+    MaxSizeInBytes = std::max(size.value(), MaxSizeInBytes);
+  }
+  return MaxSizeInBytes;
+
+}
+
+/// @brief traverse all lopps and fuse 2 levels if possible
+/// @param topFunc 
+void AdjustMemoryFootprintPass::simplifyAffileLoopLevel(func::FuncOp topFunc){
+  errs()<<"top func:\n"; topFunc.dump();
+  topFunc.walk([&](mlir::Operation *op)
+  {
+    // errs()<<"  op :"; op->dump();
+    if(op->getName().getStringRef()== FDRA::KernelOp::getOperationName()){
+      return WalkResult::advance();
+    }
+    else if(op->getName().getStringRef()== mlir::AffineForOp::getOperationName()){
+      mlir::AffineForOp for_outer = dyn_cast<mlir::AffineForOp>(op);
+      assert(for_outer.getLoopBody().getBlocks().size() == 1 
+                && "for_outer should only get 1 region with only 1 block!");
+      // errs()<<"          size:" << for_outer.getLoopBody().front().getOperations().size();
+
+      if(for_outer.getLoopBody().front().getOperations().size() == 2 // 1 affineForOp and 1 affineYieldOp 
+           && for_outer.getLoopBody().front().front().getName().getStringRef() == mlir::AffineForOp::getOperationName()){ 
+              //1st .front() get 1st block and 2nt .front() get 1st operation
+        mlir::AffineForOp for_inner = dyn_cast<mlir::AffineForOp>(for_outer.getLoopBody().front().front());
+
+        if(for_inner.getLowerBoundOperands().size() == 1 && 
+           for_inner.getUpperBoundOperands().size() == 1 &&
+           *(for_inner.getLowerBoundOperands().begin()) == for_outer.getInductionVar() &&
+           *(for_inner.getUpperBoundOperands().begin()) == for_outer.getInductionVar()){
+          /// This 2 levels' affine.for can be simplified to 1
+          AffineExpr Expr;
+          AffineMap Map;
+          int64_t step;
+          ///////////////
+          /// construct an identical loop with simplified level
+          ///////////////
+
+          /// Step 1: construct another loop to forOp
+          // Loop bounds will be set later.
+          Operation* new_op = for_inner.clone();
+          op->getBlock()->push_back(new_op);
+          new_op->moveAfter(for_outer);
+          AffineForOp simpleLoop = dyn_cast<AffineForOp>(*new_op);
+          // llvm::errs() << "[debug] Step 1:\n";Kernel.dump();
+
+          /// Step 2: Change simpleLoop's lower/upper bound
+          OpBuilder b(for_inner.getOperation());
+          if (for_outer.hasConstantLowerBound()) ///lower bound
+          {
+            Expr = b.getAffineConstantExpr(for_outer.getConstantLowerBound());
+            Map = AffineMap::get(0, 0, Expr);
+            simpleLoop.setLowerBound({}, Map);
+          }
+          else
+          {
+            Expr = b.getAffineDimExpr(0);
+            Map = AffineMap::get(1, 0, Expr);
+            simpleLoop.setLowerBound(for_outer.getLowerBoundOperands(), Map);
+          }
+
+          if (for_outer.hasConstantUpperBound()) ///upper bound 
+          {
+            Expr = b.getAffineConstantExpr(for_outer.getConstantUpperBound());
+            Map = AffineMap::get(0, 0, Expr);
+            simpleLoop.setUpperBound({}, Map);
+          }
+          else
+          {
+            Expr = b.getAffineDimExpr(0);
+            Map = AffineMap::get(1, 0, Expr);
+            simpleLoop.setUpperBound(for_outer.getUpperBoundOperands(), Map);
+          }
+
+          /// Step 3: Set new step for simplified loop
+          assert(for_outer.getStep() % for_inner.getStep() == 0 && "Step of inner loop should be a divisor of step of outer!");
+          step = for_outer.getStep() / for_inner.getStep();
+          simpleLoop.setStep(step);
+          
+          for_outer.erase();
+        }
+      }
+    }
+    return WalkResult::advance(); 
+  });  
+  
+  return;
+}
+
+
 
 /// @brief check whether a FDRA.kernel meets the limits of cachesize
 /// @param Kernel
@@ -73,12 +209,22 @@ uint64_t AdjustMemoryFootprintPass::
   {
     // errs()<<"[Info] Found a forOP:\n"; forOp.dump();
     /// get memory footprint of this kernel
-    Optional<int64_t> fp = mlir::getMemoryFootprintBytes(forOp);
-    errs() << "[Info] after getMemoryFootprintBytes:" << fp.value() << "\n";
+    Optional<int64_t> fp_totalMem = mlir::getMemoryFootprintBytes(forOp);
+    Optional<int64_t> fp_singleMem = AdjustMemoryFootprintPass::getSingleMemrefFootprintBytes(forOp);
 
     /// get how many times larger memory footprint is compared to cacheSize
     uint64_t cacheSizeBytes = Cachesize_Kib * 1024;
-    excessFactor = llvm::divideCeil(*fp, cacheSizeBytes);
+    uint64_t singleArraySizeBytes;
+
+    if(SingleArray_Size == 0){
+      singleArraySizeBytes = cacheSizeBytes;
+    }
+    else{
+      singleArraySizeBytes = SingleArray_Size * 1024;
+    }
+
+    excessFactor = std::max(llvm::divideCeil(*fp_totalMem, cacheSizeBytes)
+                              ,llvm::divideCeil(*fp_singleMem, singleArraySizeBytes));
     Toploop_cnt++;
   }
   assert(Toploop_cnt == 1 && "Kernel have only 1 top-loop!");
@@ -94,7 +240,7 @@ FDRA::KernelOp AdjustMemoryFootprintPass::
   // for (auto Kernel : topFunc.getOps<FDRA::KernelOp>()) {
   FDRA::KernelOp Kernel = NULL;
   topFunc.walk([&](mlir::Operation *op)
-               {
+  {
     // errs()<<"op :" << op->getName().getStringRef() << "\n";
     if(op->getName().getStringRef()== FDRA::KernelOp::getOperationName()){
       Kernel = dyn_cast<FDRA::KernelOp>(op);
@@ -115,7 +261,7 @@ void AdjustMemoryFootprintPass::
 {
   assert(Part_Factor >= 1 && "Part_Factor is a integer larger than 1!");
   /// Tofix:
-  /// Partition a  loop through its outest loop may not be right
+  /// Partition a loop through its outest loop may not be right
   // assert(Kernel.getOps<mlir::AffineForOp>().size() == 1 && "Part_Factor is a integer larger than 1!");
   mlir::AffineForOp forOp = *(Kernel.getOps<mlir::AffineForOp>().begin());
 
@@ -202,7 +348,7 @@ void AdjustMemoryFootprintPass::
         IslatedLoop.setLowerBound(forOp.getLowerBoundOperands(), Map);
         forOp.setUpperBound(forOp.getLowerBoundOperands(), Map);
       }
-      llvm::errs() << "[debug] Step 3:\n";Kernel.dump();
+      // llvm::errs() << "[debug] Step 3:\n";Kernel.dump();
 
       ///////////////
       /// Move position of "Kernel" Op
@@ -342,12 +488,15 @@ void AdjustMemoryFootprintPass::runOnOperation()
   FDRA::KernelOp KernelToPart = check_AllKernelMemoryFootprint(topFunc, part_factor);
   while (part_factor != 1)
   { // KernelToPart != NULL
-    errs() << "\n[debug]topFunc:\n";
+    // errs() << "\n[debug]topFunc:\n";
     topFunc.dump();
     outloop_partition(topFunc, KernelToPart, part_factor);
     KernelToPart = check_AllKernelMemoryFootprint(topFunc, part_factor);
     // break; ///for debug
   }
+  
+  /// simplify loop levels if possible
+  simplifyAffileLoopLevel(topFunc);
 }
 
 std::unique_ptr<OperationPass<ModuleOp>>
