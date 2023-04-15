@@ -1,5 +1,7 @@
 //===- KernelToModulePass.cpp - Convert a kernel to a Module file which will be optimized -----------===//
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
+#include "mlir/Dialect/Affine/Analysis/Utils.h"
+#include "mlir/Dialect/Affine/Analysis/AffineAnalysis.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/SCF/IR/SCF.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
@@ -59,6 +61,9 @@ public:
   LogicalResult sinkOperationsIntoKernelOp(FDRA::KernelOp kernelOp);
   func::FuncOp GenKernelFunc(FDRA::KernelOp KernelOp, std::string kernelFnName, 
                       llvm::SetVector<Value>& operands);
+  //// Following functions are for pass option "kernel-explicit-datablock-trans"
+   // getMemrefHeadAndFootprint(Kernel);
+  void ExplicitKernelDataBLockLoadStore(FDRA::KernelOp Kernel);
   
 };
 } // namespace
@@ -161,10 +166,14 @@ LogicalResult KernelToFuncPass::sinkOperationsIntoKernelOp(FDRA::KernelOp kernel
 
 
 //===----------------------------------------------------------------------===//
-// KERNELToFunc
+// 
 //===----------------------------------------------------------------------===//
 
-
+/// @brief KERNELToFunc
+/// @param KernelOp 
+/// @param kernelFnName 
+/// @param operands 
+/// @return 
 func::FuncOp KernelToFuncPass::GenKernelFunc(FDRA::KernelOp KernelOp,
            std::string kernelFnName, llvm::SetVector<Value>& operands){
   Location loc = KernelOp.getLoc();
@@ -204,7 +213,7 @@ func::FuncOp KernelToFuncPass::GenKernelFunc(FDRA::KernelOp KernelOp,
   BlockAndValueMapping mapping;
   // Block &entryBlock = KernelFunc.getBody().front();
   for (unsigned index = 0; index < operands.size(); index++) {
-    errs()  << "  operands:" << operands[index] <<"\n";
+    // errs()  << "  operands:" << operands[index] <<"\n";
     mapping.map(operands[index], entryBlock->getArgument(index));
   }
   KernelOpBody.cloneInto(&KernelFunc.getBody(),mapping);
@@ -224,6 +233,123 @@ func::FuncOp KernelToFuncPass::GenKernelFunc(FDRA::KernelOp KernelOp,
 
   return KernelFunc;
 }
+
+
+/// @brief 
+/// @param Kernel 
+void KernelToFuncPass::ExplicitKernelDataBLockLoadStore(FDRA::KernelOp Kernel){
+  MemRefRegion memrefRegion(Kernel.getLoc());
+  Value memref;
+  mlir::OpBuilder builder(Kernel.body().getContext());
+  Kernel.walk([&](AffineLoadOp loadop){
+    llvm::errs() << "[debug] loadop: ";loadop.dump();
+    llvm::errs() << "[debug] getNestingDepth: " << getNestingDepth(Kernel.getOperation()) << "\n";
+    
+    if(succeeded(memrefRegion.compute(loadop, 
+                /*loopDepth=*/getNestingDepth(Kernel.getOperation())))){ /// Bind loadop and memrefRegion through compute()
+      memref = memrefRegion.memref;
+      llvm::errs() << "[debug] memref: ";memref.dump();
+
+      MemRefType memRefType = memref.getType().cast<MemRefType>();
+      SmallVector<Value, 4> memIVs;
+      AffineMap memIVmap;
+
+      // llvm::errs() << "[debug] memRefType: ";memRefType.dump();
+
+      unsigned rank = memRefType.getRank();
+      assert(rank == memrefRegion.cst.getNumDimVars() && "inconsistent memref region");
+      
+      for (unsigned r = 0; r < rank; r++) {
+        // unsigned minLbPos, minUbPos;
+        AffineExpr lbExpr_minspace, ubExpr_minspace;
+
+        /////////////
+        /// Get InductionVar(IV) of this memrefRegion
+        /////////////
+        SmallVector<Value, 4> vars;
+        memrefRegion.cst.getValues(memrefRegion.cst.getNumDimVars(),
+            memrefRegion.cst.getNumDimAndSymbolVars(), &vars);
+        assert(vars.size() <= 1  /// To fix: if vars.size() > 1 ?
+              && " This kernel should only have 1 outer IV as input arguments.");
+        
+        if(vars.size()==1){
+          AffineForOp iv = getForInductionVarOwner(vars.front());
+          memIVs.push_back(iv.getInductionVar());
+        }
+        // memIVs.push_back(iv.getInductionVar()); /// two IVs and two affinemaps
+
+        AffineMap lbMap, ubMap;
+        memrefRegion.getLowerAndUpperBound(r, lbMap, ubMap);
+        assert(lbMap.getNumDims() == vars.size() && ubMap.getNumDims() == vars.size()\
+              && " Num of bound's dim should be the same with num of IVs!");
+        llvm::errs() << "[debug] lbMap: " << lbMap << " , ubMap: "<< ubMap << "\n";
+        int64_t min_space = -1;
+        for(AffineExpr lbExpr : lbMap.getResults()){
+          for(AffineExpr ubExpr : ubMap.getResults()){
+            AffineExpr diffExpr = ubExpr - lbExpr;
+            // llvm::errs() << "[debug] diffExpr: " << diffExpr << "\n";
+            if(diffExpr.isSymbolicOrConstant()){
+              /// Found a Constant diff
+              AffineConstantExpr diffExpr_const=diffExpr.dyn_cast<AffineConstantExpr>();
+              if(diffExpr_const.getValue()==memRefType.getNumElements() && min_space==-1){
+                /// This upper and lowerbound is constrained by 
+                /// original memref's size and a smaller min_space
+                /// is not found yet.
+                lbExpr_minspace = lbExpr;
+                ubExpr_minspace = ubExpr;
+                min_space = diffExpr_const.getValue();
+              }
+              else if(diffExpr_const.getValue() < min_space || min_space==-1){
+                /// Found a smaller memory space, store the Affine Expr of lb and ub
+                lbExpr_minspace = lbExpr;
+                ubExpr_minspace = ubExpr;
+                min_space = diffExpr_const.getValue();
+              }
+            }
+            assert(min_space != -1 && 
+                  " The memory space this L/S op access has different size in different Iterations!");
+          }
+        }
+
+        llvm::errs() << "[debug] lbExpr_minspace: " << lbExpr_minspace 
+                        << " , ubExpr_minspace: "<< ubExpr_minspace << "\n";    
+      
+        SmallVector<AffineExpr, 4> memExprs;
+        memExprs.push_back(lbExpr_minspace);
+        memExprs.push_back(ubExpr_minspace);
+        if(lbExpr_minspace.isSymbolicOrConstant() && ubExpr_minspace.isSymbolicOrConstant()){
+          /// lb and up bound Exprs are both constant
+          memIVmap = AffineMap::get(0, /*symbolCount=*/0, memExprs, builder.getContext());
+        }
+        else if(!lbExpr_minspace.isSymbolicOrConstant() && !ubExpr_minspace.isSymbolicOrConstant()){
+          /// lb and up bound Exprs both contain dim variables
+          memIVmap = AffineMap::get(rank, /*symbolCount=*/0, memExprs, builder.getContext());
+        }
+        llvm::errs() << "[debug] memIVmap:  " <<  memIVmap << "\n";   
+      }
+
+        // for (auto var : vars) {
+        //   llvm::errs() << "[debug] var: " << var  << "\n";
+        //   AffineForOp iv;
+        //   if ((iv = getForInductionVarOwner(var))) {
+        //     // cst.projectOut(var);
+        //     llvm::errs() << "[debug] iv: " << iv  << "\n";
+        //   }
+        // }
+      
+      /////////
+      /// Create DataBlockLoadOp 
+      /////////
+      FDRA::DataBlockLoadOp BlockLoad = builder.create<FDRA::DataBlockLoadOp>(Kernel.getLoc(), memref, memIVmap, memIVs);
+      Kernel.getOperation()->getBlock()->push_back(BlockLoad);
+      BlockLoad.getOperation()->moveBefore(Kernel);
+
+      llvm::errs() << "[debug] BlockLoad: ";BlockLoad.dump();
+    }
+    
+  });
+}
+
 
 void KernelToFuncPass::runOnOperation()
 {
@@ -251,6 +377,16 @@ void KernelToFuncPass::runOnOperation()
       if (failed(sinkOperationsIntoKernelOp(op)))
         return WalkResult::interrupt();
       
+      ///////////////
+      /// Generate explicit data block movement (load/store) for kernel to consume
+      ///////////////
+      if(ExplicitDataTrans==true){
+        // getMemrefHeadAndFootprint(Kernel);
+        ExplicitKernelDataBLockLoadStore(Kernel);
+        llvm::errs() << "[debug] after ExplicitKernelDataBLockLoadStore: \n";
+        topFunc.dump();
+      }
+
       func::FuncOp NewKernelFunc = GenKernelFunc(op, kernelFnName, operands);
       symbolTable.insert(NewKernelFunc);
 
@@ -259,16 +395,6 @@ void KernelToFuncPass::runOnOperation()
         OpBuilder builder(NewKernelFunc);
         std::filesystem::create_directory(KernelGenDir+"/kernels");
         std::string KernelFilePath_str = KernelGenDir+"/kernels/"+ kernelFnName + ".mlir";
-        // mlir::StringRef KernelFilePath = KernelGenDir+"/kernels/"+ kernelFnName + ".mlir";
-        // mlir::StringAttr KernelFilePath_Attr = builder.getStringAttr(KernelFilePath);
-        // // Create a new operation at the desired location.
-        // // builder.setInsertionPointToStart(newBlock);
-        // auto loc = mlir::FileLineColLoc::get(KernelFilePath_Attr, 1, 1); // 1, 1: line, column
-        // func::FuncOp FileFunc = builder.create<func::FuncOp>(loc, kernelFnName, NewKernelFunc.getFunctionType());
-        // // state.addAttributes(NewKernelFunc->getAttrs());
-        // FileFunc.getRegion().takeBody(NewKernelFunc.getBody());
-        // std::cout << "[debug] after takeBody:\n";FileFunc.dump();
-
         std::error_code ec;
         llvm::raw_fd_ostream file(KernelFilePath_str, ec, sys::fs::FA_Write);
         if (ec) {
@@ -293,7 +419,7 @@ void KernelToFuncPass::runOnOperation()
     assert(cnt_to_KernelOP[cnt] && "Counter and Kernel did not match!");
     cnt_to_KernelOP[cnt].erase();
   }
-  std::cout << "[debug] after erase:\n"; topFunc.dump();
+  // std::cout << "[debug] after erase:\n"; topFunc.dump();
 }
 
 

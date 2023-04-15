@@ -181,7 +181,7 @@ void AdjustMemoryFootprintPass::simplifyAffileLoopLevel(func::FuncOp topFunc){
 
           /// Step 3: Set new step for simplified loop
           assert(for_outer.getStep() % for_inner.getStep() == 0 && "Step of inner loop should be a divisor of step of outer!");
-          step = for_outer.getStep() / for_inner.getStep();
+          step = for_inner.getStep();
           simpleLoop.setStep(step);
           
           for_outer.erase();
@@ -489,7 +489,7 @@ void AdjustMemoryFootprintPass::runOnOperation()
   while (part_factor != 1)
   { // KernelToPart != NULL
     // errs() << "\n[debug]topFunc:\n";
-    topFunc.dump();
+    // topFunc.dump();
     outloop_partition(topFunc, KernelToPart, part_factor);
     KernelToPart = check_AllKernelMemoryFootprint(topFunc, part_factor);
     // break; ///for debug

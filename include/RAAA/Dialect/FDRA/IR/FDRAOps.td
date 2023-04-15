@@ -15,6 +15,7 @@ include "mlir/IR/EnumAttr.td"
 include "mlir/Dialect/LLVMIR/LLVMOpBase.td"
 include "mlir/IR/SymbolInterfaces.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
+include "mlir/Interfaces/InferTypeOpInterface.td"
 
 //===----------------------------------------------------------------------===//
 // FDRA Dialect operations.
@@ -94,6 +95,51 @@ def FDRA_TerminatorOp : FDRA_Op<"terminator", [HasParent<"KernelOp">,
   }];
 
   let assemblyFormat = "attr-dict";
+}
+
+
+//===----------------------------------------------------------------------===//
+// Explicit Data Block Movement Operation (Load and Store)
+//===----------------------------------------------------------------------===//
+
+def FDRA_DataBlockLoadOp: FDRA_Op<"BlockLoad", []>{
+  let summary = "Load a part of the whole array data block to a faster memory where HW accelerator can access.";
+  let description = [{
+    This operation takes in an array memref,a header index of the data block which will be moved, and the block size.
+    Returns the new memref from the buffer given certain header index and size.
+    This operation will corporate with BlockLoad and Call of KernelFunc. 
+
+    Example: To fix !!!
+    ```mlir
+    %value = "FDRA.BlockLoad" (%buffer, %j):(memref<10xf32>, index, index) -> memref<5xf32> 
+    ```
+  }];
+  
+  let builders = [   
+    /// Builds an affine load op with the specified map and operands.
+    OpBuilder<(ins "AffineMap":$map, "ValueRange":$operands)>,
+    /// Builds an affine load op with an identity map and operands.
+    OpBuilder<(ins "Value":$DataBlock, "ValueRange":$operands)>,
+    /// Builds an affine load op with the specified map and its operands.
+    OpBuilder<(ins "Value":$DataBlock, "AffineMap":$map, "ValueRange":$operands)>
+  ];
+  
+	//Ignore Variadic<Index>:$offset at this moment
+  let arguments = (ins Arg<AnyMemRef, "the reference to load from", [MemRead]>:$DataBlock
+                  , Variadic<Index>:$indices);
+  let results = (outs AnyMemRef: $newMemref);
+  let extraClassDeclaration = [{
+    Value getOriginalArray(){ return DataBlock();};
+    unsigned getBlockSize(){
+      return 0;
+    };
+    
+    static StringRef getMapAttrStr() { return "map"; }
+    static StringRef getKernelNameAttrStr() { return "KernelName"; }
+  }];
+
+  let hasCustomAssemblyFormat = 1;
+  let hasVerifier = 1;
 }
 //===----------------------------------------------------------------------===//
 // Outlined Func Operations for offload HW code

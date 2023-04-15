@@ -1,6 +1,7 @@
 //===- FDRAOps.cpp - Operations of the FDRA dialect -------------------------===//
 //===----------------------------------------------------------------------===//
-
+#include "mlir/Dialect/Affine/IR/AffineOps.h"
+// #include "mlir/Dialect/Affine/IR/AffineValueMap.h"
 #include "mlir/IR/BlockAndValueMapping.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/Matchers.h"
@@ -107,6 +108,131 @@ ParseResult KernelOp::parse(OpAsmParser &parser, OperationState &result) {
   }
   return success();
 }
+
+
+//===----------------------------------------------------------------------===//
+// DataBlockLoadOp
+//===----------------------------------------------------------------------===//
+void DataBlockLoadOp::build(OpBuilder &builder, OperationState &result,
+                         Value memref, AffineMap map,  ValueRange mapOperands) {
+  assert(map.getNumInputs() == mapOperands.size() && "inconsistent index info");
+  result.addOperands(memref);
+  result.addOperands(mapOperands);
+  auto memrefType = memref.getType().cast<MemRefType>();
+  result.addAttribute(getMapAttrStr(), AffineMapAttr::get(map));
+  result.types.push_back(memrefType.getElementType());
+}
+
+void DataBlockLoadOp::build(OpBuilder &builder, OperationState &result,
+                         Value memref, ValueRange indices) {
+  auto memrefType = memref.getType().cast<MemRefType>();
+  // result.addOperands(memref);
+  int64_t rank = memrefType.getRank();
+  // Create identity map for memrefs with at least one dimension or () -> ()
+  // for zero-dimensional memrefs.
+  auto map =
+      rank ? builder.getMultiDimIdentityMap(rank) : builder.getEmptyAffineMap();
+  build(builder, result, memref, map, indices);
+}
+
+void DataBlockLoadOp::build(OpBuilder &builder, OperationState &result,
+                         AffineMap map, ValueRange operands) {
+  assert(operands.size() == 1 + map.getNumInputs() && "inconsistent operands");
+  // result.addOperands(operands);
+  if (map)
+    result.addAttribute(getMapAttrStr(), AffineMapAttr::get(map));
+  auto memrefType = operands[0].getType().cast<MemRefType>();
+  result.types.push_back(memrefType.getElementType());
+}
+
+ParseResult DataBlockLoadOp::parse(OpAsmParser &parser, OperationState &result) {
+  auto &builder = parser.getBuilder();
+  auto indexTy = builder.getIndexType();
+
+  MemRefType type;
+  OpAsmParser::UnresolvedOperand memrefInfo;
+  AffineMapAttr mapAttr;
+  SmallVector<OpAsmParser::UnresolvedOperand, 1> mapOperands;
+  return failure(
+      parser.parseOperand(memrefInfo) ||
+      parser.parseAffineMapOfSSAIds(mapOperands, mapAttr,
+                                    AffineLoadOp::getMapAttrStrName(),
+                                    result.attributes) ||
+      parser.parseOptionalAttrDict(result.attributes) ||
+      parser.parseColonType(type) ||
+      parser.resolveOperand(memrefInfo, type, result.operands) ||
+      parser.resolveOperands(mapOperands, indexTy, result.operands) ||
+      parser.addTypeToList(type.getElementType(), result.types));
+}
+
+
+void DataBlockLoadOp::print(OpAsmPrinter &p) {
+  p << " " << getOriginalArray() << '[';
+  if (AffineMapAttr mapAttr =
+          (*this)->getAttrOfType<AffineMapAttr>(getMapAttrStr()))
+    p.printAffineMapOfSSAIds(mapAttr, getOperands());
+  p << ']';
+  p.printOptionalAttrDict((*this)->getAttrs(),
+                          /*elidedAttrs=*/{getMapAttrStr()});
+  p << " : " << getOriginalArray().getType().cast<MemRefType>();
+}
+
+// Returns true if 'value' is a valid index to an affine operation (e.g.
+// affine.load, affine.store, affine.dma_start, affine.dma_wait) where
+// `region` provides the polyhedral symbol scope. Returns false otherwise.
+static bool isValidAffineIndexOperand(Value value, Region *region) {
+  return isValidDim(value, region) || isValidSymbol(value, region);
+}
+
+/// Verify common indexing invariants of affine.load, affine.store,
+/// affine.vector_load and affine.vector_store.
+static LogicalResult
+verifyMemoryOpIndexing(Operation *op, AffineMapAttr mapAttr,
+                       Operation::operand_range mapOperands,
+                       MemRefType memrefType, unsigned numIndexOperands) {
+  if (mapAttr) {
+    AffineMap map = mapAttr.getValue();
+    if (map.getNumResults() != memrefType.getRank())
+      return op->emitOpError("affine map num results must equal memref rank");
+    if (map.getNumInputs() != numIndexOperands)
+      return op->emitOpError("expects as many subscripts as affine map inputs");
+  } else {
+    if (memrefType.getRank() != numIndexOperands)
+      return op->emitOpError(
+          "expects the number of subscripts to be equal to memref rank");
+  }
+
+  Region *scope = getAffineScope(op);
+  for (auto idx : mapOperands) {
+    if (!idx.getType().isIndex())
+      return op->emitOpError("index to load must have 'index' type");
+    if (!isValidAffineIndexOperand(idx, scope))
+      return op->emitOpError("index must be a dimension or symbol identifier");
+  }
+
+  return success();
+}
+
+
+LogicalResult DataBlockLoadOp::verify() {
+  /// Tofix: fix verify()
+  auto memrefType = getOriginalArray().getType().cast<MemRefType>();
+  if (getType() != memrefType.getElementType())
+    return emitOpError("result type must match element type of memref");
+
+  if (failed(verifyMemoryOpIndexing(
+          getOperation(),
+          (*this)->getAttrOfType<AffineMapAttr>(getMapAttrStr()),
+          getOperands(), memrefType,
+          /*numIndexOperands=*/getNumOperands() - 1)))
+    return failure();
+
+  return success();
+}
+// void AffineLoadOp::getCanonicalizationPatterns(RewritePatternSet &results,
+//                                                MLIRContext *context) {
+//   results.add<SimplifyAffineOp<AffineLoadOp>>(context);
+// }
 //===----------------------------------------------------------------------===//
 // TableGen'd op method definitions
 //===----------------------------------------------------------------------===//

@@ -140,7 +140,7 @@ int main(int argc, char **argv) {
   mlir::FDRA::registerExtractAffineForToKernelPass();
   mlir::FDRA::registerAdjustKernelMemoryFootprintPass();
   mlir::FDRA::registerExtractKernelToFuncPass();
-
+  mlir::FDRA::registerAutoDesignSpaceExplorePass();
   
   // ----- SODA -----
   // Misc passes

@@ -1,7 +1,7 @@
 //===- SCFToKernelPass.cpp - Convert a loop nest to a kernel to be accelerated -----------===//
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/Dialect/SCF/IR/SCF.h"
+// #include "mlir/Dialect/SCF/IR/SCF.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Support/LLVM.h"
 #include <iostream>
