@@ -235,24 +235,26 @@ func::FuncOp KernelToFuncPass::GenKernelFunc(FDRA::KernelOp KernelOp,
 }
 
 
-/// @brief 
+/// @brief Generate Explicit Kernel Data BLock 
+///        Load/Store of the call of kernel.
 /// @param Kernel 
+/// Steps:
+/// 
 void KernelToFuncPass::ExplicitKernelDataBLockLoadStore(FDRA::KernelOp Kernel){
   MemRefRegion memrefRegion(Kernel.getLoc());
   Value memref;
   mlir::OpBuilder builder(Kernel.body().getContext());
   Kernel.walk([&](AffineLoadOp loadop){
     llvm::errs() << "[debug] loadop: ";loadop.dump();
-    llvm::errs() << "[debug] getNestingDepth: " << getNestingDepth(Kernel.getOperation()) << "\n";
-    
     if(succeeded(memrefRegion.compute(loadop, 
                 /*loopDepth=*/getNestingDepth(Kernel.getOperation())))){ /// Bind loadop and memrefRegion through compute()
       memref = memrefRegion.memref;
-      llvm::errs() << "[debug] memref: ";memref.dump();
+      // llvm::errs() << "[debug] memref: ";memref.dump();
 
       MemRefType memRefType = memref.getType().cast<MemRefType>();
       SmallVector<Value, 4> memIVs;
       AffineMap memIVmap;
+      llvm::SetVector<int64_t> newMemRefShape;
 
       // llvm::errs() << "[debug] memRefType: ";memRefType.dump();
 
@@ -276,7 +278,6 @@ void KernelToFuncPass::ExplicitKernelDataBLockLoadStore(FDRA::KernelOp Kernel){
           AffineForOp iv = getForInductionVarOwner(vars.front());
           memIVs.push_back(iv.getInductionVar());
         }
-        // memIVs.push_back(iv.getInductionVar()); /// two IVs and two affinemaps
 
         AffineMap lbMap, ubMap;
         memrefRegion.getLowerAndUpperBound(r, lbMap, ubMap);
@@ -316,7 +317,7 @@ void KernelToFuncPass::ExplicitKernelDataBLockLoadStore(FDRA::KernelOp Kernel){
       
         SmallVector<AffineExpr, 4> memExprs;
         memExprs.push_back(lbExpr_minspace);
-        memExprs.push_back(ubExpr_minspace);
+        // memExprs.push_back(ubExpr_minspace);
         if(lbExpr_minspace.isSymbolicOrConstant() && ubExpr_minspace.isSymbolicOrConstant()){
           /// lb and up bound Exprs are both constant
           memIVmap = AffineMap::get(0, /*symbolCount=*/0, memExprs, builder.getContext());
@@ -326,25 +327,20 @@ void KernelToFuncPass::ExplicitKernelDataBLockLoadStore(FDRA::KernelOp Kernel){
           memIVmap = AffineMap::get(rank, /*symbolCount=*/0, memExprs, builder.getContext());
         }
         llvm::errs() << "[debug] memIVmap:  " <<  memIVmap << "\n";   
+        newMemRefShape.insert(min_space);
       }
-
-        // for (auto var : vars) {
-        //   llvm::errs() << "[debug] var: " << var  << "\n";
-        //   AffineForOp iv;
-        //   if ((iv = getForInductionVarOwner(var))) {
-        //     // cst.projectOut(var);
-        //     llvm::errs() << "[debug] iv: " << iv  << "\n";
-        //   }
-        // }
       
       /////////
       /// Create DataBlockLoadOp 
       /////////
-      FDRA::DataBlockLoadOp BlockLoad = builder.create<FDRA::DataBlockLoadOp>(Kernel.getLoc(), memref, memIVmap, memIVs);
+      MemRefType newMemRef = MemRefType::get(newMemRefShape.getArrayRef(), memRefType.getElementType());
+      FDRA::DataBlockLoadOp BlockLoad = builder.create<FDRA::DataBlockLoadOp>\
+                (Kernel.getLoc(), memref, memIVmap, memIVs, newMemRef);
       Kernel.getOperation()->getBlock()->push_back(BlockLoad);
       BlockLoad.getOperation()->moveBefore(Kernel);
+      BlockLoad.setKernelName(Kernel.getKernelName());
 
-      llvm::errs() << "[debug] BlockLoad: ";BlockLoad.dump();
+      // llvm::errs() << "[debug] BlockLoad: ";BlockLoad.dump();
     }
     
   });
@@ -373,6 +369,7 @@ void KernelToFuncPass::runOnOperation()
       llvm::SetVector<Value> operands;
       std::string kernelFnName =\
           Twine(op->getParentOfType<func::FuncOp>().getName()).concat("_kernel_"+std::to_string(cnt)).str();
+      Kernel.setKernelName(kernelFnName);
       // Pull in instructions that can be sunk
       if (failed(sinkOperationsIntoKernelOp(op)))
         return WalkResult::interrupt();

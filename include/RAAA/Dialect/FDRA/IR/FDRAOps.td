@@ -61,7 +61,8 @@ def FDRA_KernelOp : FDRA_Op<"kernel">,
   let skipDefaultBuilders = 1;
 
   let builders = [
-    OpBuilder<(ins)>
+    OpBuilder<(ins)>,
+    OpBuilder<(ins "std::string":$KernelName)>
   ];
   
   let extraClassDeclaration = [{
@@ -76,6 +77,16 @@ def FDRA_KernelOp : FDRA_Op<"kernel">,
     /// Legacy from copying GPU dialect.
     static constexpr unsigned kNumConfigRegionAttributes = 0;
     // unsigned kernel_Count = 0;
+
+    static StringRef getKernelNameAttrStr() { return "KernelName"; }
+    void setKernelName(std::string s) {
+      StringAttr KernelNameAttr = StringAttr::get(getOperation()->getContext(),s);
+      getOperation()->setAttr(getKernelNameAttrStr(), KernelNameAttr);
+    }
+    std::string getKernelName(){
+      return getOperation()->getAttr("KernelName")
+        .cast<StringAttr>().str();
+    }
   }];
 
   let hasCustomAssemblyFormat = 1;
@@ -117,25 +128,57 @@ def FDRA_DataBlockLoadOp: FDRA_Op<"BlockLoad", []>{
   
   let builders = [   
     /// Builds an affine load op with the specified map and operands.
-    OpBuilder<(ins "AffineMap":$map, "ValueRange":$operands)>,
+    // OpBuilder<(ins "AffineMap":$map, "ValueRange":$operands, "unsigned":$BlockLen)>,
     /// Builds an affine load op with an identity map and operands.
-    OpBuilder<(ins "Value":$DataBlock, "ValueRange":$operands)>,
-    /// Builds an affine load op with the specified map and its operands.
-    OpBuilder<(ins "Value":$DataBlock, "AffineMap":$map, "ValueRange":$operands)>
+    // OpBuilder<(ins "Value":$DataBlock, "ValueRange":$operands, "unsigned":$BlockLen)>,
+    /// Builds a block load op with the specified map and its operands.
+    OpBuilder<(ins "Value":$DataBlock, "AffineMap":$map, "ValueRange":$operands, 
+                   "MemRefType":$resultType , "std::string":$KernelName )>,
+    // OpBuilder<(ins "Value":$DataBlock, "AffineMap":$map, "ValueRange":$operands, 
+    //                 "int64_t":$BlockLen, "std::string":$KernelName )>,
+    // /// Builds an block load op without KernelName.
+    OpBuilder<(ins "Value":$DataBlock, "AffineMap":$map, "ValueRange":$operands, 
+                   "MemRefType":$resultType)>,
   ];
   
 	//Ignore Variadic<Index>:$offset at this moment
-  let arguments = (ins Arg<AnyMemRef, "the reference to load from", [MemRead]>:$DataBlock
+  let arguments = (ins Arg<AnyMemRef, "the reference to load from", [MemRead]>:$OriginalMemref
                   , Variadic<Index>:$indices);
-  let results = (outs AnyMemRef: $newMemref);
+  let results = (outs AnyStaticShapeMemRef: $result);
   let extraClassDeclaration = [{
-    Value getOriginalArray(){ return DataBlock();};
-    unsigned getBlockSize(){
-      return 0;
-    };
-    
+    // unsigned int BlockLen = 0;
+    // void setBlockLen(unsigned l){ BlockLen = l;};
+    // unsigned int getBlockLen(){ return BlockLen;};
+    Value getOriginalMemref(){ return OriginalMemref();};
+
     static StringRef getMapAttrStr() { return "map"; }
     static StringRef getKernelNameAttrStr() { return "KernelName"; }
+    // static StringRef getBlockLenAttrStr() { return "BlockLen"; }
+
+    // int32_t getBlockLen() {
+    //   return this->getOperation()->getAttr("BlockLen")
+    //     .cast<IntegerAttr>().getValue().getSExtValue();
+    // }
+    StringRef getKernelName() {
+      return this->getOperation()->getAttr("KernelName")
+        .cast<StringAttr>().strref();
+    }
+    void setKernelName(std::string s) {
+      StringAttr KernelNameAttr = StringAttr::get(getOperation()->getContext(),s);
+      getOperation()->setAttr(getKernelNameAttrStr(), KernelNameAttr);
+    }
+
+    MemRefType getOriginalMemrefType() {
+      return OriginalMemref().getType().cast<MemRefType>();
+    }
+    MemRefType getResultType() {
+      return result().getType().cast<MemRefType>();
+    }
+
+    operand_range getMapOperands() {
+      return {operand_begin() + 1, operand_end()};
+    }
+
   }];
 
   let hasCustomAssemblyFormat = 1;

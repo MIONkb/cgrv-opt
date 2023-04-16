@@ -35,6 +35,13 @@ void KernelOp::build(OpBuilder &builder, OperationState &result) {
     body->addArgument(builder.getIndexType(), result.location);
   kernelRegion->push_back(body);
 }
+
+void KernelOp::build(OpBuilder &builder, OperationState &result, std::string KernelName) {
+  auto KernelNameAttr = builder.getStringAttr(KernelName);
+  result.addAttribute(getKernelNameAttrStr(), KernelNameAttr);
+  build(builder, result);
+}
+
 // void KernelOp::getCanonicalizationPatterns(RewritePatternSet &results,
 //                                           MLIRContext *context) {
 // }
@@ -113,36 +120,28 @@ ParseResult KernelOp::parse(OpAsmParser &parser, OperationState &result) {
 //===----------------------------------------------------------------------===//
 // DataBlockLoadOp
 //===----------------------------------------------------------------------===//
+
 void DataBlockLoadOp::build(OpBuilder &builder, OperationState &result,
-                         Value memref, AffineMap map,  ValueRange mapOperands) {
+                            Value OriginalMemref, AffineMap map, ValueRange mapOperands, 
+                            MemRefType resultType, std::string KernelName) {
   assert(map.getNumInputs() == mapOperands.size() && "inconsistent index info");
-  result.addOperands(memref);
+  result.addOperands(OriginalMemref);
   result.addOperands(mapOperands);
-  auto memrefType = memref.getType().cast<MemRefType>();
+
   result.addAttribute(getMapAttrStr(), AffineMapAttr::get(map));
-  result.types.push_back(memrefType.getElementType());
+
+  auto KernelNameAttr = builder.getStringAttr(KernelName);
+  result.addAttribute(getKernelNameAttrStr(), KernelNameAttr);
+
+  result.types.push_back(resultType);
 }
 
 void DataBlockLoadOp::build(OpBuilder &builder, OperationState &result,
-                         Value memref, ValueRange indices) {
-  auto memrefType = memref.getType().cast<MemRefType>();
-  // result.addOperands(memref);
-  int64_t rank = memrefType.getRank();
-  // Create identity map for memrefs with at least one dimension or () -> ()
-  // for zero-dimensional memrefs.
-  auto map =
-      rank ? builder.getMultiDimIdentityMap(rank) : builder.getEmptyAffineMap();
-  build(builder, result, memref, map, indices);
-}
-
-void DataBlockLoadOp::build(OpBuilder &builder, OperationState &result,
-                         AffineMap map, ValueRange operands) {
-  assert(operands.size() == 1 + map.getNumInputs() && "inconsistent operands");
-  // result.addOperands(operands);
-  if (map)
-    result.addAttribute(getMapAttrStr(), AffineMapAttr::get(map));
-  auto memrefType = operands[0].getType().cast<MemRefType>();
-  result.types.push_back(memrefType.getElementType());
+                            Value OriginalMemref, AffineMap map, ValueRange mapOperands, 
+                            MemRefType resultType) {
+  assert(map.getNumInputs() == mapOperands.size() && "inconsistent index info");
+  std::string KernelName = ""/*"UnknownKernel"*/;
+  build(builder, result, OriginalMemref, map, mapOperands, resultType, KernelName);
 }
 
 ParseResult DataBlockLoadOp::parse(OpAsmParser &parser, OperationState &result) {
@@ -156,25 +155,27 @@ ParseResult DataBlockLoadOp::parse(OpAsmParser &parser, OperationState &result) 
   return failure(
       parser.parseOperand(memrefInfo) ||
       parser.parseAffineMapOfSSAIds(mapOperands, mapAttr,
-                                    AffineLoadOp::getMapAttrStrName(),
+                                    getMapAttrStr(),
                                     result.attributes) ||
       parser.parseOptionalAttrDict(result.attributes) ||
       parser.parseColonType(type) ||
       parser.resolveOperand(memrefInfo, type, result.operands) ||
       parser.resolveOperands(mapOperands, indexTy, result.operands) ||
-      parser.addTypeToList(type.getElementType(), result.types));
+      parser.addTypeToList(type, result.types));
 }
 
 
 void DataBlockLoadOp::print(OpAsmPrinter &p) {
-  p << " " << getOriginalArray() << '[';
+  p << " " << getOriginalMemref() << " [";
   if (AffineMapAttr mapAttr =
           (*this)->getAttrOfType<AffineMapAttr>(getMapAttrStr()))
-    p.printAffineMapOfSSAIds(mapAttr, getOperands());
-  p << ']';
-  p.printOptionalAttrDict((*this)->getAttrs(),
-                          /*elidedAttrs=*/{getMapAttrStr()});
-  p << " : " << getOriginalArray().getType().cast<MemRefType>();
+    p.printAffineMapOfSSAIds(mapAttr, getMapOperands());
+  p << "]";
+  p << " : " << getOriginalMemrefType() ;
+  p << " -> " << getResultType() << " ";
+  p << "{"  << getKernelName() << "}";
+  // p.printOptionalAttrDict((*this)->getAttrs(),
+  //                         /*elidedAttrs=*/{getMapAttrStr()});
 }
 
 // Returns true if 'value' is a valid index to an affine operation (e.g.
@@ -213,19 +214,18 @@ verifyMemoryOpIndexing(Operation *op, AffineMapAttr mapAttr,
   return success();
 }
 
-
 LogicalResult DataBlockLoadOp::verify() {
-  /// Tofix: fix verify()
-  auto memrefType = getOriginalArray().getType().cast<MemRefType>();
-  if (getType() != memrefType.getElementType())
-    return emitOpError("result type must match element type of memref");
-
+  MemRefType memrefType = getOriginalMemrefType();
   if (failed(verifyMemoryOpIndexing(
           getOperation(),
           (*this)->getAttrOfType<AffineMapAttr>(getMapAttrStr()),
-          getOperands(), memrefType,
+          getMapOperands(), memrefType,
           /*numIndexOperands=*/getNumOperands() - 1)))
     return failure();
+
+  if (getOriginalMemrefType().getElementType() != getResultType().getElementType())
+    return emitOpError(
+        "requires memref and vector types of the same elemental type");
 
   return success();
 }
