@@ -185,8 +185,8 @@ func::FuncOp KernelToFuncPass::
   Region &KernelOpBody = KernelOp.body();
   std::string kernelFnName = KernelOp.getKernelName();
 
-  errs() << kernelFnName << ":\n";
-  KernelOp.dump();
+  // errs() << kernelFnName << ":\n";
+  // KernelOp.dump();
   // Identify uses from values defined outside of the scope of the launch
   // operation.
   getUsedValuesDefinedAbove(KernelOpBody, operands);
@@ -196,7 +196,7 @@ func::FuncOp KernelToFuncPass::
   kernelOperandTypes.reserve(operands.size());
   for (Value operand : operands)
   {
-    // errs()  << "  operands:"; operand.dump();
+    errs()  << "  operands:"; operand.dump();
     kernelOperandTypes.push_back(operand.getType());
   }
   FunctionType type =
@@ -242,9 +242,18 @@ func::FuncOp KernelToFuncPass::
 /// @brief Generate Explicit Kernel Data BLock
 ///        Load/Store of the call of kernel.
 /// @param Kernel
-/// Steps to create a DataBlockLoad/Store Op:
+/// Steps to create a DataBlockLoad Op:
 ///   Step1: when find a LoadOp, we traverse every dim(rank) of its original memref,
 ///    Get InductionVar(IV) of this memrefRegion
+///
+///   Step2: Get Lower And Upper Bound in this rank and get the lpMap and upMap 
+///    that determines the min size of space. The size should be constant.
+///
+///   Step3: Create DataBlockLoadOp and replace original Memref in loadOp.
+///
+///   Step4: Change index of loadop according to the new BlockLoadOp.
+///
+/// Steps to create a DataBlockStore Op:
 ///
 void KernelToFuncPass::ExplicitKernelDataBLockLoadStore(FDRA::KernelOp Kernel)
 {
@@ -252,8 +261,17 @@ void KernelToFuncPass::ExplicitKernelDataBLockLoadStore(FDRA::KernelOp Kernel)
   Value memref;
   SmallVector<Value, 4> IVs;
   mlir::OpBuilder builder(Kernel.body().getContext());
+
+  // Tofix:
+  // If dependency within iteration
+  // typedef SmallDenseMap<std::unique_ptr<MemRefRegion>, SmallVector<Value, 4>, 4>  RegionToLSop_t;
+  // RegionToLSop_t RegionToLSMap;
+
+  //////////
+  /// Generate BlockLoadOp
+  //////////
   Kernel.walk([&](AffineLoadOp loadop)
-              {
+  {
     llvm::errs() << "[debug] loadop: ";loadop.dump();
     if(succeeded(memrefRegion.compute(loadop, 
                 /*loopDepth=*/getNestingDepth(Kernel.getOperation())))){ /// Bind loadop and memrefRegion through compute()
@@ -322,26 +340,13 @@ void KernelToFuncPass::ExplicitKernelDataBLockLoadStore(FDRA::KernelOp Kernel)
           }
         }
 
-        /////////////
-        /// Step3: Get Lower And Upper Bound in this rank and get the lpMap and upMap 
-        /// that determines the min size of space. The size should be constant.
-        /////////////
 
         memExprs.push_back(lbExpr_minspace);
-        // memExprs.push_back(ubExpr_minspace);
-        // if(lbExpr_minspace.isSymbolicOrConstant() && ubExpr_minspace.isSymbolicOrConstant()){
-        //   /// lb and up bound Exprs are both constant
-        //   memIVmaps.push_back(AffineMap::get(0, /*symbolCount=*/0, memExprs, builder.getContext()));
-        // }
-        // else if(!lbExpr_minspace.isSymbolicOrConstant() && !ubExpr_minspace.isSymbolicOrConstant()){
-        //   /// lb and up bound Exprs both contain dim variables
-        //   memIVmaps.push_back(AffineMap::get(rank, /*symbolCount=*/0, memExprs, builder.getContext()));
-        // }
         newMemRefShape.push_back(min_space);
       }
       
       /////////
-      /// Step 4 :Create DataBlockLoadOp and replace original Memref in loadOp 
+      /// Step 3 :Create DataBlockLoadOp and replace original Memref in loadOp 
       /////////
       AffineMap memIVmap = AffineMap::get(IVs.size(), /*symbolCount=*/0, memExprs, builder.getContext());   /// stores corresponding AffineMap of above memIVs
       MemRefType newMemRef = MemRefType::get( (ArrayRef<int64_t>)newMemRefShape, memRefType.getElementType());
@@ -357,7 +362,7 @@ void KernelToFuncPass::ExplicitKernelDataBLockLoadStore(FDRA::KernelOp Kernel)
 
 
       /////////
-      /// Step 5 : Change index of loadop according to the new BlockLoadOp
+      /// Step 4 : Change index of loadop according to the new BlockLoadOp
       /////////
       
       // llvm::errs() << "[debug] memIVmap: " << memIVmap << "\n";
@@ -397,25 +402,189 @@ void KernelToFuncPass::ExplicitKernelDataBLockLoadStore(FDRA::KernelOp Kernel)
           /// If BlockLoadExpr is : "%arg9" or "%arg9 + 32", we need to judge whether loadOp's 
           /// index contains a reference of "%arg9" first. If so, LoadExpr = LoadExpr - BlockLoadExpr
           // check(LoadExpr )
-          unsigned dim = 0;
-          for(auto BlkLdOperand : BlockLoad.getMapOperands()){
+          for( unsigned dim = 0; dim < BlockLoad.getMapOperands().size(); dim++){
             if(BlockLoadExpr.isFunctionOfDim(dim) 
              &&LoadExpr.isFunctionOfDim(dim) ){
               LoadExpr = LoadExpr - BlockLoadExpr;
             }
-            dim++;
           }
         }
         
         LoadExprs.push_back(LoadExpr);
         // llvm::errs() << "[debug] after remove LoadExpr: " << LoadExpr << "\n";
       }
-      llvm::errs() << "[debug] before change: ";loadop.dump();
       AffineMap newLoadMap = AffineMap::get(LoadMap.getNumDims(),LoadMap.getNumSymbols(),LoadExprs,builder.getContext()); 
       loadop.getOperation()->setAttr(AffineLoadOp::getMapAttrStrName(),AffineMapAttr::get(newLoadMap));
-      llvm::errs() << "[debug] after change: ";loadop.dump();
     } 
   });
+
+
+  //////////
+  /// Generate BlockStoreOp
+  //////////
+  SmallDenseMap<AffineStoreOp, Value, 4> StoreToMem; 
+  SmallDenseMap<Value, std::unique_ptr<MemRefRegion>, 4> MemToRegion; 
+  Kernel.walk([&](AffineStoreOp storeop)-> WalkResult
+  {
+    //////////
+    /// Step 1: Get the memref region of store op. What should be noted is:
+    ///  2 accesses to an identical store memref should compute their unionBoundingBox region.
+    //////////
+    llvm::errs() << "[debug] storeop: ";storeop.dump();
+    auto region = std::make_unique<MemRefRegion>(storeop.getLoc());
+    if(failed(region->compute(storeop, 
+                /*loopDepth=*/getNestingDepth(Kernel.getOperation())))){ /// Bind loadop and memrefRegion through compute()
+      return storeop->emitError("error obtaining memory region\n");
+    }
+    StoreToMem[storeop] = std::move(region->memref);
+
+    auto it = MemToRegion.find(region->memref);
+    if (it == MemToRegion.end()) {
+      MemToRegion[region->memref] = std::move(region);
+    } else if (failed(it->second->unionBoundingBox(*region))) {
+      return storeop.getOperation()->emitWarning(
+          "getMemoryFootprintBytes: unable to perform a union on a memory "
+          "region");
+    }
+    return WalkResult::advance();
+  });
+
+  for (const auto &MemAndRegion : MemToRegion) {
+    memrefRegion = *(MemAndRegion.getSecond());
+    memref = memrefRegion.memref;
+    // llvm::errs() << "[debug] memref: " << MemAndRegion.getFirst();
+    // llvm::errs() << ", region: \n"; memrefRegion.dump();
+    
+
+    // Value SourceMemref = memrefRegion.memref; /// original memref Op of this loadOP
+    MemRefType memRefType = memref.getType().cast<MemRefType>(); /// contains shape info of original memref
+    unsigned rank = memRefType.getRank(); /// dim number of original memref
+    assert(rank == memrefRegion.cst.getNumDimVars() && "inconsistent memref region");      
+      
+    /// To fix: memIVs should be a setVector??
+    // SmallVector<Value, 4> memIVs; /// stores the Interation Variables out of kernel that determined load bound
+    SmallVector<AffineExpr, 4> memExprs;
+    SmallVector<int64_t, 4> newMemRefShape; /// stores the new dim shape of blockloadOp which will replace oringinal memref
+
+    ////////////
+    /// Step2: Get InductionVar(IV) of this memrefRegion
+    /////////////
+
+    memrefRegion.cst.getValues(memrefRegion.cst.getNumDimVars(),
+        memrefRegion.cst.getNumDimAndSymbolVars(), &IVs);
+    // assert(IVs.size() <= 1  /// To fix: if IVs.size() > 1 ?
+    //       && " This kernel should only have 1 outer IV as input arguments.");
+
+    /// For different dim of original memref
+    for (unsigned r = 0; r < rank; r++) {
+      AffineExpr lbExpr_minspace, ubExpr_minspace;
+
+      /////////////
+      /// Step3: Get Lower And Upper Bound in this rank and get the lpMap and upMap 
+      /// that determines the min size of space. The size should be constant.
+      /////////////
+      AffineMap lbMap, ubMap;
+      memrefRegion.getLowerAndUpperBound(r, lbMap, ubMap);
+      assert(lbMap.getNumDims() == IVs.size() && ubMap.getNumDims() == IVs.size()\
+            && " Num of bound's dim should be the same with num of IVs!");
+      // llvm::errs() << "[debug] lbMap: " << lbMap << " , ubMap: "<< ubMap << "\n";
+      int64_t min_space = -1;
+      for(AffineExpr lbExpr : lbMap.getResults()){
+        for(AffineExpr ubExpr : ubMap.getResults()){
+          AffineExpr diffExpr = ubExpr - lbExpr;
+          // llvm::errs() << "[debug] diffExpr: " << diffExpr << "\n";
+          if(diffExpr.isSymbolicOrConstant()){
+            /// Found a Constant diff
+            AffineConstantExpr diffExpr_const=diffExpr.dyn_cast<AffineConstantExpr>();
+            if(diffExpr_const.getValue()==memRefType.getNumElements() && min_space==-1){
+              /// This upper and lowerbound is constrained by 
+              /// original memref's size and a smaller min_space
+              /// is not found yet.
+              lbExpr_minspace = lbExpr;
+              ubExpr_minspace = ubExpr;
+              min_space = diffExpr_const.getValue();
+            }
+            else if(diffExpr_const.getValue() < min_space || min_space==-1){
+              /// Found a smaller memory space, store the Affine Expr of lb and ub
+              lbExpr_minspace = lbExpr;
+              ubExpr_minspace = ubExpr;
+              min_space = diffExpr_const.getValue();
+            }
+          }
+          assert(min_space != -1 && 
+                " The memory space this L/S op access has different size in different Iterations!");
+        }
+      }
+      memExprs.push_back(lbExpr_minspace);
+      newMemRefShape.push_back(min_space);
+    }
+      
+    /////////
+    /// Step 4 :Create DataBlockLoadOp 
+    /////////
+    AffineMap memIVmap = AffineMap::get(IVs.size(), /*symbolCount=*/0, memExprs, builder.getContext());   /// stores corresponding AffineMap of above memIVs
+    MemRefType newMemRef = MemRefType::get( (ArrayRef<int64_t>)newMemRefShape, memRefType.getElementType());
+    FDRA::DataBlockLoadOp BlockLoad = builder.create<FDRA::DataBlockLoadOp>\
+                (Kernel.getLoc(), memref, memIVmap, IVs, newMemRef);
+    Kernel.getOperation()->getBlock()->push_back(BlockLoad);
+    BlockLoad.getOperation()->moveBefore(Kernel);
+    BlockLoad.setKernelName(Kernel.getKernelName());
+
+    /////////
+    /// Step 5 : replace original Memref in storeOp and Change index of storeop according to the new BlockLoadOp
+    /////////
+    for(auto StoreAndMem : StoreToMem){
+      if(StoreAndMem.getSecond() == MemAndRegion.getFirst()){
+        StoreAndMem.getFirst().getOperation()->replaceUsesOfWith(memref, BlockLoad.result());
+        AffineStoreOp storeop =  StoreAndMem.getFirst();
+        /** 
+          * Complete a conversion for load op's index, here is an example:
+          * BlockLoadOp:
+          *   %0 = FDRA.BlockLoad %arg1 [%arg9, 0] : memref<32x32xf32> -> memref<1x32xf32> 
+          * StoreOp in kernel region:
+          *   %2 = affine.store %1, %arg1[%arg9 + %arg11, %arg12] : memref<32x32xf32>
+          * 
+          * %arg1 become %0,  %arg9 + %arg11 = %arg9 + %arg11 - %arg9 = %arg11
+          * StoreOp after conversion should be:
+          *   %2 = affine.store %1 ,%0[%arg11, %arg12] : memref<1x32xf32>
+          * 
+          * This adjustment is caused by the change of head position of the memref 
+          * 
+          */
+        assert(memExprs.size() == rank && "Each rank should have its own affine expr.");
+        SmallVector<AffineExpr, 4> StoreExprs;
+        AffineMap StoreMap = storeop.getAffineMapAttr().getValue();
+        for (unsigned r = 0; r < rank; r++) {
+          AffineExpr StoreExpr = StoreMap.getResult(r);
+            // llvm::errs() << "[debug] before remove LoadExpr: " << LoadExpr << "\n";
+            // operand_range LoadOperands = loadop.getMapOperands();
+            AffineExpr BlockLoadExpr = memExprs[r];
+            assert((BlockLoadExpr.getKind() == AffineExprKind::DimId ||
+                    BlockLoadExpr.getKind() == AffineExprKind::Add   ||
+                    BlockLoadExpr.getKind() == AffineExprKind::Constant) &&
+                    "Only handle '%arg9' or '%arg9 + 32' like index for BlockLoadExpr right now.");
+        
+            if(BlockLoadExpr.getKind() == AffineExprKind::Constant){
+              StoreExpr = StoreExpr - BlockLoadExpr; /// forward the head position of LoadOp by a const value
+            }
+            else { 
+              /// If BlockLoadExpr is : "%arg9" or "%arg9 + 32", we need to judge whether loadOp's 
+              /// index contains a reference of "%arg9" first. If so, StoreExpr = StoreExpr - BlockLoadExpr;
+              // check(LoadExpr )
+              for( unsigned dim = 0; dim < BlockLoad.getMapOperands().size(); dim++){
+                if(BlockLoadExpr.isFunctionOfDim(dim) 
+                  &&StoreExpr.isFunctionOfDim(dim) ){
+                  StoreExpr = StoreExpr - BlockLoadExpr;
+                }
+              }
+            }
+            StoreExprs.push_back(StoreExpr);
+          }
+          AffineMap newStoreMap = AffineMap::get(StoreMap.getNumDims(),StoreMap.getNumSymbols(),StoreExprs,builder.getContext()); 
+          storeop.getOperation()->setAttr(AffineStoreOp::getMapAttrStrName(),AffineMapAttr::get(newStoreMap));      
+      }
+    }
+  }
 }
 
 /// @brief  Eliminate the affine transformation of the upper/lower bound
@@ -531,6 +700,23 @@ void KernelToFuncPass::runOnOperation()
       if (failed(sinkOperationsIntoKernelOp(op)))
         return WalkResult::interrupt();
       
+
+
+      // ////Test
+      // Region &KernelOpBody = Kernel.body();
+      // getUsedValuesDefinedAbove(KernelOpBody, operands);
+      // // Create the func.func operation.
+      // SmallVector<Type, 4> kernelOperandTypes;
+      // kernelOperandTypes.reserve(operands.size());
+      // errs()  << "[debug] topFunc:\n"; topFunc.dump();
+      // for (Value operand : operands)
+      // {
+      //   errs()  << "  operands:"; operand.dump();
+      //   kernelOperandTypes.push_back(operand.getType());
+      // }
+      // ////Test
+
+
       ///////////////
       /// Generate explicit data block movement (load/store) for kernel to consume
       ///////////////
