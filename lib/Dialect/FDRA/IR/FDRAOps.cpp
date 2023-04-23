@@ -91,7 +91,7 @@ LogicalResult KernelOp::verify() {
 
 void KernelOp::print(OpAsmPrinter &printer) {
   printer << ' ';
-  printer.printRegion(body(), /*printEntryBlockArgs=*/false);
+  printer.printRegion(body(), /*printEntryBlockArgs=*/true,/*printBlockTerminators=*/true);
   printer.printOptionalAttrDict((*this)->getAttrs());
 }
 

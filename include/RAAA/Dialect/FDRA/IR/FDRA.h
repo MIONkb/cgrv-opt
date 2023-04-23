@@ -45,6 +45,8 @@ namespace FDRA {
 mlir::Operation* eraseKernel(::mlir::func::FuncOp& TopFunc, FDRA::KernelOp& Kernel);
 void SpecifiedAffineFortoKernel(::mlir::AffineForOp& forOp);
 AffineExpr getConstPartofAffineExpr(AffineExpr& expr);
+// void removeUnusedRegionArgs(Region &region);
+void eliminateUnusedIndices(Operation *op);
 
 //===----------------------------------------------------------------------===//
 // A templated find func for smallvector

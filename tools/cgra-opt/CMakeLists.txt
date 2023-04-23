@@ -68,6 +68,7 @@ set(LIBS
   # MLIRMyTestTransforms
 
   #FDRA
+  MLIRFDRAMisc
   MLIRFDRAOps
   MLIRFDRATransforms
 )

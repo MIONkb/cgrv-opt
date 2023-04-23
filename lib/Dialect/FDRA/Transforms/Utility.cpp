@@ -85,7 +85,9 @@ void mlir::FDRA::SpecifiedAffineFortoKernel(mlir::AffineForOp& kernelforOp){
   KernelOp.body().front().begin(), ops, Block::iterator(kernelforOp));
 }
 
-
+//===----------------------------------------------------------------------===//
+// getConstPartofAffineExpr(Is associated with Affine Dialect)
+//===----------------------------------------------------------------------===//
 /// @brief 
 /// @param expr 
 /// @return the constant part of this AffineExpr
@@ -107,5 +109,108 @@ AffineExpr mlir::FDRA::getConstPartofAffineExpr(AffineExpr& expr){
     break;
   }
   return constantpart;
+}
 
+
+//===----------------------------------------------------------------------===//
+// removeUnusedRegionArgs
+//===----------------------------------------------------------------------===//
+// void mlir::FDRA::removeUnusedRegionArgs(Region &region){
+//   SmallVector<BlockArgument, 4> args(region.getArguments().begin(),
+//                                      region.getArguments().end());
+//   for (auto arg : args) {
+//     // Check if the argument is used in the region
+//     llvm::errs() << "[debug] arg:" << arg <<"\n";
+//     bool used = false;
+//     region.walk([&](Operation* op) {
+//       llvm::errs() << "[debug] op:" << *op <<"\n";
+//       for (auto operand : op->getOperands()) {
+//         llvm::errs() << "[debug] operand:" << operand <<"\n";
+//         if (operand == arg){
+//           used = true;
+//         }
+//       }
+//     });
+//     if (!used)
+//       region.eraseArgument(arg.getArgNumber());
+//   }
+// }
+
+
+//===----------------------------------------------------------------------===//
+// removeUnusedRegionArgs
+//===----------------------------------------------------------------------===//
+// This function takes a `loadOp` or `storeOp` and eliminates unused indices in its
+// index list.
+void mlir::FDRA::eliminateUnusedIndices(Operation *op) {
+  // Get the affine map for the operation.
+  AffineMap map;
+  ValueRange mapOperands;
+  if (auto loadOp = dyn_cast<AffineLoadOp>(op)){
+    map = loadOp.getAffineMap();
+    mapOperands = loadOp.getIndices();
+  }
+  else if (auto storeOp = dyn_cast<AffineStoreOp>(op)){
+    map = storeOp.getAffineMap();
+    mapOperands = storeOp.getIndices();
+  }
+  else
+    assert("Operation to eliminate unused indices should be AffineStoreOp or AffineLoadOp.");
+  // Get the operands for the operation.
+
+  // Find which indices are used by checking which dimensions appear in the affine map.
+  SmallVector<bool, 8> usedIndices(mapOperands.size(), false);
+  // llvm::errs() << "[debug] map:" << map <<"\n";
+  
+  assert(map.getNumInputs() == mapOperands.size() && "map.getNumInputs() should be equal to operands.size().");
+  for (unsigned input = 0; input < map.getNumInputs(); ++input) {
+    unsigned index;
+    auto results = map.getResults();
+    for( index = 0; index < results.size(); index++){
+      AffineExpr result = results[index];
+      if(result.isFunctionOfDim(input))
+        break;
+    }
+    if(index == results.size()){
+      /// This input is not a operand of the load
+      usedIndices[input] = false;
+    }
+    else{
+      usedIndices[input] = true;
+    }
+  }
+
+  // Use the builder to construct a new affine map and index list, which only includes used
+  // indices.
+  OpBuilder builder(op->getContext());
+  SmallVector<Value, 4> newIndexList;
+  SmallVector<AffineExpr, 4> dimReplacements(map.getNumDims());
+  unsigned j = 0;
+  for (unsigned i = 0; i < mapOperands.size(); ++i) {
+    if (usedIndices[i]){
+      newIndexList.push_back(mapOperands[i]);
+      dimReplacements[i] = getAffineDimExpr(j++, map.getContext());
+    }
+    else{
+      dimReplacements[i] = getAffineConstantExpr(0, map.getContext());
+    }
+  }
+
+  // auto newMap = AffineMap::get(newIndexList.size(), map.getNumSymbols(), map.getResults(), op->getContext());
+  map = map.replaceDimsAndSymbols(dimReplacements, {}, j, map.getNumSymbols());
+  // llvm::errs() << "[debug] map after replace:" << map <<"\n";
+
+  // Set the new affine map and index list for the operation.
+  if (auto loadOp = dyn_cast<AffineLoadOp>(op)){
+    newIndexList.insert(newIndexList.begin(),loadOp.getMemref());
+    loadOp.getOperation()->setAttr(AffineLoadOp::getMapAttrStrName(),AffineMapAttr::get(map));  
+    loadOp.getOperation()->setOperands(newIndexList);
+  }
+
+  else if (auto storeOp = dyn_cast<AffineStoreOp>(op)){
+    newIndexList.insert(newIndexList.begin(),storeOp.getMemref());
+    newIndexList.insert(newIndexList.begin(),storeOp.getValue());
+    storeOp.getOperation()->setAttr(AffineStoreOp::getMapAttrStrName(),AffineMapAttr::get(map)); 
+    storeOp.getOperation()->setOperands(newIndexList);  
+  }
 }

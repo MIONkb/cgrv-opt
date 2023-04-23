@@ -17,6 +17,7 @@
 
 #include "RAAA/Dialect/FDRA/IR/FDRA.h"
 #include "RAAA/Dialect/FDRA/Transforms/Passes.h"
+#include "RAAA/Misc/Passes.h"
 
 // #include "soda/Conversion/Passes.h"
 // #include "soda/Dialect/SNN/IR/SNN.h"
@@ -141,6 +142,7 @@ int main(int argc, char **argv) {
   mlir::FDRA::registerAdjustKernelMemoryFootprintPass();
   mlir::FDRA::registerExtractKernelToFuncPass();
   mlir::FDRA::registerAutoDesignSpaceExplorePass();
+  mlir::FDRA::registerTestPrintOpNestingPass();
   
   // ----- SODA -----
   // Misc passes

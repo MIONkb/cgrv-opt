@@ -415,6 +415,7 @@ void KernelToFuncPass::ExplicitKernelDataBLockLoadStore(FDRA::KernelOp Kernel)
       }
       AffineMap newLoadMap = AffineMap::get(LoadMap.getNumDims(),LoadMap.getNumSymbols(),LoadExprs,builder.getContext()); 
       loadop.getOperation()->setAttr(AffineLoadOp::getMapAttrStrName(),AffineMapAttr::get(newLoadMap));
+      eliminateUnusedIndices(loadop.getOperation());
     } 
   });
 
@@ -520,15 +521,24 @@ void KernelToFuncPass::ExplicitKernelDataBLockLoadStore(FDRA::KernelOp Kernel)
     }
       
     /////////
-    /// Step 4 :Create DataBlockLoadOp 
+    /// Step 4 :Create DataBlockLoadOp and DataBlockStoreOp
     /////////
     AffineMap memIVmap = AffineMap::get(IVs.size(), /*symbolCount=*/0, memExprs, builder.getContext());   /// stores corresponding AffineMap of above memIVs
     MemRefType newMemRef = MemRefType::get( (ArrayRef<int64_t>)newMemRefShape, memRefType.getElementType());
+
+    /// DataBlockLoadOp which is coupled with following DataBlockStoreOp
     FDRA::DataBlockLoadOp BlockLoad = builder.create<FDRA::DataBlockLoadOp>\
                 (Kernel.getLoc(), memref, memIVmap, IVs, newMemRef);
     Kernel.getOperation()->getBlock()->push_back(BlockLoad);
     BlockLoad.getOperation()->moveBefore(Kernel);
     BlockLoad.setKernelName(Kernel.getKernelName());
+
+    /// DataBlockStoreOp which is coupled with above DataBlockLoadOp
+    FDRA::DataBlockStoreOp BlockStore = builder.create<FDRA::DataBlockStoreOp>\
+                (Kernel.getLoc(), BlockLoad.result(), memref, memIVmap, IVs);
+    Kernel.getOperation()->getBlock()->push_back(BlockStore);
+    BlockStore.getOperation()->moveAfter(Kernel);
+    BlockStore.setKernelName(Kernel.getKernelName());
 
     /////////
     /// Step 5 : replace original Memref in storeOp and Change index of storeop according to the new BlockLoadOp
@@ -556,32 +566,33 @@ void KernelToFuncPass::ExplicitKernelDataBLockLoadStore(FDRA::KernelOp Kernel)
         AffineMap StoreMap = storeop.getAffineMapAttr().getValue();
         for (unsigned r = 0; r < rank; r++) {
           AffineExpr StoreExpr = StoreMap.getResult(r);
-            // llvm::errs() << "[debug] before remove LoadExpr: " << LoadExpr << "\n";
-            // operand_range LoadOperands = loadop.getMapOperands();
-            AffineExpr BlockLoadExpr = memExprs[r];
-            assert((BlockLoadExpr.getKind() == AffineExprKind::DimId ||
-                    BlockLoadExpr.getKind() == AffineExprKind::Add   ||
-                    BlockLoadExpr.getKind() == AffineExprKind::Constant) &&
-                    "Only handle '%arg9' or '%arg9 + 32' like index for BlockLoadExpr right now.");
+          // llvm::errs() << "[debug] before remove LoadExpr: " << LoadExpr << "\n";
+          // operand_range LoadOperands = loadop.getMapOperands();
+          AffineExpr BlockLoadExpr = memExprs[r];
+          assert((BlockLoadExpr.getKind() == AffineExprKind::DimId ||
+                  BlockLoadExpr.getKind() == AffineExprKind::Add   ||
+                  BlockLoadExpr.getKind() == AffineExprKind::Constant) &&
+                  "Only handle '%arg9' or '%arg9 + 32' like index for BlockLoadExpr right now.");
         
-            if(BlockLoadExpr.getKind() == AffineExprKind::Constant){
-              StoreExpr = StoreExpr - BlockLoadExpr; /// forward the head position of LoadOp by a const value
-            }
-            else { 
-              /// If BlockLoadExpr is : "%arg9" or "%arg9 + 32", we need to judge whether loadOp's 
-              /// index contains a reference of "%arg9" first. If so, StoreExpr = StoreExpr - BlockLoadExpr;
-              // check(LoadExpr )
-              for( unsigned dim = 0; dim < BlockLoad.getMapOperands().size(); dim++){
-                if(BlockLoadExpr.isFunctionOfDim(dim) 
-                  &&StoreExpr.isFunctionOfDim(dim) ){
-                  StoreExpr = StoreExpr - BlockLoadExpr;
-                }
-              }
-            }
-            StoreExprs.push_back(StoreExpr);
+          if(BlockLoadExpr.getKind() == AffineExprKind::Constant){
+            StoreExpr = StoreExpr - BlockLoadExpr; /// forward the head position of LoadOp by a const value
           }
-          AffineMap newStoreMap = AffineMap::get(StoreMap.getNumDims(),StoreMap.getNumSymbols(),StoreExprs,builder.getContext()); 
-          storeop.getOperation()->setAttr(AffineStoreOp::getMapAttrStrName(),AffineMapAttr::get(newStoreMap));      
+          else { 
+            /// If BlockLoadExpr is : "%arg9" or "%arg9 + 32", we need to judge whether loadOp's 
+            /// index contains a reference of "%arg9" first. If so, StoreExpr = StoreExpr - BlockLoadExpr;
+            // check(LoadExpr )
+            for( unsigned dim = 0; dim < BlockLoad.getMapOperands().size(); dim++){
+              if(BlockLoadExpr.isFunctionOfDim(dim) 
+                &&StoreExpr.isFunctionOfDim(dim) ){
+                StoreExpr = StoreExpr - BlockLoadExpr;
+               }
+            }
+          }
+          StoreExprs.push_back(StoreExpr);
+        }
+        AffineMap newStoreMap = AffineMap::get(StoreMap.getNumDims(),StoreMap.getNumSymbols(),StoreExprs,builder.getContext()); 
+        storeop.getOperation()->setAttr(AffineStoreOp::getMapAttrStrName(),AffineMapAttr::get(newStoreMap));      
+        eliminateUnusedIndices(storeop.getOperation());
       }
     }
   }
@@ -672,6 +683,8 @@ void KernelToFuncPass::EliminateOuterLoopAffineTrans(FDRA::KernelOp Kernel)
   });
 }
 
+
+
 void KernelToFuncPass::runOnOperation()
 {
   SymbolTable symbolTable(getOperation());
@@ -700,34 +713,19 @@ void KernelToFuncPass::runOnOperation()
       if (failed(sinkOperationsIntoKernelOp(op)))
         return WalkResult::interrupt();
       
-
-
-      // ////Test
-      // Region &KernelOpBody = Kernel.body();
-      // getUsedValuesDefinedAbove(KernelOpBody, operands);
-      // // Create the func.func operation.
-      // SmallVector<Type, 4> kernelOperandTypes;
-      // kernelOperandTypes.reserve(operands.size());
-      // errs()  << "[debug] topFunc:\n"; topFunc.dump();
-      // for (Value operand : operands)
-      // {
-      //   errs()  << "  operands:"; operand.dump();
-      //   kernelOperandTypes.push_back(operand.getType());
-      // }
-      // ////Test
-
-
       ///////////////
       /// Generate explicit data block movement (load/store) for kernel to consume
       ///////////////
       if(ExplicitDataTrans==true){
-        // getMemrefHeadAndFootprint(Kernel);
+        /// generate explicit data movement around Kernel{...}
         ExplicitKernelDataBLockLoadStore(Kernel);
+
         /// Eliminate the affine transformation of the upper/lower bound 
         /// of most-out loop in Kernel{...}
         EliminateOuterLoopAffineTrans(Kernel);
-        llvm::errs() << "[debug] after ExplicitKernelDataBLockLoadStore: \n";
-        topFunc.dump();
+
+        /// Remove unused arguments of Kernel's region
+        // Kernel.walk([&](Region *region){ removeUnusedRegionArgs(*region); });
       }
 
       func::FuncOp NewKernelFunc = GenKernelFunc(op, operands);
@@ -753,6 +751,7 @@ void KernelToFuncPass::runOnOperation()
     });
     if (KernelWalkResult.wasInterrupted())
       return signalPassFailure();
+
     
     cnt_to_KernelOP[cnt] = Kernel;
     cnt++;
