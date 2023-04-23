@@ -73,7 +73,19 @@ LogicalResult KernelOp::verify() {
     //       .append("in '", LaunchOp::getOperationName(), "' body region");
     // }
   }
-
+  
+  Region& knRegion = body();
+  /// A kernel should only contain 1 region
+  /// and this region should only contain 1 block
+  if(knRegion.getBlocks().size() != 1)
+    return emitOpError(
+        "Kernel Region should only get 1 Block.");
+  Block& knBlock = knRegion.front();
+  /// this kernel Block should only contain 2 Op(a forOp and a terminatorOp)
+  /// To fix: maybe not a forOp
+  if(knBlock.getOperations().size() != 2 )
+    return emitOpError(
+        "kernel Block should only get 2 Ops.");
   return success();
 }
 
@@ -145,12 +157,15 @@ void DataBlockLoadOp::build(OpBuilder &builder, OperationState &result,
 }
 
 ParseResult DataBlockLoadOp::parse(OpAsmParser &parser, OperationState &result) {
+  /// example:
+  /// %0 = FDRA.BlockLoad %arg1 [%arg9, 0] : memref<32x32xf32> -> memref<1x32xf32> {three_mm_32_kernel_0}
   auto &builder = parser.getBuilder();
   auto indexTy = builder.getIndexType();
 
-  MemRefType type;
+  MemRefType memrefType, resultType;
   OpAsmParser::UnresolvedOperand memrefInfo;
   AffineMapAttr mapAttr;
+  StringAttr KernelNameAttr;
   SmallVector<OpAsmParser::UnresolvedOperand, 1> mapOperands;
   return failure(
       parser.parseOperand(memrefInfo) ||
@@ -158,12 +173,15 @@ ParseResult DataBlockLoadOp::parse(OpAsmParser &parser, OperationState &result) 
                                     getMapAttrStr(),
                                     result.attributes) ||
       parser.parseOptionalAttrDict(result.attributes) ||
-      parser.parseColonType(type) ||
-      parser.resolveOperand(memrefInfo, type, result.operands) ||
+      parser.parseColon() || parser.parseType(memrefType) ||
+      parser.parseArrow() ||
+      parser.resolveOperand(memrefInfo, memrefType, result.operands) ||
       parser.resolveOperands(mapOperands, indexTy, result.operands) ||
-      parser.addTypeToList(type, result.types));
+      parser.addTypeToList(resultType, result.types) ||
+      parser.parseLBrace() ||
+      parser.parseAttribute(KernelNameAttr, "KernelName", result.attributes)||
+      parser.parseOptionalRBrace());
 }
-
 
 void DataBlockLoadOp::print(OpAsmPrinter &p) {
   p << " " << getOriginalMemref() << " [";
@@ -225,10 +243,102 @@ LogicalResult DataBlockLoadOp::verify() {
 
   if (getOriginalMemrefType().getElementType() != getResultType().getElementType())
     return emitOpError(
-        "requires memref and vector types of the same elemental type");
+        "requires 2 memref types of the same elemental type");
 
   return success();
 }
+
+//===----------------------------------------------------------------------===//
+// DataBlockStoreOp
+//===----------------------------------------------------------------------===//
+
+void DataBlockStoreOp::build(OpBuilder &builder, OperationState &result,
+                            Value SourceMemref, Value TargetMemref, 
+                            AffineMap map, ValueRange mapOperands, 
+                            std::string KernelName) {
+  assert(map.getNumInputs() == mapOperands.size() && "inconsistent index info");
+  result.addOperands(SourceMemref);
+  result.addOperands(TargetMemref);
+
+  result.addOperands(mapOperands);
+  result.addAttribute(getMapAttrStr(), AffineMapAttr::get(map));
+
+  auto KernelNameAttr = builder.getStringAttr(KernelName);
+  result.addAttribute(getKernelNameAttrStr(), KernelNameAttr);
+}
+
+void DataBlockStoreOp::build(OpBuilder &builder, OperationState &result,
+                            Value SourceMemref, Value TargetMemref, 
+                            AffineMap map, ValueRange mapOperands) {
+  assert(map.getNumInputs() == mapOperands.size() && "inconsistent index info");
+  std::string KernelName = ""/*"UnknownKernel"*/;
+  build(builder, result, SourceMemref, TargetMemref, map, mapOperands, KernelName);
+}
+
+ParseResult DataBlockStoreOp::parse(OpAsmParser &parser, OperationState &result) {
+  /// example: To fix
+  /// %0 = FDRA.BlockLoad %arg1 [%arg9, 0] : memref<32x32xf32> -> memref<1x32xf32> {three_mm_32_kernel_0}
+  auto &builder = parser.getBuilder();
+  auto indexTy = builder.getIndexType();
+
+  MemRefType sourceType, targetType;
+  OpAsmParser::UnresolvedOperand sourceInfo;
+  OpAsmParser::UnresolvedOperand targetInfo;
+  AffineMapAttr mapAttr;
+  StringAttr KernelNameAttr;
+  SmallVector<OpAsmParser::UnresolvedOperand, 1> mapOperands;
+  return failure(
+      parser.parseOperand(sourceInfo) || parser.parseComma() ||
+      parser.parseOperand(targetInfo) ||
+      parser.parseAffineMapOfSSAIds(mapOperands, mapAttr,
+                                    getMapAttrStr(),
+                                    result.attributes) ||
+      parser.parseOptionalAttrDict(result.attributes) ||
+      parser.parseColon() || parser.parseType(sourceType) ||
+      parser.parseArrow() || parser.parseType(targetType) ||
+      parser.resolveOperand(sourceInfo, sourceType, result.operands) ||
+      parser.resolveOperand(targetInfo, targetType, result.operands) ||
+      parser.resolveOperands(mapOperands, indexTy, result.operands)  ||
+      parser.parseLBrace() ||
+      parser.parseAttribute(KernelNameAttr, "KernelName", result.attributes)||
+      parser.parseOptionalRBrace()) ;
+}
+
+
+void DataBlockStoreOp::print(OpAsmPrinter &p) {
+  p << " " << getSourceMemref() << ", ";
+  p << " " << getTargetMemref() << " [";
+  if (AffineMapAttr mapAttr =
+          (*this)->getAttrOfType<AffineMapAttr>(getMapAttrStr()))
+    p.printAffineMapOfSSAIds(mapAttr, getMapOperands());
+  p << "]";
+  p << " : " << getSourceMemrefType() ;
+  p << " -> " << getTargetMemrefType() << " ";
+  p << "{"  << getKernelName() << "}";
+  // p.printOptionalAttrDict((*this)->getAttrs(),
+  //                         /*elidedAttrs=*/{getMapAttrStr()});
+}
+
+
+LogicalResult DataBlockStoreOp::verify() {
+  MemRefType memrefType = getTargetMemrefType();
+  if (failed(verifyMemoryOpIndexing(
+          getOperation(),
+          (*this)->getAttrOfType<AffineMapAttr>(getMapAttrStr()),
+          getMapOperands(), memrefType,
+          /*numIndexOperands=*/getNumOperands() - 2)))
+    return failure();
+
+  if (getTargetMemrefType().getElementType() != getSourceMemrefType().getElementType())
+    return emitOpError(
+        "requires source and target memref types of the same elemental type");
+
+  return success();
+}
+
+
+
+
 // void AffineLoadOp::getCanonicalizationPatterns(RewritePatternSet &results,
 //                                                MLIRContext *context) {
 //   results.add<SimplifyAffineOp<AffineLoadOp>>(context);

@@ -44,7 +44,20 @@ namespace FDRA {
 ///////////////
 mlir::Operation* eraseKernel(::mlir::func::FuncOp& TopFunc, FDRA::KernelOp& Kernel);
 void SpecifiedAffineFortoKernel(::mlir::AffineForOp& forOp);
+AffineExpr getConstPartofAffineExpr(AffineExpr& expr);
 
+//===----------------------------------------------------------------------===//
+// A templated find func for smallvector
+//===----------------------------------------------------------------------===//
+template <typename T, unsigned N>
+inline int findElement(const llvm::SmallVector<T, N>& vec, const T& elem) {
+  for (unsigned i = 0; i < vec.size(); ++i) {
+    if (vec[i] == elem) {
+      return i;
+    }
+  }
+  return -1;
+}
 } // namespace fdra
 } // namespace mlir
 

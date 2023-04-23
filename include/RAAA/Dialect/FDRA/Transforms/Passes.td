@@ -177,9 +177,9 @@ def ExtractKernelToFunc : Pass<"extract-kernel-to-function", "ModuleOp"> {
     %1 = memref.get_global @m2 : memref<1024xi32>
     %2 = memref.get_global @prod : memref<1024xi32>
     affine.for %arg0 = 0 to 32 step 8 {
-      %new_0 = FDRA.DataBLock_Load %0 -> %arg0 * 32, 256 : memref<256xi32> attributes {gemm_kernel_0}
-      %new_1 = FDRA.DataBLock_Load %1 -> %cst_0 * 32, 1024 : memref<1024xi32> attributes {gemm_kernel_0}
-      %new_2 = FDRA.DataBLock_Load %2 -> %arg0 * 32, 256 : memref<256xi32> attributes {gemm_kernel_0}
+      %new_0 = FDRA.DataBLock_Load %0 [%arg0 * 32] : memref<256xi32> attributes {gemm_kernel_0}
+      %new_1 = FDRA.DataBLock_Load %1 [%cst_0 * 32] : memref<1024xi32> attributes {gemm_kernel_0}
+      %new_2 = FDRA.DataBLock_Load %2 [%arg0 * 32] : memref<256xi32> attributes {gemm_kernel_0}
       FDRA.kernel {
         affine.for %arg1 = 0 to 8 {
           affine.for %arg2 = 0 to 32 {
@@ -195,7 +195,7 @@ def ExtractKernelToFunc : Pass<"extract-kernel-to-function", "ModuleOp"> {
         }
         FDRA.terminator
       }
-      FDRA.DataBLock_Store %new_2, %2[%arg0 * 32], 256 : memref<256xi32> attributes {gemm_kernel_0}
+      FDRA.DataBLock_Store %new_2, %2[%arg0 * 32]: memref<256xi32> -> memref<1024xi32>  {gemm_kernel_0}
     }
     return
   }

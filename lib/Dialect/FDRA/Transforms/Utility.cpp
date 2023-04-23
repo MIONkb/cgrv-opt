@@ -84,3 +84,28 @@ void mlir::FDRA::SpecifiedAffineFortoKernel(mlir::AffineForOp& kernelforOp){
   KernelOp.body().front().getOperations().splice(
   KernelOp.body().front().begin(), ops, Block::iterator(kernelforOp));
 }
+
+
+/// @brief 
+/// @param expr 
+/// @return the constant part of this AffineExpr
+AffineExpr mlir::FDRA::getConstPartofAffineExpr(AffineExpr& expr){
+  AffineExpr constantpart;
+  switch (expr.getKind())
+  {
+  case AffineExprKind::DimId :
+    constantpart = getAffineConstantExpr(0, expr.getContext());
+    break;
+
+  case AffineExprKind::Add :
+    constantpart = expr.dyn_cast<AffineBinaryOpExpr>().getRHS();
+    // llvm::errs() << "[debug] const:"<< constantpart <<"\n"; 
+    break;
+  
+  default:
+    assert(0 && "We just support 2 kinds of expr: DimId, ADD right now!");
+    break;
+  }
+  return constantpart;
+
+}

@@ -118,11 +118,12 @@ def FDRA_DataBlockLoadOp: FDRA_Op<"BlockLoad", []>{
   let description = [{
     This operation takes in an array memref,a header index of the data block which will be moved, and the block size.
     Returns the new memref from the buffer given certain header index and size.
-    This operation will corporate with BlockLoad and Call of KernelFunc. 
+    This operation will corporate with BlockStore and Call of KernelFunc. 
 
     Example: To fix !!!
     ```mlir
-    %value = "FDRA.BlockLoad" (%buffer, %j):(memref<10xf32>, index, index) -> memref<5xf32> 
+     %0 = FDRA.BlockLoad %arg1 [%arg9, 0] : memref<32x32xf32> -> memref<1x32xf32> {three_mm_32_kernel_0} 
+     %1 = FDRA.BlockLoad %arg2 [0, %arg10] : memref<32x32xf32> -> memref<32x16xf32> {three_mm_32_kernel_0}
     ```
   }];
   
@@ -144,6 +145,7 @@ def FDRA_DataBlockLoadOp: FDRA_Op<"BlockLoad", []>{
 	//Ignore Variadic<Index>:$offset at this moment
   let arguments = (ins Arg<AnyMemRef, "the reference to load from", [MemRead]>:$OriginalMemref
                   , Variadic<Index>:$indices);
+  
   let results = (outs AnyStaticShapeMemRef: $result);
   let extraClassDeclaration = [{
     // unsigned int BlockLen = 0;
@@ -177,6 +179,78 @@ def FDRA_DataBlockLoadOp: FDRA_Op<"BlockLoad", []>{
 
     operand_range getMapOperands() {
       return {operand_begin() + 1, operand_end()};
+    }
+
+  }];
+
+  let hasCustomAssemblyFormat = 1;
+  let hasVerifier = 1;
+}
+
+
+def FDRA_DataBlockStoreOp: FDRA_Op<"BlockStore", []>{
+  let summary = "Store a smaller memref to a bigger memref at a specified position.";
+  let description = [{
+    This operation takes in a source array memref which comes from a BlockLoad Op. After the excution 
+    of the kernel, this array memref is changed.
+    This operation take in another target array memref and a header index of the data block pointing the place
+    the source memref will be placed.
+    No return value exists for BlockStoreOp.
+    This operation will corporate with BlockLoad and Call of KernelFunc. 
+
+    Example: To fix !!!
+    ```mlir
+    %value = "FDRA.BlockLoad" (%buffer, %j):(memref<10xf32>, index, index) -> memref<5xf32> 
+    ```
+  }];
+
+  let builders = [   
+    OpBuilder<(ins "Value":$SourceMemref, "Value":$TargetMemref, 
+                   "AffineMap":$map, "ValueRange":$operands, 
+                   "std::string":$KernelName )>,
+    // /// Builds an block load op without KernelName.
+    OpBuilder<(ins "Value":$SourceMemref, "Value":$TargetMemref, 
+                   "AffineMap":$map, "ValueRange":$operands)>,
+  ];
+
+	//Ignore Variadic<Index>:$offset at this moment
+  let arguments = (ins Arg<AnyMemRef, "A memref from a BlockLoad Op", [MemWrite]>:$SourceMemref
+                  , Arg<AnyMemRef, "the reference to store to", [MemWrite]>:$TargetMemref
+                  , Variadic<Index>:$indices);
+  // let results = (outs AnyStaticShapeMemRef: $result); /// No results for 
+  let extraClassDeclaration = [{
+    // unsigned int BlockLen = 0;
+    // void setBlockLen(unsigned l){ BlockLen = l;};
+    // unsigned int getBlockLen(){ return BlockLen;};
+    Value getSourceMemref(){ return SourceMemref();};    
+    Value getTargetMemref(){ return TargetMemref();};
+
+    static StringRef getMapAttrStr() { return "map"; }
+    static StringRef getKernelNameAttrStr() { return "KernelName"; }
+    // static StringRef getBlockLenAttrStr() { return "BlockLen"; }
+
+    // int32_t getBlockLen() {
+    //   return this->getOperation()->getAttr("BlockLen")
+    //     .cast<IntegerAttr>().getValue().getSExtValue();
+    // }
+    StringRef getKernelName() {
+      return this->getOperation()->getAttr("KernelName")
+        .cast<StringAttr>().strref();
+    }
+    void setKernelName(std::string s) {
+      StringAttr KernelNameAttr = StringAttr::get(getOperation()->getContext(),s);
+      getOperation()->setAttr(getKernelNameAttrStr(), KernelNameAttr);
+    }
+
+    MemRefType getSourceMemrefType() {
+      return SourceMemref().getType().cast<MemRefType>();
+    }
+    MemRefType getTargetMemrefType() {
+      return TargetMemref().getType().cast<MemRefType>();
+    }
+
+    operand_range getMapOperands() {
+      return {operand_begin() + 2, operand_end()}; // + 2 or + 1?
     }
 
   }];

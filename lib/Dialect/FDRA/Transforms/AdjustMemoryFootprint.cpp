@@ -113,7 +113,7 @@ Optional<int64_t> AdjustMemoryFootprintPass::
 /// @brief traverse all lopps and fuse 2 levels if possible
 /// @param topFunc 
 void AdjustMemoryFootprintPass::simplifyAffileLoopLevel(func::FuncOp topFunc){
-  errs()<<"top func:\n"; topFunc.dump();
+  // errs()<<"top func before simplifying:\n"; topFunc.dump();
   topFunc.walk([&](mlir::Operation *op)
   {
     // errs()<<"  op :"; op->dump();
@@ -121,6 +121,7 @@ void AdjustMemoryFootprintPass::simplifyAffileLoopLevel(func::FuncOp topFunc){
       return WalkResult::advance();
     }
     else if(op->getName().getStringRef()== mlir::AffineForOp::getOperationName()){
+      // errs()<<"  op :"; op->dump();
       mlir::AffineForOp for_outer = dyn_cast<mlir::AffineForOp>(op);
       assert(for_outer.getLoopBody().getBlocks().size() == 1 
                 && "for_outer should only get 1 region with only 1 block!");
@@ -161,11 +162,13 @@ void AdjustMemoryFootprintPass::simplifyAffileLoopLevel(func::FuncOp topFunc){
           }
           else
           {
-            Expr = b.getAffineDimExpr(0);
+            Expr = for_outer.getLowerBoundMap().getResult(0);
+            // Expr = getConstPartofAffineExpr(for_outer.get)
+            // Expr = b.getAffineDimExpr(0);
             Map = AffineMap::get(1, 0, Expr);
             simpleLoop.setLowerBound(for_outer.getLowerBoundOperands(), Map);
           }
-
+          // errs()<<"  for_outer :"; for_outer.dump();
           if (for_outer.hasConstantUpperBound()) ///upper bound 
           {
             Expr = b.getAffineConstantExpr(for_outer.getConstantUpperBound());
@@ -174,17 +177,18 @@ void AdjustMemoryFootprintPass::simplifyAffileLoopLevel(func::FuncOp topFunc){
           }
           else
           {
-            Expr = b.getAffineDimExpr(0);
+            Expr = for_outer.getUpperBoundMap().getResult(0);
             Map = AffineMap::get(1, 0, Expr);
             simpleLoop.setUpperBound(for_outer.getUpperBoundOperands(), Map);
           }
-
+          // errs()<<"  Expr for upper bound :"<< Expr << "\n";       
           /// Step 3: Set new step for simplified loop
           assert(for_outer.getStep() % for_inner.getStep() == 0 && "Step of inner loop should be a divisor of step of outer!");
           step = for_inner.getStep();
           simpleLoop.setStep(step);
           
           for_outer.erase();
+          // errs()<<"  simpleLoop :\n"; simpleLoop.dump();         
         }
       }
     }
