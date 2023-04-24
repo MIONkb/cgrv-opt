@@ -47,6 +47,7 @@ void SpecifiedAffineFortoKernel(::mlir::AffineForOp& forOp);
 AffineExpr getConstPartofAffineExpr(AffineExpr& expr);
 // void removeUnusedRegionArgs(Region &region);
 void eliminateUnusedIndices(Operation *op);
+SmallVector<Value> getOperandInRank(Operation *op, unsigned rank);
 
 //===----------------------------------------------------------------------===//
 // A templated find func for smallvector

@@ -55,7 +55,7 @@ inline void registerLinalgPassesForSoda() {
 }
 
 // Register important affine passes
-inline void registerAffinePassesForSoda() {
+inline void registerAffinePassesForFDRA() {
 
   mlir::registerAffineDataCopyGenerationPass();
   mlir::registerAffineLoopInvariantCodeMotionPass();
@@ -67,6 +67,7 @@ inline void registerAffinePassesForSoda() {
   // my add
   mlir::registerAffineLoopUnrollAndJamPass();
   mlir::registerAffineLoopNormalizePass();
+  mlir::registerSimplifyAffineStructuresPass();
 
   // Test passes
   mlir::registerTestLoopPermutationPass();
@@ -86,7 +87,7 @@ int main(int argc, char **argv) {
   mlir::registerCSEPass();
 
   registerLinalgPassesForSoda();
-  registerAffinePassesForSoda();
+  registerAffinePassesForFDRA();
   mlir::bufferization::registerPromoteBuffersToStackPass();
 
   mlir::registerConvertLinalgToStandardPass();
@@ -143,6 +144,8 @@ int main(int argc, char **argv) {
   mlir::FDRA::registerExtractKernelToFuncPass();
   mlir::FDRA::registerAutoDesignSpaceExplorePass();
   mlir::FDRA::registerTestPrintOpNestingPass();
+
+  mlir::registerSCFForLoopCanonicalizationPass();
   
   // ----- SODA -----
   // Misc passes

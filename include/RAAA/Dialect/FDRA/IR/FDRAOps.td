@@ -181,6 +181,12 @@ def FDRA_DataBlockLoadOp: FDRA_Op<"BlockLoad", []>{
       return {operand_begin() + 1, operand_end()};
     }
 
+    /// Returns the affine map used to index the memref for this operation.
+    AffineMap getAffineMap() { return getAffineMapAttr().getValue(); }
+    AffineMapAttr getAffineMapAttr() {
+      return (*this)->getAttr(getMapAttrStr()).cast<AffineMapAttr>();
+    }
+
   }];
 
   let hasCustomAssemblyFormat = 1;

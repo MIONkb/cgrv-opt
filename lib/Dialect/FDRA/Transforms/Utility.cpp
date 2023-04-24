@@ -180,9 +180,6 @@ void mlir::FDRA::eliminateUnusedIndices(Operation *op) {
     }
   }
 
-  // Use the builder to construct a new affine map and index list, which only includes used
-  // indices.
-  OpBuilder builder(op->getContext());
   SmallVector<Value, 4> newIndexList;
   SmallVector<AffineExpr, 4> dimReplacements(map.getNumDims());
   unsigned j = 0;
@@ -213,4 +210,49 @@ void mlir::FDRA::eliminateUnusedIndices(Operation *op) {
     storeOp.getOperation()->setAttr(AffineStoreOp::getMapAttrStrName(),AffineMapAttr::get(map)); 
     storeOp.getOperation()->setOperands(newIndexList);  
   }
+}
+
+
+
+//===----------------------------------------------------------------------===//
+// getOperandInRank
+//===----------------------------------------------------------------------===//
+
+/// @brief return the AffineMap operand used in the rank 
+/// @param op AffineLoadOp or AffineStoreOp or FDRA.BlockLoadOp
+/// @param rank the result rank of the affine map 
+/// @return ValueRange
+SmallVector<Value> mlir::FDRA::getOperandInRank(Operation* op, unsigned rank){
+  // Get the affine map for the operation.
+  AffineMap map;
+  ValueRange mapOperands;
+  SmallVector<Value, 4> usedOperands;
+  if (auto loadOp = dyn_cast<AffineLoadOp>(op)){
+    map = loadOp.getAffineMap();
+    mapOperands = loadOp.getIndices();
+  }
+  else if (auto storeOp = dyn_cast<AffineStoreOp>(op)){
+    map = storeOp.getAffineMap();
+    mapOperands = storeOp.getIndices();
+  }
+  else if (auto BlockLoad = dyn_cast<FDRA::DataBlockLoadOp>(op)){
+    map = BlockLoad.getAffineMap();
+    mapOperands = BlockLoad.indices();
+  }
+  else
+    assert("Operation should be AffineStoreOp, AffineLoadOp or BlockLoadOp.");
+
+  // Find which indices are used by checking which dimensions appear in the affine map.
+  SmallVector<bool, 8> usedIndices(mapOperands.size(), false);
+  // llvm::errs() << "[debug] map:" << map <<"\n";
+  
+  assert(map.getNumInputs() == mapOperands.size() && "map.getNumInputs() should be equal to operands.size().");
+  auto result = map.getResult(rank);
+  for (unsigned input = 0; input < map.getNumInputs(); ++input) {
+    if(result.isFunctionOfDim(input)){
+      usedOperands.push_back(std::move(mapOperands[input]));
+    }
+  }
+
+  return usedOperands;
 }
