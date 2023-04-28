@@ -1,4 +1,4 @@
-//===- PassDetail.h - SNN Pass class details --------------------*- C++ -*-===//
+//===- PassDetail.h --------------------- --------------------*- C++ -*-===//
 //===----------------------------------------------------------------------===//
 
 #ifndef DIALECT_TENSOR_TRANSFORMS_PASSDETAIL_Test_H_

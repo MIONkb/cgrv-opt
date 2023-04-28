@@ -11,6 +11,7 @@
 
 #include "RAAA/Dialect/FDRA/IR/FDRA.h"
 #include "RAAA/Dialect/FDRA/Transforms/Passes.h"
+#include "RAAA/Dialect/FDRA/Transforms/DSE.h"
 #include "./PassDetail.h"
 
 
@@ -255,4 +256,85 @@ SmallVector<Value> mlir::FDRA::getOperandInRank(Operation* op, unsigned rank){
   }
 
   return usedOperands;
+}
+
+
+//===----------------------------------------------------------------------===//
+// Class FDRA::ForNode
+//===----------------------------------------------------------------------===//
+/// builder function for class FDRA::ForNode
+FDRA::ForNode::ForNode(AffineForOp* For): ForOp(For){
+  llvm::SmallVector<ForNode*> ChildrenVec;
+  auto ib = For->getLoopBody().front().begin();
+  auto ie = For->getLoopBody().front().end();
+  for(; ib != ie; ib ++ ){
+    if(ib->getName().getStringRef() == mlir::AffineForOp::getOperationName())
+    {
+      mlir::AffineForOp NestFor = dyn_cast<AffineForOp>(ib);
+      FDRA::ForNode ChildForNode(&NestFor);
+      ChildForNode.setParent(this);
+      ChildrenVec.push_back(&ChildForNode);
+    } 
+    if(ib->getName().getStringRef() == FDRA::KernelOp::getOperationName())
+    {
+      FDRA::KernelOp NestKernel = dyn_cast<FDRA::KernelOp>(ib);
+      auto kn_ib = NestKernel.body().front().begin();
+      auto kn_ie = NestKernel.body().front().end();
+      for(; kn_ib != kn_ie; kn_ib ++ ){
+        /// search nested loop in KernelOp
+        if(ib->getName().getStringRef() == mlir::AffineForOp::getOperationName())
+        {
+          mlir::AffineForOp NestFor = dyn_cast<AffineForOp>(ib);
+          FDRA::ForNode ChildForNode(&NestFor);
+          ChildForNode.setParent(this);
+          ChildrenVec.push_back(&ChildForNode);
+        }
+      }
+    } 
+  }
+  this->setChildren(ChildrenVec);
+}
+
+/// public function for class FDRA::ForNode
+bool FDRA::ForNode::IsInnermost(){
+  /// Check whether another for Op exists inside this forop's region
+  auto WalkResult = ForOp->walk([&](mlir::Operation* op){
+    if(op->getName().getStringRef()== mlir::AffineForOp::getOperationName()){
+      mlir::AffineForOp ForOp = dyn_cast<AffineForOp>(op);
+      assert(ForOp != NULL);
+      return WalkResult::interrupt();
+    }
+    return WalkResult::advance();
+  });
+  if (WalkResult.wasInterrupted())
+    return false;
+  else
+    return true;
+}
+
+/// public function for class FDRA::ForNode
+bool FDRA::ForNode::IsThisLevelPerfect(){
+  /// Check whether other Op exists in the same nested level of this for opn
+  assert(this->HasParentFor() && "Parent loop of this loop has not been set.");
+  AffineForOp* ParentFor = this->getParent()->getForOp();
+  unsigned OpCount = 0;
+  auto ib = ParentFor->getLoopBody().front().begin();
+  auto ie = ParentFor->getLoopBody().front().end();
+  for(; ib != ie; ib ++ ){
+    if(ib->getName().getStringRef() == mlir::AffineForOp::getOperationName() ||
+       ib->getName().getStringRef() == FDRA::KernelOp::getOperationName() ||
+       ib->getName().getStringRef() == mlir::AffineYieldOp::getOperationName())
+    {
+      OpCount++;
+    } 
+    else
+      return false; /// Find other Op whose type is not AffineFor/Kernel/Yield
+  }
+  assert(OpCount >= 2 && "Region of parent for op contain at least 2 op (a for/kernel and a yiled).");
+  if(OpCount == 2){
+    return true;
+  }
+  else{
+    return false;
+  }
 }

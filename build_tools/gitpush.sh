@@ -6,7 +6,7 @@ ssh -T git@github.com
 
 # git init
 git add .
-git commit -m "Complete blockstore and kernel func generate: index in kernel can be eliminated."
+git commit -m "add DSE.h and class ForNode to build a for-Node tree"
 git branch -M main
 git remote add origin git@github.com:segmentKOBE/cgra-opt.git
 git push -u origin main

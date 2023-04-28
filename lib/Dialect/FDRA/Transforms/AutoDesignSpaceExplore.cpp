@@ -17,6 +17,7 @@
 
 #include "RAAA/Dialect/FDRA/IR/FDRA.h"
 #include "RAAA/Dialect/FDRA/Transforms/Passes.h"
+#include "RAAA/Dialect/FDRA/Transforms/DSE.h"
 #include "./PassDetail.h"
 
 
@@ -56,17 +57,34 @@ namespace {
 struct AutoDesignSpaceExplorer : public AutoDesignSpaceExploreBase<AutoDesignSpaceExplorer> {
   AutoDesignSpaceExplorer() = default;
 //   AppDesignSpaceExplore(std::string dseTargetSpec) { targetSpec = dseTargetSpec; }
-
+  SmallVector<FDRA::ForNode> createAffineForTree(func::FuncOp topfunc);
   void runOnOperation() override; 
 
 };
 } // namespace
 
-
+SmallVector<FDRA::ForNode> AutoDesignSpaceExplorer::
+                      createAffineForTree(func::FuncOp topfunc){
+  auto TopForOps = topfunc.getOps<AffineForOp>();
+  auto targetLoops =
+      SmallVector<AffineForOp, 4>(TopForOps.begin(), TopForOps.end());
+   SmallVector<FDRA::ForNode, 4> rootForNodes;
+  // SmallVector<AffineForOp, 4> RootAffineFor;
+  for (AffineForOp loop : targetLoops) {
+    FDRA::ForNode newForNode(&loop);
+    rootForNodes.push_back(newForNode);
+  }
+  return rootForNodes;
+}
 
 void AutoDesignSpaceExplorer::runOnOperation(){
-//     auto module = getOperation();
-
+  auto topmodule = getOperation();
+  unsigned func_cnt = 0;
+  for (auto func : topmodule.getOps<func::FuncOp>()) {
+    SmallVector<FDRA::ForNode, 2> rootForNodes = createAffineForTree(func);
+    func_cnt++;
+  }
+  assert(func_cnt == 1 && "Can't handle subfunctions.");
 //     // Read target specification JSON file.
 //     std::string errorMessage;
 //     auto configFile = mlir::openInputFile(targetSpec, &errorMessage);

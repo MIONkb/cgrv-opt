@@ -230,11 +230,11 @@ func::FuncOp KernelToFuncPass::
   builder.setInsertionPointToEnd(entryBlock);
   builder.create<cf::BranchOp>(loc, clonedKernelOpEntry);
 
-  KernelFunc.walk([](FDRA::TerminatorOp op)
-                  {
+  KernelFunc.walk([](FDRA::TerminatorOp op) {
     OpBuilder replacer(op);
     replacer.create<func::ReturnOp>(op.getLoc());
-    op.erase(); });
+    op.erase(); 
+  });
 
   return KernelFunc;
 }
