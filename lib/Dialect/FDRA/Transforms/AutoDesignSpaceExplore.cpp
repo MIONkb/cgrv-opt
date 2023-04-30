@@ -57,31 +57,111 @@ namespace {
 struct AutoDesignSpaceExplorer : public AutoDesignSpaceExploreBase<AutoDesignSpaceExplorer> {
   AutoDesignSpaceExplorer() = default;
 //   AppDesignSpaceExplore(std::string dseTargetSpec) { targetSpec = dseTargetSpec; }
+  FDRA::ForNode* findTargetLoopNode(SmallVector<FDRA::ForNode>& NodeVec, mlir::AffineForOp forop);
+  void NestedGenTree(FDRA::ForNode*, SmallVector<FDRA::ForNode>&);
   SmallVector<FDRA::ForNode> createAffineForTree(func::FuncOp topfunc);
   void runOnOperation() override; 
 
 };
 } // namespace
 
+FDRA::ForNode* AutoDesignSpaceExplorer::
+              findTargetLoopNode(SmallVector<FDRA::ForNode>& NodeVec, mlir::AffineForOp forop)
+{
+  ForNode* ib = NodeVec.begin();
+  ForNode* ie = NodeVec.end();
+  for(; ib != ie; ib++){
+    if(ib->getForOp() == forop)
+      return ib;
+  }
+  return nullptr;
+}
+
+
+
+/// @brief 
+/// @param rootNode 
+/// @param NodeVec 
+/// @return 
+void AutoDesignSpaceExplorer::
+                      NestedGenTree(FDRA::ForNode* rootNode, SmallVector<FDRA::ForNode>& NodeVec){
+  unsigned Level = rootNode->getLevel() + 1;
+
+  AffineForOp For = rootNode->getForOp();
+  llvm::SmallVector<ForNode*> ChildrenVec;
+  auto ib = For.getLoopBody().front().begin();
+  auto ie = For.getLoopBody().front().end();
+  for(; ib != ie; ib ++ ){
+    if(ib->getName().getStringRef() == mlir::AffineForOp::getOperationName())
+    {
+      mlir::AffineForOp NestFor = dyn_cast<AffineForOp>(ib);
+      // FDRA::ForNode ChildForNode(NestFor, /*Level=*/Level);
+      FDRA::ForNode* ChildForNode = findTargetLoopNode(NodeVec, NestFor);
+      ChildForNode->setParent(rootNode);
+      ChildForNode->setLevel(Level);
+      NestedGenTree(ChildForNode, NodeVec);
+      ChildrenVec.push_back(ChildForNode);
+    } 
+    if(ib->getName().getStringRef() == FDRA::KernelOp::getOperationName())
+    {
+      FDRA::KernelOp NestKernel = dyn_cast<FDRA::KernelOp>(ib);
+      auto kn_ib = NestKernel.body().front().begin();
+      auto kn_ie = NestKernel.body().front().end();
+      for(; kn_ib != kn_ie; kn_ib ++ ){
+        /// search nested loop in KernelOp
+        if(ib->getName().getStringRef() == mlir::AffineForOp::getOperationName())
+        {
+          mlir::AffineForOp NestFor = dyn_cast<AffineForOp>(ib);
+          FDRA::ForNode* ChildForNode = findTargetLoopNode(NodeVec, NestFor);
+          ChildForNode->setParent(rootNode);
+          ChildForNode->setLevel(Level);
+          NestedGenTree(ChildForNode, NodeVec);
+          ChildrenVec.push_back(ChildForNode);
+        }
+      }
+    } 
+  }
+
+  rootNode->setChildren(ChildrenVec);
+}
+
+/// @brief 
+/// @param topfunc 
+/// @return 
 SmallVector<FDRA::ForNode> AutoDesignSpaceExplorer::
                       createAffineForTree(func::FuncOp topfunc){
+  SmallVector<FDRA::ForNode> ForNodeVec;
+  topfunc.walk([&](mlir::Operation* op){
+    if(op->getName().getStringRef()== mlir::AffineForOp::getOperationName()){
+      mlir::AffineForOp forop = dyn_cast<AffineForOp>(op);
+      assert(forop != NULL);
+      FDRA::ForNode newForNode(forop);
+      ForNodeVec.push_back(newForNode);
+    }
+  });
+
   auto TopForOps = topfunc.getOps<AffineForOp>();
   auto targetLoops =
       SmallVector<AffineForOp, 4>(TopForOps.begin(), TopForOps.end());
-   SmallVector<FDRA::ForNode, 4> rootForNodes;
-  // SmallVector<AffineForOp, 4> RootAffineFor;
   for (AffineForOp loop : targetLoops) {
-    FDRA::ForNode newForNode(&loop);
-    rootForNodes.push_back(newForNode);
+      FDRA::ForNode* rootForNode = findTargetLoopNode(ForNodeVec, loop);
+      rootForNode->setLevel(0);
+      NestedGenTree(rootForNode, ForNodeVec);
   }
-  return rootForNodes;
+
+  return ForNodeVec;
 }
 
+/// @brief 
 void AutoDesignSpaceExplorer::runOnOperation(){
   auto topmodule = getOperation();
   unsigned func_cnt = 0;
   for (auto func : topmodule.getOps<func::FuncOp>()) {
-    SmallVector<FDRA::ForNode, 2> rootForNodes = createAffineForTree(func);
+    SmallVector<FDRA::ForNode, 2> ForNodes = createAffineForTree(func);
+    for (FDRA::ForNode Node : ForNodes) {
+      if (!Node.HasParentFor())/// outermost loop
+        Node.dumpTree();
+    }
     func_cnt++;
   }
   assert(func_cnt == 1 && "Can't handle subfunctions.");

@@ -26,14 +26,18 @@ class ForNode
 {
 private:
   /* data */
-  mlir::AffineForOp* ForOp;
-  ForNode* ParentNode;
+  mlir::AffineForOp ForOp;
+  ForNode* ParentNode = nullptr;
   llvm::SmallVector<ForNode*> ChildrenNodes;
+  unsigned Level;
 
 public:
-  ForNode(AffineForOp* For);
+  /// builder function for class FDRA::ForNode
+  ForNode(AffineForOp For): ForOp(For){};
+  ForNode(AffineForOp For, unsigned level): ForOp(For), Level(level){};
+  // ~ForNode();
 
-  mlir::AffineForOp* getForOp() {return ForOp;}
+  mlir::AffineForOp& getForOp() {return ForOp;}
 
   void setChildren(llvm::SmallVector<ForNode*>& Children){ ChildrenNodes = Children;}
   llvm::SmallVector<ForNode*> getChildren() const {return ChildrenNodes;}
@@ -41,9 +45,46 @@ public:
   void setParent(ForNode* Parent){ ParentNode = Parent;}
   ForNode* getParent() const {return ParentNode;}
 
+  void setLevel(const unsigned l){ Level = l;}
+  unsigned getLevel() const {return Level;}
+
   bool IsInnermost();
   bool HasParentFor(){ return ParentNode != nullptr;}
   bool IsThisLevelPerfect();
+
+
+  //////////////
+  /// dump functions 
+  //////////////
+  void dumpNode(){
+    for(unsigned cnt = 0; cnt < Level; cnt++)
+      llvm::errs() << " ";     
+    llvm::errs() << Level << ":";
+    if(!HasParentFor())
+      llvm::errs() << " outermost";
+    else{
+      if(IsThisLevelPerfect())
+        llvm::errs() << " perfect";
+      else 
+        llvm::errs() << " imperfect";
+    }
+    
+    if(IsInnermost())
+      llvm::errs() <<", innermost";
+    
+    llvm::errs() << "\n";
+  }
+  void dumpForOp(){
+    this->getForOp().dump();
+  }
+  void dumpTree(){
+    dumpNode();
+    // dumpForOp();
+    for(ForNode* Child : ChildrenNodes){
+      Child->dumpTree();
+    }
+  }
+
 };
 
 } // namespace fdra
