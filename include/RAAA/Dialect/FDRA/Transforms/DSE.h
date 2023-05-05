@@ -32,6 +32,14 @@ private:
   unsigned Level;
 
 public:
+  /*** Type define ***/
+  using FactorList = SmallVector<unsigned, 8>;
+
+  /* tiling factor */
+  FactorList TilingFactors;
+  /* unroll factor */
+  FactorList UnrollFactors;
+
   /// builder function for class FDRA::ForNode
   ForNode(AffineForOp For): ForOp(For){};
   ForNode(AffineForOp For, unsigned level): ForOp(For), Level(level){};
@@ -51,7 +59,6 @@ public:
   bool IsInnermost();
   bool HasParentFor(){ return ParentNode != nullptr;}
   bool IsThisLevelPerfect();
-
 
   //////////////
   /// dump functions 

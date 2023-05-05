@@ -27,6 +27,7 @@ using namespace mlir::FDRA;
 
 
 /********** 
+ * TODO: modify this
 Steps to achieve the DSE process:
 a. Define the design space: Identify the 
 relevant parameters and constraints
@@ -60,11 +61,17 @@ struct AutoDesignSpaceExplorer : public AutoDesignSpaceExploreBase<AutoDesignSpa
   FDRA::ForNode* findTargetLoopNode(SmallVector<FDRA::ForNode>& NodeVec, mlir::AffineForOp forop);
   void NestedGenTree(FDRA::ForNode*, SmallVector<FDRA::ForNode>&);
   SmallVector<FDRA::ForNode> createAffineForTree(func::FuncOp topfunc);
+  SmallVector<unsigned> FindUnrollingFactors(FDRA::ForNode& Node); 
   void runOnOperation() override; 
 
 };
 } // namespace
 
+
+/// @brief 
+/// @param NodeVec a small vector which contains all For Node
+/// @param forop a target loop we want to find 
+/// @return the pointer to the target Loop Node which is the for op we want to find
 FDRA::ForNode* AutoDesignSpaceExplorer::
               findTargetLoopNode(SmallVector<FDRA::ForNode>& NodeVec, mlir::AffineForOp forop)
 {
@@ -77,12 +84,9 @@ FDRA::ForNode* AutoDesignSpaceExplorer::
   return nullptr;
 }
 
-
-
-/// @brief 
-/// @param rootNode 
-/// @param NodeVec 
-/// @return 
+/// @brief Add relationship between parent and child nodes
+/// @param rootNode A parent node whose children have not been set
+/// @param NodeVec A small vector which contains all For Node
 void AutoDesignSpaceExplorer::
                       NestedGenTree(FDRA::ForNode* rootNode, SmallVector<FDRA::ForNode>& NodeVec){
   unsigned Level = rootNode->getLevel() + 1;
@@ -125,9 +129,9 @@ void AutoDesignSpaceExplorer::
   rootNode->setChildren(ChildrenVec);
 }
 
-/// @brief 
+/// @brief construct a AffineForTree with for-nodes and set the parent-child relationship
 /// @param topfunc 
-/// @return 
+/// @return all for-nodes
 SmallVector<FDRA::ForNode> AutoDesignSpaceExplorer::
                       createAffineForTree(func::FuncOp topfunc){
   SmallVector<FDRA::ForNode> ForNodeVec;
@@ -152,6 +156,30 @@ SmallVector<FDRA::ForNode> AutoDesignSpaceExplorer::
   return ForNodeVec;
 }
 
+/// @brief find all unrolling factors (which divides trip count)
+/// @param Node a ForNode in loop-nest tree
+/// @return vector which contains all unrolling factors
+SmallVector<unsigned> AutoDesignSpaceExplorer::FindUnrollingFactors(FDRA::ForNode& Node){
+  assert(Node.IsInnermost()&&"Only innermost loop-nest can be unrolled.");
+  auto optionalTripCount = getConstantTripCount(Node.getForOp());
+  assert(optionalTripCount&&"Variable loop bound!");
+  SmallVector<unsigned, 8> validFactors;
+  unsigned factor = 1;
+  unsigned tripCount = optionalTripCount.value();
+  while (factor <= tripCount) {
+    /// Push back the current factor.
+    /// unrolling factor = 1 means no unrolling applied
+    validFactors.push_back(factor);
+
+    // Find the next possible size.
+    ++factor;
+    while (factor <= tripCount && tripCount % factor != 0)
+      ++factor;
+  }
+  Node.UnrollFactors = validFactors;
+  return validFactors;
+}
+
 /// @brief 
 void AutoDesignSpaceExplorer::runOnOperation(){
   auto topmodule = getOperation();
@@ -162,6 +190,20 @@ void AutoDesignSpaceExplorer::runOnOperation(){
       if (!Node.HasParentFor())/// outermost loop
         Node.dumpTree();
     }
+
+    /** construct design space **/
+    for (FDRA::ForNode Node : ForNodes) {
+      /* tiling if perfect */
+      /// TODO: Tiling
+      // if (Node.IsThisLevelPerfect()){
+
+      // }
+      /* unrolling if innermost */
+      if (Node.IsInnermost()){
+        FindUnrollingFactors(Node);
+      }
+    }
+
     func_cnt++;
   }
   assert(func_cnt == 1 && "Can't handle subfunctions.");

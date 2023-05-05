@@ -29,7 +29,7 @@ def FDRALoopCdfgGen : Pass<"fdra-loop-dfg-gen", ""> {
 // Affine To kernel
 //===----------------------------------------------------------------------===//
 
-def ExtractAffineForToKernel : Pass<"extract-affine-for-to-kernel", "func::FuncOp"> {
+def ExtractAffineForToKernel : Pass<"fdra-extract-affine-for-to-kernel", "func::FuncOp"> {
   let summary = "Extract all AffineFor in a FuncOp to a FDRA.KernelOp";
   let constructor = "mlir::FDRA::createExtractAffineForToKernelPass()";
   let dependentDialects = [
@@ -41,7 +41,7 @@ def ExtractAffineForToKernel : Pass<"extract-affine-for-to-kernel", "func::FuncO
 //===----------------------------------------------------------------------===//
 // Adjust(Partition) Kernel according to a customized Cachesize
 //===----------------------------------------------------------------------===//
-def AdjustKernelMemoryFootprint : Pass<"adjust-kernel-mem-footprint", "ModuleOp"> {
+def AdjustKernelMemoryFootprint : Pass<"fdra-adjust-kernel-mem-footprint", "ModuleOp"> {
   let summary = "Adjust(partition) kernels' memory footprint to apply to customized cachesize";
   let constructor = "mlir::FDRA::createAdjustKernelMemoryFootprintPass()";
   let dependentDialects = [
@@ -59,7 +59,7 @@ def AdjustKernelMemoryFootprint : Pass<"adjust-kernel-mem-footprint", "ModuleOp"
 //===----------------------------------------------------------------------===//
 // Kernel to independent mlir Func
 //===----------------------------------------------------------------------===//
-def ExtractKernelToFunc : Pass<"extract-kernel-to-function", "ModuleOp"> {
+def ExtractKernelToFunc : Pass<"fdra-extract-kernel-to-function", "ModuleOp"> {
   let summary = "Extract all FDRA.KernelOp and its region to a single func with explicit ";
   
   let description = [{

@@ -6,7 +6,7 @@ ssh -T git@github.com
 
 # git init
 git add .
-git commit -m "build a for-Node tree successfully"
+git commit -m "dse process: find unrolling factors for innermost loop"
 git branch -M main
 git remote add origin git@github.com:segmentKOBE/cgra-opt.git
 git push -u origin main
