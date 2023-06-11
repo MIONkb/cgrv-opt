@@ -17,6 +17,7 @@
 
 #include "RAAA/Dialect/FDRA/IR/FDRA.h"
 #include "RAAA/Dialect/FDRA/Transforms/Passes.h"
+#include "RAAA/Dialect/FDRA/Lowering/ConvertKernelCallToLLVMPass.h"
 #include "RAAA/Misc/Passes.h"
 
 // #include "soda/Conversion/Passes.h"
@@ -102,10 +103,8 @@ int main(int argc, char **argv) {
   mlir::registerConvertArithmeticToLLVMPass();
   mlir::arith::registerArithmeticExpandOpsPass();
   mlir::memref::registerExpandOpsPass();
+  mlir::memref::registerNormalizeMemRefsPass();
   mlir::registerReconcileUnrealizedCastsPass();
-  
-
-
 
   // Add the following to selectively include the necessary dialects. You only
   // need to register dialects that will be *parsed* by the tool, not the one
@@ -144,6 +143,7 @@ int main(int argc, char **argv) {
   mlir::FDRA::registerExtractKernelToFuncPass();
   mlir::FDRA::registerAutoDesignSpaceExplorePass();
   mlir::FDRA::registerTestPrintOpNestingPass();
+  mlir::FDRA::registerConvertKernelCallToLLVMPass();
 
   mlir::registerSCFForLoopCanonicalizationPass();
   

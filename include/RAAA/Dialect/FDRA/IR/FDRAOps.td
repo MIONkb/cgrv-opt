@@ -11,12 +11,15 @@
 include "RAAA/Dialect/FDRA/IR/FDRABase.td"
 include "mlir/Pass/PassBase.td"
 include "mlir/IR/EnumAttr.td"
+include "mlir/IR/SymbolInterfaces.td"
 // include "soda/Dialect/Test/IR/TestTypesBase.td"
 include "mlir/Dialect/LLVMIR/LLVMOpBase.td"
-include "mlir/IR/SymbolInterfaces.td"
+// include "mlir/Dialect/Func/IR/FuncOps.td"
+// include "mlir/Dialect/Func/IR/FuncOps.h"
+include "mlir/Interfaces/CallInterfaces.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 include "mlir/Interfaces/InferTypeOpInterface.td"
-
+// #include "mlir/Dialect/Func/IR/FuncOps.h"
 //===----------------------------------------------------------------------===//
 // FDRA Dialect operations.
 //===----------------------------------------------------------------------===//
@@ -162,8 +165,11 @@ def FDRA_DataBlockLoadOp: FDRA_Op<"BlockLoad", []>{
     //     .cast<IntegerAttr>().getValue().getSExtValue();
     // }
     StringRef getKernelName() {
-      return this->getOperation()->getAttr("KernelName")
-        .cast<StringAttr>().strref();
+      Attribute KnNameAttr = this->getOperation()->getAttr("KernelName");
+      if(KnNameAttr == nullptr)
+        return "";
+      else
+        return KnNameAttr.cast<StringAttr>().strref();
     }
     void setKernelName(std::string s) {
       StringAttr KernelNameAttr = StringAttr::get(getOperation()->getContext(),s);
@@ -263,6 +269,76 @@ def FDRA_DataBlockStoreOp: FDRA_Op<"BlockStore", []>{
 
   let hasCustomAssemblyFormat = 1;
   let hasVerifier = 1;
+}
+
+
+
+//===----------------------------------------------------------------------===//
+// KernelCallOp
+//===----------------------------------------------------------------------===//
+
+def KernelCallOp : FDRA_Op<"KernelCall",
+    [CallOpInterface, MemRefsNormalizable,
+     DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
+  let summary = "call operation(different from call in func)";
+  let description = [{
+    The `func.call` operation represents a direct call to a function that is
+    within the same symbol scope as the call. The operands and result types of
+    the call must match the specified function type. The callee is encoded as a
+    symbol reference attribute named "callee".
+
+    Example:
+
+    ```mlir
+    %2 = fdra.kernelcall @my_add(%0, %1) : (f32, f32) -> f32
+    ```
+  }];
+
+  let arguments = (ins FlatSymbolRefAttr:$callee, Variadic<AnyType>:$operands);
+  let results = (outs Variadic<AnyType>);
+
+  let builders = [
+    OpBuilder<(ins "func::FuncOp":$callee, CArg<"ValueRange", "{}">:$operands), [{
+      $_state.addOperands(operands);
+      $_state.addAttribute("callee", SymbolRefAttr::get(callee));
+      $_state.addTypes(callee.getFunctionType().getResults());
+    }]>,
+    OpBuilder<(ins "SymbolRefAttr":$callee, "TypeRange":$results,
+      CArg<"ValueRange", "{}">:$operands), [{
+      $_state.addOperands(operands);
+      $_state.addAttribute("callee", callee);
+      $_state.addTypes(results);
+    }]>,
+    OpBuilder<(ins "StringAttr":$callee, "TypeRange":$results,
+      CArg<"ValueRange", "{}">:$operands), [{
+      build($_builder, $_state, SymbolRefAttr::get(callee), results, operands);
+    }]>,
+    OpBuilder<(ins "StringRef":$callee, "TypeRange":$results,
+      CArg<"ValueRange", "{}">:$operands), [{
+      build($_builder, $_state, StringAttr::get($_builder.getContext(), callee),
+            results, operands);
+    }]>];
+
+  let extraClassDeclaration = [{
+    FunctionType getCalleeType();
+
+    /// Get the argument operands to the called function.
+    operand_range getArgOperands() {
+      return {arg_operand_begin(), arg_operand_end()};
+    }
+
+    operand_iterator arg_operand_begin() { return operand_begin(); }
+    operand_iterator arg_operand_end() { return operand_end(); }
+
+    /// Return the callee of this operation.
+    CallInterfaceCallable getCallableForCallee() {
+      return (*this)->getAttrOfType<SymbolRefAttr>("callee");
+    }
+  }];
+
+  let assemblyFormat = [{
+    $callee `(` $operands `)` attr-dict `:` functional-type($operands, results)
+  }];
 }
 //===----------------------------------------------------------------------===//
 // Outlined Func Operations for offload HW code

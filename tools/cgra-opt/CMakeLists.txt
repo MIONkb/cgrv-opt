@@ -71,6 +71,7 @@ set(LIBS
   MLIRFDRAMisc
   MLIRFDRAOps
   MLIRFDRATransforms
+  MLIRFDRALowerings
 )
 
 set(SOURCES

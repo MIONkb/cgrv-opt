@@ -25,7 +25,8 @@ def FDRA_Dialect : Dialect {
   }];
 
   let dependentDialects = [
-    // "scf::SCFDialect"
+    // "scf::SCFDialect",
+    // "::mlir::func"
   ];
 
   // let hasOperationAttrVerify = 1;

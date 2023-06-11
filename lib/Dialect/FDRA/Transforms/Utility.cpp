@@ -227,7 +227,7 @@ SmallVector<Value> mlir::FDRA::getOperandInRank(Operation* op, unsigned rank){
   // Get the affine map for the operation.
   AffineMap map;
   ValueRange mapOperands;
-  SmallVector<Value, 4> usedOperands;
+  SmallVector<Value> usedOperands;
   if (auto loadOp = dyn_cast<AffineLoadOp>(op)){
     map = loadOp.getAffineMap();
     mapOperands = loadOp.getIndices();

@@ -5,7 +5,7 @@
 //
 //===----------------------------------------------------------------------===//
 #ifndef FDRA_DIALECT_PASSES
-#define FDRA_DIALECT_PASSESa      
+#define FDRA_DIALECT_PASSES
 include "RAAA/Dialect/FDRA/IR/FDRABase.td"
 include "mlir/Pass/PassBase.td"
 include "mlir/IR/BuiltinDialect.td"

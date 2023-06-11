@@ -16,6 +16,7 @@
 
 using namespace mlir;
 using namespace mlir::FDRA;
+using namespace mlir::func;
 
 //===----------------------------------------------------------------------===//
 // KernelOp
@@ -156,6 +157,12 @@ void DataBlockLoadOp::build(OpBuilder &builder, OperationState &result,
   build(builder, result, OriginalMemref, map, mapOperands, resultType, KernelName);
 }
 
+// static bool addKernelNameAttrInParse
+//               (OperationState &result, Builder &builder, const std::string KernelName){
+//   result.addAttribute(DataBlockLoadOp::getKernelNameAttrStr(), builder.getStringAttr(KernelName));
+//   return true;
+// }
+
 ParseResult DataBlockLoadOp::parse(OpAsmParser &parser, OperationState &result) {
   /// example:
   /// %0 = FDRA.BlockLoad %arg1 [%arg9, 0] : memref<32x32xf32> -> memref<1x32xf32> {three_mm_32_kernel_0}
@@ -166,21 +173,26 @@ ParseResult DataBlockLoadOp::parse(OpAsmParser &parser, OperationState &result) 
   OpAsmParser::UnresolvedOperand memrefInfo;
   AffineMapAttr mapAttr;
   StringAttr KernelNameAttr;
+  // std::string* KernelName = nullptr;
   SmallVector<OpAsmParser::UnresolvedOperand, 1> mapOperands;
+
   return failure(
       parser.parseOperand(memrefInfo) ||
       parser.parseAffineMapOfSSAIds(mapOperands, mapAttr,
                                     getMapAttrStr(),
                                     result.attributes) ||
-      parser.parseOptionalAttrDict(result.attributes) ||
       parser.parseColon() || parser.parseType(memrefType) ||
-      parser.parseArrow() ||
+      parser.parseArrow() || parser.parseType(resultType) ||
       parser.resolveOperand(memrefInfo, memrefType, result.operands) ||
       parser.resolveOperands(mapOperands, indexTy, result.operands) ||
       parser.addTypeToList(resultType, result.types) ||
-      parser.parseLBrace() ||
-      parser.parseAttribute(KernelNameAttr, "KernelName", result.attributes)||
-      parser.parseOptionalRBrace());
+      parser.parseLBrace() || 
+      parser.parseAttribute(KernelNameAttr, builder.getNoneType(), "KernelName", result.attributes)||
+      // parser.parseOptionalAttrDict(result.attributes) ||
+      // parser.parseOptionalKeywordOrString(KernelName) || 
+      // addKernelNameAttrInParse(result, builder, *KernelName) ||
+      parser.parseOptionalRBrace()
+  );
 }
 
 void DataBlockLoadOp::print(OpAsmPrinter &p) {
@@ -191,9 +203,10 @@ void DataBlockLoadOp::print(OpAsmPrinter &p) {
   p << "]";
   p << " : " << getOriginalMemrefType() ;
   p << " -> " << getResultType() << " ";
-  p << "{"  << getKernelName() << "}";
+  p << "{\""  << getKernelName() << "\"}";
   // p.printOptionalAttrDict((*this)->getAttrs(),
   //                         /*elidedAttrs=*/{getMapAttrStr()});
+  
 }
 
 // Returns true if 'value' is a valid index to an affine operation (e.g.
@@ -314,7 +327,7 @@ void DataBlockStoreOp::print(OpAsmPrinter &p) {
   p << "]";
   p << " : " << getSourceMemrefType() ;
   p << " -> " << getTargetMemrefType() << " ";
-  p << "{"  << getKernelName() << "}";
+  p << "{\""  << getKernelName() << "\"}";
   // p.printOptionalAttrDict((*this)->getAttrs(),
   //                         /*elidedAttrs=*/{getMapAttrStr()});
 }
@@ -346,6 +359,50 @@ LogicalResult DataBlockStoreOp::verify() {
 //===----------------------------------------------------------------------===//
 // TableGen'd op method definitions
 //===----------------------------------------------------------------------===//
+
+
+//===----------------------------------------------------------------------===//
+// KernelCallOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult KernelCallOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
+  // Check that the callee attribute was specified.
+  auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("callee");
+  if (!fnAttr)
+    return emitOpError("requires a 'callee' symbol reference attribute");
+  FuncOp fn = symbolTable.lookupNearestSymbolFrom<FuncOp>(*this, fnAttr);
+  if (!fn)
+    return LogicalResult::success();
+
+  // Verify that the operand and result types match the callee.
+  auto fnType = fn.getFunctionType();
+  if (fnType.getNumInputs() != getNumOperands())
+    return emitOpError("incorrect number of operands for callee");
+
+  for (unsigned i = 0, e = fnType.getNumInputs(); i != e; ++i)
+    if (getOperand(i).getType() != fnType.getInput(i))
+      return emitOpError("operand type mismatch: expected operand type ")
+             << fnType.getInput(i) << ", but provided "
+             << getOperand(i).getType() << " for operand number " << i;
+
+  if (fnType.getNumResults() != getNumResults())
+    return emitOpError("incorrect number of results for callee");
+
+  for (unsigned i = 0, e = fnType.getNumResults(); i != e; ++i)
+    if (getResult(i).getType() != fnType.getResult(i)) {
+      auto diag = emitOpError("result type mismatch at index ") << i;
+      diag.attachNote() << "      op result types: " << getResultTypes();
+      diag.attachNote() << "function result types: " << fnType.getResults();
+      return diag;
+    }
+
+  return success();
+}
+
+FunctionType KernelCallOp::getCalleeType() {
+  return FunctionType::get(getContext(), getOperandTypes(), getResultTypes());
+}
+
 
 #define GET_OP_CLASSES
 #include "RAAA/Dialect/FDRA/IR/FDRAOps.cpp.inc"

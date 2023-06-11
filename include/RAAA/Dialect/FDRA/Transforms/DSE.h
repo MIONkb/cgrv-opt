@@ -33,7 +33,7 @@ private:
 
 public:
   /*** Type define ***/
-  using FactorList = SmallVector<unsigned, 8>;
+  using FactorList = SmallVector<unsigned>;
 
   /* tiling factor */
   FactorList TilingFactors;

@@ -785,11 +785,14 @@ void KernelToFuncPass::runOnOperation()
           llvm::errs() << "Error opening file: " << ec.message() << KernelFilePath_str << "\n";
           return WalkResult::advance();
         }
+        llvm::errs() << "Kernel:"  << kernelFnName << "\n";
+        NewKernelFunc.dump();
+        NewKernelFunc.print(llvm::errs());
         NewKernelFunc.print(file);
       }
       /// Convert FDRA.Kernel{ ... } to func.call
       OpBuilder builder(op);
-      builder.create<func::CallOp>(op.getLoc(), NewKernelFunc, operands.getArrayRef());
+      builder.create<FDRA::KernelCallOp>(op.getLoc(), NewKernelFunc, operands.getArrayRef());
       return WalkResult::advance();
     });
     if (KernelWalkResult.wasInterrupted())

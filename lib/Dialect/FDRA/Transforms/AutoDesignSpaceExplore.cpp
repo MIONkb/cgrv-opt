@@ -163,7 +163,7 @@ SmallVector<unsigned> AutoDesignSpaceExplorer::FindUnrollingFactors(FDRA::ForNod
   assert(Node.IsInnermost()&&"Only innermost loop-nest can be unrolled.");
   auto optionalTripCount = getConstantTripCount(Node.getForOp());
   assert(optionalTripCount&&"Variable loop bound!");
-  SmallVector<unsigned, 8> validFactors;
+  SmallVector<unsigned> validFactors;
   unsigned factor = 1;
   unsigned tripCount = optionalTripCount.value();
   while (factor <= tripCount) {
