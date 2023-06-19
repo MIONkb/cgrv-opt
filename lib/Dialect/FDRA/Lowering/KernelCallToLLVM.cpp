@@ -281,7 +281,7 @@ static auto wrapAsStructAttrs(OpBuilder &b, ArrayAttr attrs) {
 //   }
 // }
 
-// // namespace {
+namespace {
 
 struct FDRAFuncOpConversionBase : public ConvertOpToLLVMPattern<func::FuncOp> {
 protected:
@@ -353,8 +353,14 @@ protected:
     auto newFuncOp = rewriter.create<LLVM::LLVMFuncOp>(
         funcOp.getLoc(), funcOp.getName(), llvmType, linkage,
         /*dsoLocal*/ false, /*cconv*/ LLVM::CConv::C, attributes);
-    rewriter.inlineRegionBefore(funcOp.getBody(), newFuncOp.getBody(),
-                                newFuncOp.end());
+
+    // This function is not a kernel
+    if(!funcOp.getOperation()->hasAttr("Kernel")){
+        llvm::errs() << "[debug] not a kernel func\n";
+        rewriter.inlineRegionBefore(funcOp.getBody(), newFuncOp.getBody(),
+                            newFuncOp.end());
+    }
+
     if (failed(rewriter.convertRegionTypes(&newFuncOp.getBody(), *typeConverter,
                                            &result)))
       return nullptr;
@@ -400,15 +406,28 @@ protected:
 /// to the MemRef element type. This will impact the calling convention and ABI.
 struct KernelFuncOpConversion : public FDRAFuncOpConversionBase {
   using FDRAFuncOpConversionBase::FDRAFuncOpConversionBase;
+  SmallVector<::llvm::StringRef, 8> KernelNameVec;
 
   LogicalResult
   matchAndRewrite(func::FuncOp funcOp, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
-
+  
     // TODO: bare ptr conversion could be handled by argument materialization
     // and most of the code below would go away. But to do this, we would need a
     // way to distinguish between FuncOp and other regions in the
     // addArgumentMaterialization hook.
+
+        // ::llvm::StringRef NameToFind = funcop.getSymName();
+    //   // llvm::errs() <<"\nfuncop :" << NameToFind;
+    //   auto it = std::find(KernelNameVec.begin(), KernelNameVec.end(), NameToFind);
+    //   if (it != KernelNameVec.end()) { // FuncOp is a kernel
+    //     llvm::errs() << "[debug] found a kernel func:\n";
+    //     funcop.dump();
+    //   } 
+  
+
+    // llvm::errs() << "[debug] found a kernel func:\n";
+    // funcOp.dump();
 
     // Store the type of memref-typed arguments before the conversion so that we
     // can promote them to MemRef descriptor at the beginning of the function.
@@ -461,7 +480,7 @@ struct KernelFuncOpConversion : public FDRAFuncOpConversionBase {
           rewriter, loc, *getTypeConverter(), memrefTy, arg);
       rewriter.replaceOp(placeholder, {desc});
     }
-
+    // replaceOpWithIf
     rewriter.eraseOp(funcOp);
     return success();
   }
@@ -576,63 +595,63 @@ struct UnrealizedConversionCastOpLowering
 // can only return 0 or 1 value, we pack multiple values into a structure type.
 // Emit `UndefOp` followed by `InsertValueOp`s to create such structure if
 // necessary before returning it
-// struct ReturnOpLowering : public ConvertOpToLLVMPattern<func::ReturnOp> {
-//   using ConvertOpToLLVMPattern<func::ReturnOp>::ConvertOpToLLVMPattern;
+struct ReturnOpLowering : public ConvertOpToLLVMPattern<func::ReturnOp> {
+  using ConvertOpToLLVMPattern<func::ReturnOp>::ConvertOpToLLVMPattern;
 
-//   LogicalResult
-//   matchAndRewrite(func::ReturnOp op, OpAdaptor adaptor,
-//                   ConversionPatternRewriter &rewriter) const override {
-//     Location loc = op.getLoc();
-//     unsigned numArguments = op.getNumOperands();
-//     SmallVector<Value, 4> updatedOperands;
+  LogicalResult
+  matchAndRewrite(func::ReturnOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    Location loc = op.getLoc();
+    unsigned numArguments = op.getNumOperands();
+    SmallVector<Value, 4> updatedOperands;
 
-//     if (getTypeConverter()->getOptions().useBarePtrCallConv) {
-//       // For the bare-ptr calling convention, extract the aligned pointer to
-//       // be returned from the memref descriptor.
-//       for (auto it : llvm::zip(op->getOperands(), adaptor.getOperands())) {
-//         Type oldTy = std::get<0>(it).getType();
-//         Value newOperand = std::get<1>(it);
-//         if (oldTy.isa<MemRefType>() && getTypeConverter()->canConvertToBarePtr(
-//                                            oldTy.cast<BaseMemRefType>())) {
-//           MemRefDescriptor memrefDesc(newOperand);
-//           newOperand = memrefDesc.alignedPtr(rewriter, loc);
-//         } else if (oldTy.isa<UnrankedMemRefType>()) {
-//           // Unranked memref is not supported in the bare pointer calling
-//           // convention.
-//           return failure();
-//         }
-//         updatedOperands.push_back(newOperand);
-//       }
-//     } else {
-//       updatedOperands = llvm::to_vector<4>(adaptor.getOperands());
-//       (void)copyUnrankedDescriptors(rewriter, loc, op.getOperands().getTypes(),
-//                                     updatedOperands,
-//                                     /*toDynamic=*/true);
-//     }
+    if (getTypeConverter()->getOptions().useBarePtrCallConv) {
+      // For the bare-ptr calling convention, extract the aligned pointer to
+      // be returned from the memref descriptor.
+      for (auto it : llvm::zip(op->getOperands(), adaptor.getOperands())) {
+        Type oldTy = std::get<0>(it).getType();
+        Value newOperand = std::get<1>(it);
+        if (oldTy.isa<MemRefType>() && getTypeConverter()->canConvertToBarePtr(
+                                           oldTy.cast<BaseMemRefType>())) {
+          MemRefDescriptor memrefDesc(newOperand);
+          newOperand = memrefDesc.alignedPtr(rewriter, loc);
+        } else if (oldTy.isa<UnrankedMemRefType>()) {
+          // Unranked memref is not supported in the bare pointer calling
+          // convention.
+          return failure();
+        }
+        updatedOperands.push_back(newOperand);
+      }
+    } else {
+      updatedOperands = llvm::to_vector<4>(adaptor.getOperands());
+      (void)copyUnrankedDescriptors(rewriter, loc, op.getOperands().getTypes(),
+                                    updatedOperands,
+                                    /*toDynamic=*/true);
+    }
 
-//     // If ReturnOp has 0 or 1 operand, create it and return immediately.
-//     if (numArguments <= 1) {
-//       rewriter.replaceOpWithNewOp<LLVM::ReturnOp>(
-//           op, TypeRange(), updatedOperands, op->getAttrs());
-//       return success();
-//     }
+    // If ReturnOp has 0 or 1 operand, create it and return immediately.
+    if (numArguments <= 1) {
+      rewriter.replaceOpWithNewOp<LLVM::ReturnOp>(
+          op, TypeRange(), updatedOperands, op->getAttrs());
+      return success();
+    }
 
-//     // Otherwise, we need to pack the arguments into an LLVM struct type before
-//     // returning.
-//     auto packedType =
-//         getTypeConverter()->packFunctionResults(op.getOperandTypes());
+    // Otherwise, we need to pack the arguments into an LLVM struct type before
+    // returning.
+    auto packedType =
+        getTypeConverter()->packFunctionResults(op.getOperandTypes());
 
-//     Value packed = rewriter.create<LLVM::UndefOp>(loc, packedType);
-//     for (auto &it : llvm::enumerate(updatedOperands)) {
-//       packed = rewriter.create<LLVM::InsertValueOp>(loc, packed, it.value(),
-//                                                     it.index());
-//     }
-//     rewriter.replaceOpWithNewOp<LLVM::ReturnOp>(op, TypeRange(), packed,
-//                                                 op->getAttrs());
-//     return success();
-//   }
-// };
-// } // namespace
+    Value packed = rewriter.create<LLVM::UndefOp>(loc, packedType);
+    for (auto &it : llvm::enumerate(updatedOperands)) {
+      packed = rewriter.create<LLVM::InsertValueOp>(loc, packed, it.value(),
+                                                    it.index());
+    }
+    rewriter.replaceOpWithNewOp<LLVM::ReturnOp>(op, TypeRange(), packed,
+                                                op->getAttrs());
+    return success();
+  }
+};
+} // namespace
 
 // void mlir::populateFuncToLLVMFuncOpConversionPattern(
 //     LLVMTypeConverter &converter, RewritePatternSet &patterns) {
@@ -654,6 +673,8 @@ struct UnrealizedConversionCastOpLowering
 //   // clang-format on
 // }
 
+
+
 namespace {
 /// A pass converting Func operations into the LLVM IR dialect.
 struct ConvertKernelCallToLLVMPass
@@ -661,8 +682,95 @@ struct ConvertKernelCallToLLVMPass
   ConvertKernelCallToLLVMPass() = default;
   
   SmallVector<::llvm::StringRef, 8> KernelNameVec;
-  
+
+  // LLVM::LLVMFuncOp
+  // convertFuncOpToLLVMFuncAndEraseBody(func::FuncOp funcOp) const {
+  //   // Convert the original function arguments. They are converted using the
+  //   // LLVMTypeConverter provided to this legalization pattern.
+  //   auto varargsAttr = funcOp->getAttrOfType<BoolAttr>("func.varargs");
+  //   TypeConverter::SignatureConversion result(funcOp.getNumArguments());
+  //   OpBuilder builder(funcOp);
+  //   // auto llvmType = getTypeConverter()->convertFunctionSignature(
+  //   //     funcOp.getFunctionType(), varargsAttr && varargsAttr.getValue(),
+  //   //     result);
+  //   // if (!llvmType)
+  //   //   return nullptr;
+
+  //   // Propagate argument/result attributes to all converted arguments/result
+  //   // obtained after converting a given original argument/result.
+  //   // SmallVector<NamedAttribute, 4> attributes;
+  //   // filterFuncAttributes(funcOp->getAttrs(), /*filterArgAndResAttrs=*/true,
+  //   //                      attributes);
+  //   // if (ArrayAttr resAttrDicts = funcOp.getAllResultAttrs()) {
+  //   //   assert(!resAttrDicts.empty() && "expected array to be non-empty");
+  //   //   auto newResAttrDicts =
+  //   //       (funcOp.getNumResults() == 1)
+  //   //           ? resAttrDicts
+  //   //           : builder.getArrayAttr(
+  //   //                 {wrapAsStructAttrs(builder, resAttrDicts)});
+  //   //   attributes.push_back(builder.getNamedAttr(
+  //   //       FunctionOpInterface::getResultDictAttrName(), newResAttrDicts));
+  //   // }
+  //   // if (ArrayAttr argAttrDicts = funcOp.getAllArgAttrs()) {
+  //   //   SmallVector<Attribute, 4> newArgAttrs(
+  //   //       llvmType.cast<LLVM::LLVMFunctionType>().getNumParams());
+  //   //   for (unsigned i = 0, e = funcOp.getNumArguments(); i < e; ++i) {
+  //   //     auto mapping = result.getInputMapping(i);
+  //   //     assert(mapping && "unexpected deletion of function argument");
+  //   //     for (size_t j = 0; j < mapping->size; ++j) 
+  //   //       newArgAttrs[mapping->inputNo + j] = argAttrDicts[i];
+  //   //   }
+  //   //   attributes.push_back(
+  //   //       builder.getNamedAttr(FunctionOpInterface::getArgDictAttrName(),
+  //   //                             builder.getArrayAttr(newArgAttrs)));
+  //   // }
+  //   // for (const auto &pair : llvm::enumerate(attributes)) {
+  //   //   if (pair.value().getName() == "llvm.linkage") {
+  //   //     attributes.erase(attributes.begin() + pair.index());
+  //   //     break;
+  //   //   }
+  //   // }
+
+  //   // // Create an LLVM function, use external linkage by default until MLIR
+  //   // // functions have linkage.
+  //   LLVM::Linkage linkage = LLVM::Linkage::External;
+  //   if (funcOp->hasAttr("llvm.linkage")) {
+  //     auto attr =
+  //         funcOp->getAttr("llvm.linkage").dyn_cast<mlir::LLVM::LinkageAttr>();
+  //     if (!attr) {
+  //       funcOp->emitError()
+  //           << "Contains llvm.linkage attribute not of type LLVM::LinkageAttr";
+  //       return nullptr;
+  //     }
+  //     linkage = attr.getLinkage();
+  //   }
+
+  //   // auto newFuncOp = builder.create<LLVM::LLVMFuncOp>(
+  //   //     funcOp.getLoc(), funcOp.getName(), 
+  //   //     LLVM::LLVMFunctionType::get(LLVM::LLVMVoidType::get(builder.getContext()),
+  //   //     ArrayRef<Type>()));
+    
+  //   auto newFuncOp = builder.create<LLVM::LLVMFuncOp>(
+  //       funcOp.getLoc(), funcOp.getName(), 
+  //       /*llvmType*/LLVM::LLVMFunctionType::get(LLVM::LLVMVoidType::get(builder.getContext()),ArrayRef<Type>()), 
+  //       linkage,
+  //       /*dsoLocal*/ false, /*cconv*/ LLVM::CConv::C);
+    
+  //   llvm::errs() << "[debug] newFuncOp2:\n";
+  //   newFuncOp.dump();
+  //   builder.convertRegionTypes(&newFuncOp.getBody(), *typeConverter, &result);
+  //   // builder.inlineRegionBefore(funcOp.getBody(), newFuncOp.getBody(),
+  //   //                             newFuncOp.end());
+  //   // if (failed(builder.convertRegionTypes(&newFuncOp.getBody(), *typeConverter,
+  //   //                                        &result)))
+  //   //   return nullptr;
+
+  //   return newFuncOp;
+  // }  
+
+
   void runOnOperation() override {
+
     // if (failed(LLVM::LLVMDialect::verifyDataLayoutString(
     //         this->dataLayout, [this](const Twine &message) {
     //           getOperation().emitError() << message.str();
@@ -673,10 +781,10 @@ struct ConvertKernelCallToLLVMPass
 
     ModuleOp m = getOperation();
 
-    m.walk([this](FDRA::KernelCallOp callop) {
-      llvm::errs() <<"[debug] Callee: "<<callop.callee()<< "\n";
-      KernelNameVec.push_back(callop.callee());
-    });
+    // m.walk([this](FDRA::KernelCallOp callop) {
+    //   // llvm::errs() <<"[debug] Callee: "<<callop.callee()<< "\n";
+    //   KernelNameVec.push_back(callop.callee());
+    // });
 
 
     const auto &dataLayoutAnalysis = getAnalysis<DataLayoutAnalysis>();
@@ -694,6 +802,7 @@ struct ConvertKernelCallToLLVMPass
     RewritePatternSet patterns(&getContext());
     patterns.add<KernelCallOpLowering>(typeConverter);
     patterns.add<KernelFuncOpConversion>(typeConverter);
+    patterns.add<ReturnOpLowering>(typeConverter);
     // populateFuncToLLVMFuncOpConversionPattern(typeConverter, patterns);
     // populateFuncToLLVMConversionPatterns(typeConverter, patterns);
 
@@ -703,21 +812,24 @@ struct ConvertKernelCallToLLVMPass
 
     LLVMConversionTarget target(getContext());
 
-    m.walk([this](func::FuncOp funcop) {
-      // funcop.dump();
-      llvm::errs() <<"\nKernelNameVec :";
-      for(auto name : KernelNameVec){
-        llvm::errs() << name <<" ";
-      }
- 
-      ::llvm::StringRef NameToFind = funcop.getSymName();
-      llvm::errs() <<"\nfuncop :" << NameToFind;
-      auto it = std::find(KernelNameVec.begin(), KernelNameVec.end(), NameToFind);
-      if (it != KernelNameVec.end()) { // FuncOp is a kernel
-        llvm::errs() << "[debug] found a kernel func:\n";
-        funcop.dump();
-      } 
-    });
+    // m.walk([this, &m](func::FuncOp funcop) {
+    //   ::llvm::StringRef NameToFind = funcop.getSymName();
+    //   // llvm::errs() <<"\nfuncop :" << NameToFind;
+    //   auto it = std::find(KernelNameVec.begin(), KernelNameVec.end(), NameToFind);
+    //   if (it != KernelNameVec.end()) { // FuncOp is a kernel
+    //     llvm::errs() << "[debug] found a kernel func:\n";
+    //     funcop.dump();
+
+    //     LLVM::LLVMFuncOp newFuncOp = convertFuncOpToLLVMFuncAndEraseBody(funcop);
+    //     llvm::errs() << "[debug] newFuncOp:\n";
+    //     newFuncOp.dump();
+
+    //     funcop.erase();
+
+    //     llvm::errs() << "[debug] whole module:\n";
+    //     m.dump();
+    //   } 
+    // });
 
     if (failed(applyPartialConversion(m, target, std::move(patterns))))
       signalPassFailure();

@@ -79,17 +79,24 @@ public:
     if(IsInnermost())
       llvm::errs() <<", innermost";
     
+    if(UnrollFactors.size()!=0){
+      llvm::errs() <<", unroll factor: ";
+      for(auto ft : UnrollFactors)
+        llvm::errs() << ft << " ";
+    }
+
     llvm::errs() << "\n";
   }
   void dumpForOp(){
     this->getForOp().dump();
   }
   void dumpTree(){
-    dumpNode();
     // dumpForOp();
     for(ForNode* Child : ChildrenNodes){
       Child->dumpTree();
     }
+
+    dumpNode();
   }
 
 };

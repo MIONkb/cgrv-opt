@@ -196,7 +196,7 @@ func::FuncOp KernelToFuncPass::
   kernelOperandTypes.reserve(operands.size());
   for (Value operand : operands)
   {
-    errs()  << "  operands:"; operand.dump();
+    // errs()  << "  operands:"; operand.dump();
     kernelOperandTypes.push_back(operand.getType());
   }
   FunctionType type =
@@ -204,6 +204,7 @@ func::FuncOp KernelToFuncPass::
   func::FuncOp KernelFunc = builder.create<func::FuncOp>(loc, kernelFnName, type);
   //  std::cout << "[debug] after create:\n"; KernelFunc.dump();
   KernelFunc->setAttr(kernelFnName, builder.getUnitAttr());
+  KernelFunc->setAttr("Kernel", builder.getUnitAttr());
 
   /// Pass func arguements outside of KernelOp
   Block *entryBlock = new Block;
@@ -787,7 +788,7 @@ void KernelToFuncPass::runOnOperation()
         }
         llvm::errs() << "Kernel:"  << kernelFnName << "\n";
         NewKernelFunc.dump();
-        NewKernelFunc.print(llvm::errs());
+        // NewKernelFunc.print(llvm::errs());
         NewKernelFunc.print(file);
       }
       /// Convert FDRA.Kernel{ ... } to func.call
