@@ -1,0 +1,14 @@
+cgra-opt \
+--extract-affine-for-to-kernel \
+0_three_mm_32.mlir > 1_mm_kernel.mlir
+
+
+cgra-opt \
+--extract-kernel-to-function=\
+kernel-gen-dir=/home/tianyi/MLIRCGRA/CGRA-Flow/mlir-cgra/experiments/LJHtest/three_mm_32 \
+1_mm_kernel.mlir
+
+
+cgra-opt --adjust-kernel-mem-footprint=cachesize=1 1_mm_kernel.mlir 
+
+cgra-opt --affine-loop-tile="cache-size=1"   1_mm_kernel.mlir 

@@ -1,0 +1,13 @@
+Digraph G {
+Input36[opcode=Input, ref_name="", size="48", offset="0, 0", pattern="4, 3, -8, 3, 4, 4"];
+Input40[opcode=Input, ref_name="", size="48", offset="0, 0", pattern="12, 3, -20, 3, -32, 4"];
+Input41[opcode=Input, ref_name="", size="48", offset="0, 0", pattern="0, 3, 4, 3, 4, 4"];
+FMUL42[opcode=FMUL];
+FADD43[opcode=FADD];
+Output44[opcode=Output, ref_name="", size="48", offset="0, 0", pattern="0, 3, 4, 3, 4, 4"];
+Input36 -> FMUL42[operand = 0 ,color = black, style = bold, label = "Op=0"];
+Input40 -> FMUL42[operand = 1 ,color = black, style = bold, label = "Op=1"];
+Input41 -> FADD43[operand = 0 ,color = black, style = bold, label = "Op=0"];
+FMUL42 -> FADD43[operand = 1 ,color = black, style = bold, label = "Op=1"];
+FADD43 -> Output44[operand = 0 ,color = black, style = bold, label = "Op=0"];
+}

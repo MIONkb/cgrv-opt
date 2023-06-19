@@ -1,0 +1,9 @@
+Digraph G {
+Input27[opcode=Input, ref_name="", size="32", offset="0, 0", pattern="4, 2, 4, 4"];
+Input28[opcode=Input, ref_name="", size="32", offset="0, 0", pattern="0, 2, 4, 4"];
+FMUL29[opcode=FMUL];
+Output31[opcode=Output, ref_name="", size="32", offset="0, 0", pattern="4, 2, 4, 4"];
+Input27 -> FMUL29[operand = 0 ,color = black, style = bold, label = "Op=0"];
+Input28 -> FMUL29[operand = 1 ,color = black, style = bold, label = "Op=1"];
+FMUL29 -> Output31[operand = 0 ,color = black, style = bold, label = "Op=0"];
+}

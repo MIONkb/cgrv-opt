@@ -1,0 +1,87 @@
+{
+  "name": "G",
+  "directed": true,
+  "strict": false,
+  "_subgraph_cnt": 0,
+  "objects": [
+    {
+      "_gvid": 0,
+      "name": "Output24",
+      "label": "\\N",
+      "offset": "0, 0",
+      "opcode": "Output",
+      "pattern": "0, 32, 4, 32, 4, 32",
+      "size": "4096"
+    },
+    {
+      "_gvid": 1,
+      "name": "Input34",
+      "label": "\\N",
+      "offset": "0, 0",
+      "opcode": "Input",
+      "pattern": "4, 32, -124, 32, 4, 32",
+      "size": "4096"
+    },
+    {
+      "_gvid": 2,
+      "name": "Input38",
+      "label": "\\N",
+      "offset": "0, 0",
+      "opcode": "Input",
+      "pattern": "128, 32, -3964, 32, -4092, 32",
+      "size": "4096"
+    },
+    {
+      "_gvid": 3,
+      "name": "MUL39",
+      "label": "\\N",
+      "opcode": "MUL"
+    },
+    {
+      "_gvid": 4,
+      "name": "ACC78",
+      "acc_first": "0",
+      "acc_params": "0, 32, 1, 1024",
+      "label": "\\N",
+      "opcode": "ACC"
+    }
+  ],
+  "edges": [
+    {
+      "_gvid": 0,
+      "tail": 1,
+      "head": 3,
+      "color": "black",
+      "label": "Op=0",
+      "operand": "0",
+      "style": "bold"
+    },
+    {
+      "_gvid": 1,
+      "tail": 2,
+      "head": 3,
+      "color": "black",
+      "label": "Op=1",
+      "operand": "1",
+      "style": "bold"
+    },
+    {
+      "_gvid": 2,
+      "tail": 3,
+      "head": 4,
+      "color": "black",
+      "label": "Op=0",
+      "operand": "0",
+      "style": "bold"
+    },
+    {
+      "_gvid": 3,
+      "tail": 4,
+      "head": 0,
+      "color": "black",
+      "label": "Op=0",
+      "operand": "0",
+      "style": "bold"
+    }
+  ]
+}
