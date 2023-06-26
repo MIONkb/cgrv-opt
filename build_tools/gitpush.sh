@@ -6,7 +6,7 @@ ssh -T git@github.com
 
 # git init
 git add .
-git commit -m "add experiments dir"
+git commit -m "update compiling scripts: add --instnamer to opt cmd to name all array"
 git branch -M main
 git remote add origin git@github.com:segmentKOBE/cgra-opt.git
 git push -u origin main

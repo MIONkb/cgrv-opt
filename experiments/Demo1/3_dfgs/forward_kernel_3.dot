@@ -1,0 +1,5 @@
+Digraph G {
+Input23[opcode=Input, ref_name="", size="144", offset="0, 0", pattern="4, 12, 4, 3"];
+Output27[opcode=Output, ref_name="", size="144", offset="0, 0", pattern="12, 12, -128, 3"];
+Input23 -> Output27[operand = 0 ,color = black, style = bold, label = "Op=0"];
+}

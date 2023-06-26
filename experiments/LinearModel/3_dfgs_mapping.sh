@@ -41,13 +41,13 @@ for file in "$srcfolder"/*; do
 
       # mapping and get config information
       echo /home/tianyi/chipyard/generators/fdra/cgra-compiler/build/cgra-compiler SPDLOG_LEVEL=off \
-	      -c true -m true -o true -t 3600000 -i 2000 \
+	      -c true -m true -o true -e true -t 3600000 -i 2000 \
 	      -p "/home/tianyi/chipyard/generators/fdra/cgra-mg/src/main/resources/operations.json" \
 	      -a "/home/tianyi/chipyard/generators/fdra/cgra-mg/src/main/resources/cgra_adg.json" \
 	      -d "$tempfolder/$filename.json"
 
       /home/tianyi/chipyard/generators/fdra/cgra-compiler/build/cgra-compiler SPDLOG_LEVEL=off \
-	      -c true -m true -o true -t 3600000 -i 2000 \
+	      -c true -m true -o true -e true -t 3600000 -i 2000 \
 	      -p "/home/tianyi/chipyard/generators/fdra/cgra-mg/src/main/resources/operations.json" \
 	      -a "/home/tianyi/chipyard/generators/fdra/cgra-mg/src/main/resources/cgra_adg.json" \
 	      -d "$tempfolder/$filename.json"
@@ -100,3 +100,10 @@ cd -
 #     -mapping-all=true --cdfg \
 #     main_kernel_6_gvn.ll -S -o $tarfolder/main_kernel_6_cdfg.ll \
 #     -enable-new-pm=0
+
+
+/home/tianyi/chipyard/generators/fdra/cgra-compiler/build/cgra-compiler SPDLOG_LEVEL=off \
+	      -c true -m true -o true -e true -t 3600000 -i 2000 \
+	      -p "/home/tianyi/chipyard/generators/fdra/cgra-mg/src/main/resources/operations.json" \
+	      -a "/home/tianyi/chipyard/generators/fdra/cgra-mg/src/main/resources/cgra_adg.json" \
+	      -d /home/tianyi/fdra/app-compiler/cgra-opt/experiments/LinearModel/tempfiles/forward_kernel_0.json
