@@ -9,17 +9,17 @@ define void @forward_kernel_0(ptr %0, ptr %1, ptr %2) !dbg !3 {
   %4 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } undef, ptr %0, 0, !dbg !7
   %5 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %4, ptr %0, 1, !dbg !9
   %6 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %5, i64 0, 2, !dbg !10
-  %7 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %6, i64 2, 3, 0, !dbg !11
+  %7 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %6, i64 10, 3, 0, !dbg !11
   %8 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %7, i64 1, 4, 0, !dbg !12
   %9 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } undef, ptr %1, 0, !dbg !13
   %10 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %9, ptr %1, 1, !dbg !14
   %11 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %10, i64 0, 2, !dbg !15
-  %12 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %11, i64 2, 3, 0, !dbg !16
+  %12 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %11, i64 10, 3, 0, !dbg !16
   %13 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %12, i64 1, 4, 0, !dbg !17
   %14 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } undef, ptr %2, 0, !dbg !18
   %15 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %14, ptr %2, 1, !dbg !19
   %16 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %15, i64 0, 2, !dbg !20
-  %17 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %16, i64 2, 3, 0, !dbg !21
+  %17 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %16, i64 10, 3, 0, !dbg !21
   %18 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %17, i64 1, 4, 0, !dbg !22
   br label %19, !dbg !23
 
@@ -28,20 +28,20 @@ define void @forward_kernel_0(ptr %0, ptr %1, ptr %2) !dbg !3 {
 
 20:                                               ; preds = %23, %19
   %21 = phi i64 [ %33, %23 ], [ 0, %19 ]
-  %22 = icmp slt i64 %21, 2, !dbg !25
+  %22 = icmp slt i64 %21, 10, !dbg !25
   br i1 %22, label %23, label %34, !dbg !26
 
 23:                                               ; preds = %20
   %24 = extractvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %8, 1, !dbg !27
-  %25 = getelementptr i32, ptr %24, i64 %21, !dbg !28
-  %26 = load i32, ptr %25, align 4, !dbg !29
+  %25 = getelementptr float, ptr %24, i64 %21, !dbg !28
+  %26 = load float, ptr %25, align 4, !dbg !29
   %27 = extractvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %13, 1, !dbg !30
-  %28 = getelementptr i32, ptr %27, i64 %21, !dbg !31
-  %29 = load i32, ptr %28, align 4, !dbg !32
-  %30 = add i32 %26, %29, !dbg !33
+  %28 = getelementptr float, ptr %27, i64 %21, !dbg !31
+  %29 = load float, ptr %28, align 4, !dbg !32
+  %30 = fadd float %26, %29, !dbg !33
   %31 = extractvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %18, 1, !dbg !34
-  %32 = getelementptr i32, ptr %31, i64 %21, !dbg !35
-  store i32 %30, ptr %32, align 4, !dbg !36
+  %32 = getelementptr float, ptr %31, i64 %21, !dbg !35
+  store float %30, ptr %32, align 4, !dbg !36
   %33 = add i64 %21, 1, !dbg !37
   br label %20, !dbg !38
 

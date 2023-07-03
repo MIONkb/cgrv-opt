@@ -17,9 +17,12 @@ int main(int argc, char** argv)
   float ff = 2.0; 
   printf("ff: %2.f \n", ff);
 	int i , j;
-	for(i = 0; i < 4; i++)
-    for(j = 0; j < 3; j++)
-		  a[i][j]=i*2+j;
+	for(i = 0; i < 4; i++){
+    for(j = 0; j < 3; j++){
+		  a[i][j]=i*3+j;
+    }
+  } 
+
 
   start = rdcycle();
   printf("start cycle:%d\n",start);
@@ -30,15 +33,13 @@ int main(int argc, char** argv)
 
   printf("c:\n");
 	for(i = 0; i < 4; i++){
-    for(j = 0; j < 3; j++)
-      if(b[i][j] != b[i][j]){
-        printf("test fail!");
-        break;
-      }
-    printf("\n");
+    for(j = 0; j < 3; j++){
+      int I = (int)(b[i][j]*10000);
+      printf("b[%d][%d]:%d\n",i,j, I);
+    }
   } 
   // result_check();
-  printf("test success!\n");
+  printf("test complete!\n");
 
   return 0;
 }

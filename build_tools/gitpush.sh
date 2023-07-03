@@ -6,7 +6,7 @@ ssh -T git@github.com
 
 # git init
 git add .
-git commit -m "update compiling scripts: add --instnamer to opt cmd to name all array"
+git commit -m "complete a pass coding : --fdra-hoist-loadstore"
 git branch -M main
 git remote add origin git@github.com:segmentKOBE/cgra-opt.git
 git push -u origin main

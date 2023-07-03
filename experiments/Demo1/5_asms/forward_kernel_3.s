@@ -5,9 +5,9 @@
 	.attribute stack_align, 16
 	.text
 	.align	1
-	.globl	cgra_execute
-	.type	cgra_execute, @function
-cgra_execute:
+	.globl	forward_kernel_3
+	.type	forward_kernel_3, @function
+forward_kernel_3:
 	lla	a5,.LANCHOR0
 	ld	a3,0(a5)
 	ld	a4,8(a5)
@@ -35,9 +35,10 @@ cgra_execute:
 	
 # 0 "" 2
  #NO_APP
-	li	a2,9
-	ld	a1,0(a0)
-	slli	a2,a2,36
+	li	a2,9437184
+	addi	a2,a2,1
+	mv	a1,a0
+	slli	a2,a2,16
  #APP
 # 34 "/home/tianyi/chipyard/generators/fdra/software/tests/include/ISA.h" 1
 	.word 0b0001011 | (0 << (7)) | (1 << (7+5)) | (1 << (7+5+1)) | (0 << (7+5+2)) | (11 << (7+5+3)) | (12 << (7+5+3+5)) | ((((~(~0 << 7) << 0) & 1) >> 0) << (7+5+3+5+5))
@@ -53,7 +54,8 @@ cgra_execute:
 	
 # 0 "" 2
  #NO_APP
-	li	a1,5
+	li	a1,4096
+	addi	a1,a1,-1536
 	li	a2,0
  #APP
 # 58 "/home/tianyi/chipyard/generators/fdra/software/tests/include/ISA.h" 1
@@ -62,18 +64,22 @@ cgra_execute:
 # 0 "" 2
  #NO_APP
 	li	a2,75497472
-	addi	a2,a2,1
-	ld	a1,0(a5)
+	addi	a2,a2,9
+	mv	a1,a5
 	slli	a2,a2,13
  #APP
 # 42 "/home/tianyi/chipyard/generators/fdra/software/tests/include/ISA.h" 1
 	.word 0b0001011 | (0 << (7)) | (1 << (7+5)) | (1 << (7+5+1)) | (0 << (7+5+2)) | (11 << (7+5+3)) | (12 << (7+5+3+5)) | ((((~(~0 << 7) << 0) & 2) >> 0) << (7+5+3+5+5))
 	
 # 0 "" 2
+# 82 "/home/tianyi/chipyard/generators/fdra/software/tests/include/ISA.h" 1
+	.word 0b0001011 | (10 << (7)) | (0 << (7+5)) | (0 << (7+5+1)) | (1 << (7+5+2)) | (0 << (7+5+3)) | (0 << (7+5+3+5)) | ((((~(~0 << 7) << 0) & 0) >> 0) << (7+5+3+5+5))
+	
+# 0 "" 2
  #NO_APP
 	addi	sp,sp,64
 	jr	ra
-	.size	cgra_execute, .-cgra_execute
+	.size	forward_kernel_3, .-forward_kernel_3
 	.section	.srodata.cst8,"aM",@progbits,8
 	.align	3
 .LC1:
@@ -82,34 +88,34 @@ cgra_execute:
 	.align	3
 	.set	.LANCHOR0,. + 0
 .LC0:
-	.half	8192
 	.half	12288
-	.half	4
-	.half	64
-	.half	24
-	.half	5
 	.half	0
-	.half	256
-	.half	6
+	.half	336
 	.half	0
-	.half	0
-	.half	7
+	.half	1
+	.half	340
 	.half	26624
 	.half	12288
-	.half	12
+	.half	368
 	.half	-2048
 	.half	31
-	.half	13
+	.half	369
 	.half	0
 	.half	-30464
-	.half	14
+	.half	370
+	.half	128
+	.half	0
+	.half	371
+	.half	8192
+	.half	12288
+	.half	376
+	.half	64
+	.half	24
+	.half	377
+	.half	0
+	.half	256
+	.half	378
 	.half	0
 	.half	0
-	.half	15
-	.half	0
-	.half	0
-	.half	44
-	.half	32
-	.half	0
-	.half	48
+	.half	379
 	.ident	"GCC: (g2ee5e430018) 12.2.0"

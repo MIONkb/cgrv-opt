@@ -25,7 +25,7 @@ forward:                                # @forward
 	mv	s1, a0
 .Ltmp0:
 	.loc	1 29 11 prologue_end            # 3_forward_llvm.mlir:29:11
-	li	a0, 72
+	li	a0, 104
 	call	malloc@plt
 	.loc	1 34 11                         # 3_forward_llvm.mlir:34:11
 	addi	a0, a0, 63

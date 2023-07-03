@@ -10,9 +10,9 @@
       "label": "\\N",
       "offset": "0, 0",
       "opcode": "Input",
-      "pattern": "4, 2",
+      "pattern": "4, 10",
       "ref_name": "arg",
-      "size": "8"
+      "size": "40"
     },
     {
       "_gvid": 1,
@@ -20,15 +20,15 @@
       "label": "\\N",
       "offset": "0, 0",
       "opcode": "Input",
-      "pattern": "4, 2",
+      "pattern": "4, 10",
       "ref_name": "arg1",
-      "size": "8"
+      "size": "40"
     },
     {
       "_gvid": 2,
-      "name": "ADD17",
+      "name": "FADD3217",
       "label": "\\N",
-      "opcode": "ADD"
+      "opcode": "FADD32"
     },
     {
       "_gvid": 3,
@@ -36,9 +36,9 @@
       "label": "\\N",
       "offset": "0, 0",
       "opcode": "Output",
-      "pattern": "4, 2",
+      "pattern": "4, 10",
       "ref_name": "arg2",
-      "size": "8"
+      "size": "40"
     }
   ],
   "edges": [

@@ -1,4 +1,43 @@
 // -----// IR Dump After PromoteBuffersToStack (promote-buffers-to-stack) //----- //
+func.func @forward_kernel_0(%arg0: memref<12x3xf32>, %arg1: memref<3x12xf32>) attributes {Kernel, forward_kernel_0} {
+  cf.br ^bb1
+^bb1:  // pred: ^bb0
+  affine.for %arg2 = 0 to 12 {
+    affine.for %arg3 = 0 to 3 {
+      %0 = affine.load %arg0[%arg2, %arg3] : memref<12x3xf32>
+      affine.store %0, %arg1[%arg3, %arg2] : memref<3x12xf32>
+    }
+  }
+  return
+}
+
+// -----// IR Dump After PromoteBuffersToStack (promote-buffers-to-stack) //----- //
+func.func @forward_kernel_4(%arg0: memref<4x3xf32>) attributes {Kernel, forward_kernel_4} {
+  cf.br ^bb1
+^bb1:  // pred: ^bb0
+  %cst = arith.constant 0.000000e+00 : f32
+  affine.for %arg1 = 0 to 4 {
+    affine.for %arg2 = 0 to 3 {
+      affine.store %cst, %arg0[%arg1, %arg2] : memref<4x3xf32>
+    }
+  }
+  return
+}
+
+// -----// IR Dump After PromoteBuffersToStack (promote-buffers-to-stack) //----- //
+func.func @forward_kernel_1(%arg0: memref<4x12xf32>) attributes {Kernel, forward_kernel_1} {
+  cf.br ^bb1
+^bb1:  // pred: ^bb0
+  %cst = arith.constant 0.000000e+00 : f32
+  affine.for %arg1 = 0 to 4 {
+    affine.for %arg2 = 0 to 12 {
+      affine.store %cst, %arg0[%arg1, %arg2] : memref<4x12xf32>
+    }
+  }
+  return
+}
+
+// -----// IR Dump After PromoteBuffersToStack (promote-buffers-to-stack) //----- //
 func.func @forward(%arg0: memref<4x3xf32>) -> memref<4x3xf32> {
   %cst = arith.constant 0.000000e+00 : f32
   %0 = memref.get_global @__constant_3x12xf32 : memref<3x12xf32>
@@ -21,25 +60,6 @@ func.func @forward(%arg0: memref<4x3xf32>) -> memref<4x3xf32> {
 }
 
 // -----// IR Dump After PromoteBuffersToStack (promote-buffers-to-stack) //----- //
-func.func @forward_kernel_5(%arg0: memref<4x12xf32>, %arg1: memref<12x3xf32>, %arg2: memref<4x3xf32>) attributes {Kernel, forward_kernel_5} {
-  cf.br ^bb1
-^bb1:  // pred: ^bb0
-  affine.for %arg3 = 0 to 4 {
-    affine.for %arg4 = 0 to 3 {
-      affine.for %arg5 = 0 to 12 {
-        %0 = affine.load %arg0[%arg3, %arg5] : memref<4x12xf32>
-        %1 = affine.load %arg1[%arg5, %arg4] : memref<12x3xf32>
-        %2 = affine.load %arg2[%arg3, %arg4] : memref<4x3xf32>
-        %3 = arith.mulf %0, %1 : f32
-        %4 = arith.addf %2, %3 : f32
-        affine.store %4, %arg2[%arg3, %arg4] : memref<4x3xf32>
-      }
-    }
-  }
-  return
-}
-
-// -----// IR Dump After PromoteBuffersToStack (promote-buffers-to-stack) //----- //
 func.func @forward_kernel_2(%arg0: memref<4x3xf32>, %arg1: memref<3x12xf32>, %arg2: memref<4x12xf32>) attributes {Kernel, forward_kernel_2} {
   cf.br ^bb1
 ^bb1:  // pred: ^bb0
@@ -59,39 +79,19 @@ func.func @forward_kernel_2(%arg0: memref<4x3xf32>, %arg1: memref<3x12xf32>, %ar
 }
 
 // -----// IR Dump After PromoteBuffersToStack (promote-buffers-to-stack) //----- //
-func.func @forward_kernel_4(%arg0: memref<4x3xf32>) attributes {Kernel, forward_kernel_4} {
+func.func @forward_kernel_5(%arg0: memref<4x12xf32>, %arg1: memref<12x3xf32>, %arg2: memref<4x3xf32>) attributes {Kernel, forward_kernel_5} {
   cf.br ^bb1
 ^bb1:  // pred: ^bb0
-  %cst = arith.constant 0.000000e+00 : f32
-  affine.for %arg1 = 0 to 4 {
-    affine.for %arg2 = 0 to 3 {
-      affine.store %cst, %arg0[%arg1, %arg2] : memref<4x3xf32>
-    }
-  }
-  return
-}
-
-// -----// IR Dump After PromoteBuffersToStack (promote-buffers-to-stack) //----- //
-func.func @forward_kernel_0(%arg0: memref<12x3xf32>, %arg1: memref<3x12xf32>) attributes {Kernel, forward_kernel_0} {
-  cf.br ^bb1
-^bb1:  // pred: ^bb0
-  affine.for %arg2 = 0 to 12 {
-    affine.for %arg3 = 0 to 3 {
-      %0 = affine.load %arg0[%arg2, %arg3] : memref<12x3xf32>
-      affine.store %0, %arg1[%arg3, %arg2] : memref<3x12xf32>
-    }
-  }
-  return
-}
-
-// -----// IR Dump After PromoteBuffersToStack (promote-buffers-to-stack) //----- //
-func.func @forward_kernel_1(%arg0: memref<4x12xf32>) attributes {Kernel, forward_kernel_1} {
-  cf.br ^bb1
-^bb1:  // pred: ^bb0
-  %cst = arith.constant 0.000000e+00 : f32
-  affine.for %arg1 = 0 to 4 {
-    affine.for %arg2 = 0 to 12 {
-      affine.store %cst, %arg0[%arg1, %arg2] : memref<4x12xf32>
+  affine.for %arg3 = 0 to 4 {
+    affine.for %arg4 = 0 to 3 {
+      affine.for %arg5 = 0 to 12 {
+        %0 = affine.load %arg0[%arg3, %arg5] : memref<4x12xf32>
+        %1 = affine.load %arg1[%arg5, %arg4] : memref<12x3xf32>
+        %2 = affine.load %arg2[%arg3, %arg4] : memref<4x3xf32>
+        %3 = arith.mulf %0, %1 : f32
+        %4 = arith.addf %2, %3 : f32
+        affine.store %4, %arg2[%arg3, %arg4] : memref<4x3xf32>
+      }
     }
   }
   return
@@ -448,6 +448,25 @@ func.func @forward(%arg0: memref<4x3xf32>) -> memref<4x3xf32> {
 }
 
 // -----// IR Dump After SimplifyAffineStructures (affine-simplify-structures) //----- //
+func.func @forward_kernel_5(%arg0: memref<4x12xf32>, %arg1: memref<12x3xf32>, %arg2: memref<4x3xf32>) attributes {Kernel, forward_kernel_5} {
+  cf.br ^bb1
+^bb1:  // pred: ^bb0
+  affine.for %arg3 = 0 to 4 {
+    affine.for %arg4 = 0 to 3 {
+      affine.for %arg5 = 0 to 12 {
+        %0 = affine.load %arg0[%arg3, %arg5] : memref<4x12xf32>
+        %1 = affine.load %arg1[%arg5, %arg4] : memref<12x3xf32>
+        %2 = affine.load %arg2[%arg3, %arg4] : memref<4x3xf32>
+        %3 = arith.mulf %0, %1 : f32
+        %4 = arith.addf %2, %3 : f32
+        affine.store %4, %arg2[%arg3, %arg4] : memref<4x3xf32>
+      }
+    }
+  }
+  return
+}
+
+// -----// IR Dump After SimplifyAffineStructures (affine-simplify-structures) //----- //
 func.func @forward_kernel_0(%arg0: memref<12x3xf32>, %arg1: memref<3x12xf32>) attributes {Kernel, forward_kernel_0} {
   cf.br ^bb1
 ^bb1:  // pred: ^bb0
@@ -455,19 +474,6 @@ func.func @forward_kernel_0(%arg0: memref<12x3xf32>, %arg1: memref<3x12xf32>) at
     affine.for %arg3 = 0 to 3 {
       %0 = affine.load %arg0[%arg2, %arg3] : memref<12x3xf32>
       affine.store %0, %arg1[%arg3, %arg2] : memref<3x12xf32>
-    }
-  }
-  return
-}
-
-// -----// IR Dump After SimplifyAffineStructures (affine-simplify-structures) //----- //
-func.func @forward_kernel_1(%arg0: memref<4x12xf32>) attributes {Kernel, forward_kernel_1} {
-  cf.br ^bb1
-^bb1:  // pred: ^bb0
-  %cst = arith.constant 0.000000e+00 : f32
-  affine.for %arg1 = 0 to 4 {
-    affine.for %arg2 = 0 to 12 {
-      affine.store %cst, %arg0[%arg1, %arg2] : memref<4x12xf32>
     }
   }
   return
@@ -487,6 +493,19 @@ func.func @forward_kernel_2(%arg0: memref<4x3xf32>, %arg1: memref<3x12xf32>, %ar
         %4 = arith.addf %2, %3 : f32
         affine.store %4, %arg2[%arg3, %arg4] : memref<4x12xf32>
       }
+    }
+  }
+  return
+}
+
+// -----// IR Dump After SimplifyAffineStructures (affine-simplify-structures) //----- //
+func.func @forward_kernel_1(%arg0: memref<4x12xf32>) attributes {Kernel, forward_kernel_1} {
+  cf.br ^bb1
+^bb1:  // pred: ^bb0
+  %cst = arith.constant 0.000000e+00 : f32
+  affine.for %arg1 = 0 to 4 {
+    affine.for %arg2 = 0 to 12 {
+      affine.store %cst, %arg0[%arg1, %arg2] : memref<4x12xf32>
     }
   }
   return
@@ -513,25 +532,6 @@ func.func @forward_kernel_4(%arg0: memref<4x3xf32>) attributes {Kernel, forward_
   affine.for %arg1 = 0 to 4 {
     affine.for %arg2 = 0 to 3 {
       affine.store %cst, %arg0[%arg1, %arg2] : memref<4x3xf32>
-    }
-  }
-  return
-}
-
-// -----// IR Dump After SimplifyAffineStructures (affine-simplify-structures) //----- //
-func.func @forward_kernel_5(%arg0: memref<4x12xf32>, %arg1: memref<12x3xf32>, %arg2: memref<4x3xf32>) attributes {Kernel, forward_kernel_5} {
-  cf.br ^bb1
-^bb1:  // pred: ^bb0
-  affine.for %arg3 = 0 to 4 {
-    affine.for %arg4 = 0 to 3 {
-      affine.for %arg5 = 0 to 12 {
-        %0 = affine.load %arg0[%arg3, %arg5] : memref<4x12xf32>
-        %1 = affine.load %arg1[%arg5, %arg4] : memref<12x3xf32>
-        %2 = affine.load %arg2[%arg3, %arg4] : memref<4x3xf32>
-        %3 = arith.mulf %0, %1 : f32
-        %4 = arith.addf %2, %3 : f32
-        affine.store %4, %arg2[%arg3, %arg4] : memref<4x3xf32>
-      }
     }
   }
   return

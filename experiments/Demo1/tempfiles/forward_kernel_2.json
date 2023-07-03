@@ -11,7 +11,8 @@
       "offset": "0, 0",
       "opcode": "Input",
       "pattern": "4, 3, -8, 12, 4, 4",
-      "size": "192"
+      "ref_name": "arg",
+      "size": "48"
     },
     {
       "_gvid": 1,
@@ -20,7 +21,8 @@
       "offset": "0, 0",
       "opcode": "Input",
       "pattern": "48, 3, -92, 12, -140, 4",
-      "size": "192"
+      "ref_name": "arg1",
+      "size": "144"
     },
     {
       "_gvid": 2,
@@ -29,6 +31,7 @@
       "offset": "0, 0",
       "opcode": "Input",
       "pattern": "0, 3, 4, 12, 4, 4",
+      "ref_name": "arg2",
       "size": "192"
     },
     {
@@ -50,6 +53,7 @@
       "offset": "0, 0",
       "opcode": "Output",
       "pattern": "0, 3, 4, 12, 4, 4",
+      "ref_name": "arg2",
       "size": "192"
     }
   ],

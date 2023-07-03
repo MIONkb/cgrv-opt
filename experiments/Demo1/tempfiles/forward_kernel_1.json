@@ -11,6 +11,7 @@
       "offset": "0, 0",
       "opcode": "Output",
       "pattern": "4, 12, 4, 4",
+      "ref_name": "arg",
       "size": "192"
     }
   ]

@@ -60,7 +60,7 @@ def AdjustKernelMemoryFootprint : Pass<"fdra-adjust-kernel-mem-footprint", "Modu
 // Kernel to independent mlir Func
 //===----------------------------------------------------------------------===//
 def ExtractKernelToFunc : Pass<"fdra-extract-kernel-to-function", "ModuleOp"> {
-  let summary = "Extract all FDRA.KernelOp and its region to a single func with explicit ";
+  let summary = "Extract all FDRA.KernelOp and its region to a single func with explicit arguments";
   
   let description = [{
   Following 2 examples shows what is Explicit Data Trans
@@ -137,6 +137,7 @@ def ExtractKernelToFunc : Pass<"fdra-extract-kernel-to-function", "ModuleOp"> {
     return
   } 
   "
+  '''
 
   example 2:
   Initial:
@@ -199,7 +200,7 @@ def ExtractKernelToFunc : Pass<"fdra-extract-kernel-to-function", "ModuleOp"> {
     }
     return
   }
-
+  '''
   }];  
 
   let constructor = "mlir::FDRA::createExtractKernelToFuncPass()";
@@ -214,6 +215,45 @@ def ExtractKernelToFunc : Pass<"fdra-extract-kernel-to-function", "ModuleOp"> {
            "This Option (Default:Ture) will generate explict data block loads/stores ,and interface of Kernel Func won't contain affine-transformed loop Index arguments.">,
   ];
 }
+
+//===----------------------------------------------------------------------===//
+// Hoist Load/Store Operation In Loop-Nest
+//===----------------------------------------------------------------------===//
+def HoistLoadStoreInLoopNest : Pass<"fdra-hoist-loadstore", "func::FuncOp"> {
+  let summary = "Hoist inner affine.load/store operations to outer level to decrease memmory accesses";
+  let description = [{
+    This Pass will hoist repetitive affine.load/store operations which access 
+    the same position in inner loop to outer level of loop so that memmory 
+    accesses can be decreased.
+    The optimization technique of moving memory accesses from the inner loop 
+    to the outer loop is commonly known as "loop hoisting" or 
+    "loop-invariant code motion" (LICM). The goal of this optimization 
+    is to move invariant code from the inner loop to the outer loop, 
+    reducing redundant computations and memory accesses, and thereby 
+    improving the performance of the program.
+    Loop hoisting effectively reduces the number of computations and memory 
+    accesses within the loop, avoids redundant operations, and decreases the 
+    number of iterations in the loop, resulting in improved program efficiency. 
+    This optimization is typically performed automatically by the compiler's 
+    optimizer, but it can also be manually applied to enhance code performance.
+    '''
+  }];  
+  let constructor = "mlir::FDRA::createHoistLoadStoreInLoopNestPass()";
+  let dependentDialects = [
+    "::mlir::FDRA::FDRADialect",
+    "::mlir::AffineDialect"
+  ];
+  let options = [
+    // Option<"outputPath", "output-path", "std::string",
+    //        /*default=*/"\"./\"",
+    //        "File path: the path for dumping the MLIR of pareto design points">,
+    // Option<"targetSpec", "target-spec", "std::string",
+    //        /*default=*/"\"./config.json\"",
+    //        "File path: target backend specifications and configurations">
+  ];
+}
+
+
 
 //===----------------------------------------------------------------------===//
 // Frontend Design Space Exploration

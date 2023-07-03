@@ -11,6 +11,7 @@
       "offset": "0, 0",
       "opcode": "Input",
       "pattern": "4, 3, 4, 12",
+      "ref_name": "arg",
       "size": "144"
     },
     {
@@ -20,6 +21,7 @@
       "offset": "0, 0",
       "opcode": "Output",
       "pattern": "48, 3, -92, 12",
+      "ref_name": "arg1",
       "size": "144"
     }
   ],

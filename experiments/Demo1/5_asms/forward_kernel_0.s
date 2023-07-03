@@ -5,29 +5,31 @@
 	.attribute stack_align, 16
 	.text
 	.align	1
-	.globl	cgra_execute
-	.type	cgra_execute, @function
-cgra_execute:
+	.globl	forward_kernel_0
+	.type	forward_kernel_0, @function
+forward_kernel_0:
 	lla	a5,.LANCHOR0
-	ld	a3,0(a5)
-	ld	a4,8(a5)
-	addi	sp,sp,-64
-	ld	a2,16(a5)
-	sd	a3,0(sp)
-	ld	a3,24(a5)
-	sd	a4,8(sp)
-	ld	a4,32(a5)
-	sd	a2,16(sp)
-	ld	a2,40(a5)
-	sd	a3,24(sp)
-	ld	a3,48(a5)
-	sd	a4,32(sp)
-	lw	a4,56(a5)
-	sd	a2,40(sp)
-	sd	a3,48(sp)
+	ld	a2,0(a5)
+	ld	a3,8(a5)
+	addi	sp,sp,-80
+	ld	a4,16(a5)
+	sd	a2,8(sp)
+	ld	a2,24(a5)
+	sd	a3,16(sp)
+	ld	a3,32(a5)
+	sd	a4,24(sp)
+	ld	a4,40(a5)
+	sd	a2,32(sp)
+	ld	a2,48(a5)
+	sd	a3,40(sp)
+	ld	a3,56(a5)
+	sd	a4,48(sp)
+	lhu	a4,64(a5)
+	sd	a2,56(sp)
+	sd	a3,64(sp)
 	mv	a5,a1
-	sw	a4,56(sp)
-	mv	a1,sp
+	sh	a4,72(sp)
+	addi	a1,sp,8
 	ld	a2,.LC1
  #APP
 # 26 "/home/tianyi/chipyard/generators/fdra/software/tests/include/ISA.h" 1
@@ -36,8 +38,8 @@ cgra_execute:
 # 0 "" 2
  #NO_APP
 	li	a2,18874368
-	addi	a2,a2,3
-	ld	a1,0(a0)
+	addi	a2,a2,1
+	mv	a1,a0
 	slli	a2,a2,15
  #APP
 # 34 "/home/tianyi/chipyard/generators/fdra/software/tests/include/ISA.h" 1
@@ -45,16 +47,17 @@ cgra_execute:
 	
 # 0 "" 2
  #NO_APP
-	li	a2,5
+	li	a2,11
+	slli	a2,a2,32
 	li	a1,0
-	slli	a2,a2,33
+	addi	a2,a2,41
  #APP
 # 50 "/home/tianyi/chipyard/generators/fdra/software/tests/include/ISA.h" 1
 	.word 0b0001011 | (0 << (7)) | (1 << (7+5)) | (1 << (7+5+1)) | (0 << (7+5+2)) | (11 << (7+5+3)) | (12 << (7+5+3+5)) | ((((~(~0 << 7) << 0) & 3) >> 0) << (7+5+3+5+5))
 	
 # 0 "" 2
  #NO_APP
-	li	a1,20480
+	li	a1,36
 	li	a2,0
  #APP
 # 58 "/home/tianyi/chipyard/generators/fdra/software/tests/include/ISA.h" 1
@@ -62,55 +65,61 @@ cgra_execute:
 	
 # 0 "" 2
  #NO_APP
-	li	a2,75497472
-	addi	a2,a2,13
-	ld	a1,0(a5)
-	slli	a2,a2,13
+	li	a2,9
+	mv	a1,a5
+	slli	a2,a2,36
  #APP
 # 42 "/home/tianyi/chipyard/generators/fdra/software/tests/include/ISA.h" 1
 	.word 0b0001011 | (0 << (7)) | (1 << (7+5)) | (1 << (7+5+1)) | (0 << (7+5+2)) | (11 << (7+5+3)) | (12 << (7+5+3+5)) | ((((~(~0 << 7) << 0) & 2) >> 0) << (7+5+3+5+5))
 	
 # 0 "" 2
+# 82 "/home/tianyi/chipyard/generators/fdra/software/tests/include/ISA.h" 1
+	.word 0b0001011 | (10 << (7)) | (0 << (7+5)) | (0 << (7+5+1)) | (1 << (7+5+2)) | (0 << (7+5+3)) | (0 << (7+5+3+5)) | ((((~(~0 << 7) << 0) & 0) >> 0) << (7+5+3+5+5))
+	
+# 0 "" 2
  #NO_APP
-	addi	sp,sp,64
+	addi	sp,sp,80
 	jr	ra
-	.size	cgra_execute, .-cgra_execute
+	.size	forward_kernel_0, .-forward_kernel_0
 	.section	.srodata.cst8,"aM",@progbits,8
 	.align	3
 .LC1:
-	.dword	36029054717132800
+	.dword	36029080486936904
 	.section	.rodata
 	.align	3
 	.set	.LANCHOR0,. + 0
 .LC0:
-	.half	0
-	.half	16
-	.half	348
-	.half	512
-	.half	0
-	.half	352
-	.half	8192
-	.half	3072
-	.half	380
-	.half	64
-	.half	96
-	.half	381
-	.half	0
-	.half	256
-	.half	382
-	.half	0
-	.half	0
-	.half	383
-	.half	-30720
+	.half	-32768
 	.half	3073
-	.half	388
+	.half	12
 	.half	-1472
 	.half	103
-	.half	389
+	.half	13
 	.half	0
 	.half	-30464
-	.half	390
+	.half	14
+	.half	128
+	.half	0
+	.half	15
+	.half	8192
+	.half	3072
+	.half	24
+	.half	64
+	.half	96
+	.half	25
+	.half	0
+	.half	256
+	.half	26
 	.half	0
 	.half	0
-	.half	391
+	.half	27
+	.half	2
+	.half	0
+	.half	52
+	.half	0
+	.half	2
+	.half	56
+	.half	0
+	.half	0
+	.half	60
 	.ident	"GCC: (g2ee5e430018) 12.2.0"

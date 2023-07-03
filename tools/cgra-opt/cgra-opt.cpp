@@ -144,6 +144,7 @@ int main(int argc, char **argv) {
   mlir::FDRA::registerAutoDesignSpaceExplorePass();
   mlir::FDRA::registerTestPrintOpNestingPass();
   mlir::FDRA::registerConvertKernelCallToLLVMPass();
+  mlir::FDRA::registerHoistLoadStoreInLoopNestPass();
 
   mlir::registerSCFForLoopCanonicalizationPass();
   

@@ -22,6 +22,7 @@ std::unique_ptr<OperationPass<func::FuncOp>> createExtractAffineForToKernelPass(
 std::unique_ptr<OperationPass<ModuleOp>> createAdjustKernelMemoryFootprintPass();
 std::unique_ptr<OperationPass<ModuleOp>> createExtractKernelToFuncPass();
 std::unique_ptr<OperationPass<ModuleOp>> createAutoDesignSpaceExplorePass();
+std::unique_ptr<OperationPass<func::FuncOp>> createHoistLoadStoreInLoopNestPass();
 /// Collect all patterns to rewrite ops within the SNN dialect.
 // inline void populateSNNRewritePatterns(MLIRContext *context,
 //                                        RewritePatternSet &patterns) {

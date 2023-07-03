@@ -49,7 +49,7 @@ cp  /home/tianyi/chipyard/generators/fdra/software/tests/gemm/crt.S $tarfolder/c
 
 include_line="#include \"include/ISA.h\""
 cnt=0
-for file in "$srcfolder"/*; do
+for file in "$srcfolder"/*.c; do
     # 检查文件是否为普通文件
     filename=$(basename "$file" .c)
     echo "$filename"

@@ -1,0 +1,15 @@
+Digraph G {
+"Output27"[label = "\N\nlat=8"];
+"FADD3289"->"Output27"[label = "lat=0\nop=0"];
+"Input32"[label = "\N\nlat=3"];
+"Input40"[label = "\N\nlat=3"];
+"Input44"[label = "\N\nlat=3"];
+"FMUL3245"[label = "\N\nlat=5"];
+"Input40"->"FMUL3245"[label = "lat=0\nop=0"];
+"Input44"->"FMUL3245"[label = "lat=0\nop=1"];
+"FACC3288"[label = "\N\nlat=6"];
+"FMUL3245"->"FACC3288"[label = "lat=0\nop=0"];
+"FADD3289"[label = "\N\nlat=7"];
+"Input32"->"FADD3289"[label = "lat=0\nop=0"];
+"FACC3288"->"FADD3289"[label = "lat=0\nop=1"];
+}

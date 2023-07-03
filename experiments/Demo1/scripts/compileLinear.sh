@@ -20,5 +20,5 @@
 cgra-opt  --fdra-extract-affine-for-to-kernel  0_all_Affine.mlir > 1_kernel.mlir
 
 cgra-opt --affine-loop-fusion  --arith-expand --memref-expand -reconcile-unrealized-casts \
- --fdra-extract-kernel-to-function='kernel-gen-dir=/home/tianyi/fdra/app-compiler/cgra-opt/experiments/Demo1 kernel-explicit-datablock-trans=false' \
+ --fdra-extract-kernel-to-function='kernel-gen-dir=/home/tianyi/fdra/app-compiler/cgra-opt/experiments/EasyMLIRCall kernel-explicit-datablock-trans=false' \
  1_kernel.mlir > 2_host.mlir

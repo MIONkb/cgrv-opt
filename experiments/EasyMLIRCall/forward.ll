@@ -9,14 +9,14 @@ define ptr @forward(ptr %0, ptr %1) !dbg !3 {
   %3 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } undef, ptr %0, 0, !dbg !7
   %4 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %3, ptr %0, 1, !dbg !9
   %5 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %4, i64 0, 2, !dbg !10
-  %6 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %5, i64 2, 3, 0, !dbg !11
+  %6 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %5, i64 10, 3, 0, !dbg !11
   %7 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %6, i64 1, 4, 0, !dbg !12
   %8 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } undef, ptr %1, 0, !dbg !13
   %9 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %8, ptr %1, 1, !dbg !14
   %10 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %9, i64 0, 2, !dbg !15
-  %11 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %10, i64 2, 3, 0, !dbg !16
+  %11 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %10, i64 10, 3, 0, !dbg !16
   %12 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %11, i64 1, 4, 0, !dbg !17
-  %13 = call ptr @malloc(i64 add (i64 ptrtoint (ptr getelementptr (i32, ptr null, i32 2) to i64), i64 64)), !dbg !18
+  %13 = call ptr @malloc(i64 add (i64 ptrtoint (ptr getelementptr (float, ptr null, i32 10) to i64), i64 64)), !dbg !18
   %14 = ptrtoint ptr %13 to i64, !dbg !19
   %15 = add i64 %14, 63, !dbg !20
   %16 = urem i64 %15, 64, !dbg !21
@@ -25,7 +25,7 @@ define ptr @forward(ptr %0, ptr %1) !dbg !3 {
   %19 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } undef, ptr %13, 0, !dbg !24
   %20 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %19, ptr %18, 1, !dbg !25
   %21 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %20, i64 0, 2, !dbg !26
-  %22 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %21, i64 2, 3, 0, !dbg !27
+  %22 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %21, i64 10, 3, 0, !dbg !27
   %23 = insertvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %22, i64 1, 4, 0, !dbg !28
   %24 = extractvalue { ptr, ptr, i64, [1 x i64], [1 x i64] } %23, 1, !dbg !29
   call void @forward_kernel_0(ptr %0, ptr %1, ptr %24), !dbg !30

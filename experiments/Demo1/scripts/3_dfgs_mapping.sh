@@ -17,7 +17,7 @@ if [ ! -d "$tempfolder" ]; then
 fi
 cd $tempfolder
 if [[ "$(pwd)" == "$tempfolder" ]]; then
-  rm *.dot *.ll
+  rm *.dot *.ll *.json
   cd -
 fi
 cd $tarfolder
@@ -39,9 +39,8 @@ for file in "$srcfolder"/*; do
       # convert .dot to .json
       dot $file -Tdot_json -o "$tempfolder/$filename.json"
 
-      # mapping and get config information
       echo /home/tianyi/chipyard/generators/fdra/cgra-compiler/build/cgra-compiler SPDLOG_LEVEL=off \
-	      -c true -m true -o true -t 3600000 -i 2000 \
+	      -c true -m true -o true -e true -t 3600000 -i 2000 \
 	      -p "/home/tianyi/chipyard/generators/fdra/cgra-mg/src/main/resources/operations.json" \
 	      -a "/home/tianyi/chipyard/generators/fdra/cgra-mg/src/main/resources/cgra_adg.json" \
 	      -d "$tempfolder/$filename.json"
@@ -51,14 +50,13 @@ for file in "$srcfolder"/*; do
 	      -p "/home/tianyi/chipyard/generators/fdra/cgra-mg/src/main/resources/operations.json" \
 	      -a "/home/tianyi/chipyard/generators/fdra/cgra-mg/src/main/resources/cgra_adg.json" \
 	      -d "$tempfolder/$filename.json"
-
       # if [ $? -eq 0 ]; then
       #   echo "Mapping for $filename.json failed !"
       #   exit 1
       # fi
-      if [[ -f "$tempfolder/cgra_execute.c" ]]; then
-        cp "$tempfolder/cgra_execute.c" $tarfolder/$filename.c
-        rm "$tempfolder/cgra_execute.c"
+      if [[ -f "$tempfolder/$filename.c" ]]; then
+        cp "$tempfolder/$filename.c" $tarfolder/$filename.c
+        mv "$tempfolder/mapped_adg.dot" "$tempfolder/mapped_$filename.dot"
       else
         echo "Mapping for $filename.json failed !"
         exit 0
@@ -66,6 +64,12 @@ for file in "$srcfolder"/*; do
     fi
 done
 cnt=0
+
+# json_files=$(find "$tempfolder" -name "*.json" -type f)
+# mapping and get config information
+
+
+
 cd -
 # cd $tempfolder
 

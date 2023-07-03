@@ -4,6 +4,7 @@ add_mlir_dialect_library(MLIRFDRATransforms
   KernelToFuncPass.cpp
   AutoDesignSpaceExplore.cpp
   AdjustMemoryFootprint.cpp
+  HoistLoadStore.cpp
   Utility.cpp
 
   ADDITIONAL_HEADER_DIRS
