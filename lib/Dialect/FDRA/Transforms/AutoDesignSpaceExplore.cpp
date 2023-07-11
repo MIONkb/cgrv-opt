@@ -7,19 +7,19 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Transforms/DialectConversion.h"
+
 #include "mlir/Support/LLVM.h"
-#include <iostream>
 #include "mlir/Support/FileUtilities.h"
-// #include "scalehls/Transforms/Explorer.h"
-// #include "scalehls/Transforms/Passes.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/JSON.h"
 #include "llvm/Support/FileSystem.h"
+
 #include <numeric>
-// #include <iostream>
+#include <iostream>
 #include <filesystem>
 #include <fstream>
 
@@ -37,33 +37,10 @@ using namespace mlir::FDRA;
 /********** 
  * TODO: modify this
 Steps to achieve the DSE process:
-a. Define the design space: Identify the 
-relevant parameters and constraints
 
-b. Develop optimization techniques: Implement 
-the frontend optimizations mentioned in point 
-1, tailored for the target architecture. 
-
-c. Create a performance model: Develop a model 
-to predict the performance of different configurations 
-within the design space. d. Explore the design space: 
-Use search algorithms, such as genetic algorithms, 
-simulated annealing, or other heuristics, to navigate 
-the design space and find the optimal configuration. 
-
-e. Validate the results: Implement the chosen 
-configuration and measure the performance on 
-the target hardware. Adjust the performance model 
-if necessary and iterate on the exploration process.
-
-This process can be implemented using MLIR's 
-flexible infrastructure for representing, 
-optimizing, and transforming code, as well 
-as its support for various hardware architectures.
 ***/
 
 namespace {
-/* Variation define */
 using DesignPoint = SmallVector<unsigned,12>;
 
 struct AutoDesignSpaceExplorer : public AutoDesignSpaceExploreBase<AutoDesignSpaceExplorer> {
@@ -281,6 +258,7 @@ void AutoDesignSpaceExplorer::runOnOperation(){
   auto originmodule = topmodule.getOperation()->clone();
   unsigned func_cnt = 0;
   SmallVector<DesignPoint> AllDesignSpace;
+  SmallVector<std::string> DesignSpacePaths;
   for (auto func : topmodule.getOps<func::FuncOp>()) {
     SmallVector<FDRA::ForNode> ForNodes = createAffineForTree(func);
 
@@ -348,6 +326,7 @@ void AutoDesignSpaceExplorer::runOnOperation(){
         llvm::errs() << "Error opening file: " << ec.message() << filePath << "\n";
         return signalPassFailure();
       }
+      DesignSpacePaths.push_back(filePath);
 
       topmodule.print(outputFile);
       llvm::errs() << "[Info] design point " << fileName << ":\n";
@@ -358,32 +337,85 @@ void AutoDesignSpaceExplorer::runOnOperation(){
     assert(func_cnt == 1 && "Can't handle subfunctions.");
   }
 
-//     // Read target specification JSON file.
-//     std::string errorMessage;
-//     auto configFile = mlir::openInputFile(targetSpec, &errorMessage);
-//     if (!configFile) {
-//       llvm::errs() << errorMessage << "\n";
-//       return signalPassFailure();
-//     }
+  //////////////////////////
+  /// Find the best unrolling factor for every kernel if CGRA ADG and 
+  /// llvm DFG generator shared library(.so) is specified. 
+  //////////////////////////
+  if(CGRAadg == "noDefine"){
+    llvm::errs() << "[Info]No cgra-adg specified. Generate design space only.\n";
+    return;
+  }
+  if(llvmCDFGPass == "noDefine"){
+    llvm::errs() << "[Info]No DFG generator shared library(.so) specified." 
+                  << " Generate design space only.\n";
+    return;
+  }
 
-//     // Parse JSON file into memory.
-//     auto config = llvm::json::parse(configFile->getBuffer());
-//     if (!config) {
-//       llvm::errs() << "failed to parse the target spec json file\n";
-//       return signalPassFailure();
-//     }
-//     auto configObj = config.get().getAsObject();
-//     if (!configObj) {
-//       llvm::errs() << "support an object in the target spec json file, found "
-//                       "something else\n";
-//       return signalPassFailure();
-//     }
+  // Read target adg JSON file.
+  std::string errorMessage;
+  auto ADGFile = mlir::openInputFile(CGRAadg, &errorMessage);
+  if (!ADGFile) {
+    llvm::errs() << errorMessage << "\n";
+    return signalPassFailure();
+  }
 
-//     // Collect DSE configurations.
-//     unsigned outputNum = configObj->getInteger("output_num").value_or(30);
+  // Parse JSON file into memory.
+  auto ADGjson = llvm::json::parse(ADGFile->getBuffer());
+  if (!ADGjson) {
+    llvm::errs() << "failed to parse the target cgra adg json file\n";
+    return signalPassFailure();
+  }
+  auto ADGObj = ADGjson.get().getAsObject();
+  if (!ADGObj) {
+    llvm::errs() << "support an object in the target spec json file, found "
+                  <<    "something else\n";
+    return signalPassFailure();
+  }
 
-//     unsigned maxInitParallel =
-//         configObj->getInteger("max_init_parallel").value_or(32);
+  // ADG adg;
+
+  // unsigned SizeSpadBank = ADGObj->getInteger("iob_spad_bank_size").value_or(8192);
+  ///TODO: Size Scratchpad 
+  unsigned NumGPE = 0;
+  unsigned NumIOB = 0;  
+  auto instances = ADGObj->getArray("instances");   
+  for(auto insJson : *instances){
+    auto insJsonObj = insJson.getAsObject();
+    auto insType = insJsonObj->getString("type").value();
+    // llvm::errs() << "[info] type:" << insType << "\n";      
+    if(insType == "GPE")
+      NumGPE++;
+    else if(insType == "IOB")
+      NumIOB++;
+  }
+
+  for(auto DesignPointFile : DesignSpacePaths){
+    std::error_code ec;
+    llvm::raw_fd_ostream outputFile(DesignPointFile, ec, sys::fs::FA_Read);
+    if (ec) {
+      llvm::errs() << "Error opening file: " << ec.message() << DesignPointFile << "\n";
+      return signalPassFailure();
+    }
+  }
+
+  // for(auto& nodeJson : adgJson["sub_modules"]){
+  //   ADGNode* node = parseADGNode(nodeJson);
+  //   modules[node->id()] = std::make_pair(node, false);
+  // }
+  // for(auto& nodeJson : adgJson["instances"]){
+  //   ADGNode* node = parseADGNode(nodeJson, modules);
+  //   int nodeId = nodeJson["id"].get<int>();
+  //   if(node){ // not store sub-module of "This" type
+  //     adg->addNode(nodeId, node);
+  //   }else{ // "This" sub-module
+  //     adg->setId(nodeId);
+  //   }
+  // }
+  // unsigned NumGPE = configObj->getArray("instances");
+  // for(auto obj : )
+
+  // unsigned maxInitParallel =
+  //       configObj->getInteger("max_init_parallel").value_or(32);
 //     unsigned maxExplParallel =
 //         configObj->getInteger("max_expl_parallel").value_or(1024);
 //     unsigned maxLoopParallel =

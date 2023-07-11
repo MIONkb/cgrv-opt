@@ -277,16 +277,19 @@ def AutoDesignSpaceExplore : Pass<"fdra-auto-dse", "ModuleOp"> {
     // "arith::AffineDialect"
   ];
   let options = [
-    Option<"outputPath", "output-path", "std::string",
-           /*default=*/"\"./\"",
-           "File path: the path for dumping the MLIR of pareto design points">,
-    Option<"csvPath", "csv-path", "std::string",
-           /*default=*/"\"./\"",
-           "File path: the path for dumping the CSV of design spaces">,
+    // Option<"outputPath", "output-path", "std::string",
+    //        /*default=*/"\"./\"",
+    //        "File path: the path for dumping the MLIR of pareto design points">,
+    // Option<"csvPath", "csv-path", "std::string",
+    //        /*default=*/"\"./\"",
+    //        "File path: the path for dumping the CSV of design spaces">,
 
-    // Option<"targetSpec", "target-spec", "std::string",
-    //        /*default=*/"\"./config.json\"",
-    //        "File path: target backend specifications and configurations">
+    Option<"CGRAadg", "cgra-adg", "std::string",
+           /*default=*/"\"noDefine\"",
+           "File path: target cgra backend ADG(Architecture Description Graph)">,
+    Option<"llvmCDFGPass", "cdfg-pass-so", "std::string",
+           /*default=*/"\"noDefine\"",
+           "File path: the llvm shared library(.so) of DFG generator(app-compiler)">
   ];
 }
 

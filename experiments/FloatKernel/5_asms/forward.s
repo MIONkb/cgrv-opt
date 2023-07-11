@@ -2,18 +2,7 @@
 	.attribute	4, 16
 	.attribute	5, "rv64i2p0_f2p0_d2p0_c2p0"
 	.file	"LLVMDialectModule"
-	.section	.sdata,"aw",@progbits
-	.p2align	3                               # -- Begin function forward
-.LCPI0_0:
-	.quad	-4689672403593927805            # 0xbeeaefcbbed4e383
-.LCPI0_1:
-	.quad	-4696843124238595721            # 0xbed176103e05c977
-.LCPI0_2:
-	.quad	-4751710251265197657            # 0xbe0e88b3bdc179a7
-.LCPI0_3:
-	.quad	4476998001143074574             # 0x3e217df63e444f0e
-	.text
-	.globl	forward
+	.globl	forward                         # -- Begin function forward
 	.p2align	1
 	.type	forward,@function
 forward:                                # @forward
@@ -21,76 +10,86 @@ forward:                                # @forward
 	.file	1 "/home/tianyi/fdra/app-compiler/cgra-opt/experiments/FloatKernel" "3_forward_llvm.mlir"
 	.loc	1 4 0                           # 3_forward_llvm.mlir:4:0
 	.cfi_startproc
-# %bb.0:                                # %.preheader2
-	addi	sp, sp, -192
-	.cfi_def_cfa_offset 192
-	sd	ra, 184(sp)                     # 8-byte Folded Spill
-	sd	s0, 176(sp)                     # 8-byte Folded Spill
-	sd	s1, 168(sp)                     # 8-byte Folded Spill
-	sd	s2, 160(sp)                     # 8-byte Folded Spill
+# %bb.0:
+	addi	sp, sp, -320
+	.cfi_def_cfa_offset 320
+	sd	ra, 312(sp)                     # 8-byte Folded Spill
+	sd	s0, 304(sp)                     # 8-byte Folded Spill
+	sd	s1, 296(sp)                     # 8-byte Folded Spill
+	sd	s2, 288(sp)                     # 8-byte Folded Spill
 	.cfi_offset ra, -8
 	.cfi_offset s0, -16
 	.cfi_offset s1, -24
 	.cfi_offset s2, -32
-	addi	s0, sp, 192
+	addi	s0, sp, 320
 	.cfi_def_cfa s0, 0
 	andi	sp, sp, -64
 	mv	s2, a0
 .Lpcrel_hi0:
-	auipc	a0, %pcrel_hi(.LCPI0_0)
-	addi	a0, a0, %pcrel_lo(.Lpcrel_hi0)
-	ld	a0, 0(a0)
-.Lpcrel_hi1:
-	auipc	a1, %pcrel_hi(.LCPI0_1)
-	addi	a1, a1, %pcrel_lo(.Lpcrel_hi1)
-	ld	a1, 0(a1)
 .Ltmp0:
-	.loc	1 79 5 prologue_end             # 3_forward_llvm.mlir:79:5
-	sd	a0, 0(sp)
-	sd	a1, 24(sp)
-.Lpcrel_hi2:
-	auipc	a0, %pcrel_hi(.LCPI0_2)
-	addi	a0, a0, %pcrel_lo(.Lpcrel_hi2)
-	ld	a0, 0(a0)
-.Lpcrel_hi3:
-	auipc	a1, %pcrel_hi(.LCPI0_3)
-	addi	a1, a1, %pcrel_lo(.Lpcrel_hi3)
-	ld	a1, 0(a1)
-	sd	a0, 16(sp)
-	sd	a1, 8(sp)
-	lui	a0, 781633
-	addiw	a0, a0, 1139
-	sw	a0, 32(sp)
-	.loc	1 133 12                        # 3_forward_llvm.mlir:133:12
+	.loc	1 57 5 prologue_end             # 3_forward_llvm.mlir:57:5
+	auipc	a0, %pcrel_hi(.L__constant_3x3xf32)
+	addi	a0, a0, %pcrel_lo(.Lpcrel_hi0)
+	addi	a1, sp, 128
+	call	forward_kernel_0@plt
+	.loc	1 76 5                          # 3_forward_llvm.mlir:76:5
+	addi	a0, sp, 32
+	call	forward_kernel_1@plt
+	.loc	1 86 11                         # 3_forward_llvm.mlir:86:11
 	li	a0, 88
 	call	malloc@plt
-	.loc	1 138 12                        # 3_forward_llvm.mlir:138:12
+	.loc	1 91 11                         # 3_forward_llvm.mlir:91:11
 	addi	a0, a0, 63
-	.loc	1 140 12                        # 3_forward_llvm.mlir:140:12
+	.loc	1 114 5                         # 3_forward_llvm.mlir:114:5
+	lw	a1, 32(sp)
+	.loc	1 93 11                         # 3_forward_llvm.mlir:93:11
 	andi	s1, a0, -64
-	.loc	1 161 5                         # 3_forward_llvm.mlir:161:5
-	sd	zero, 0(s1)
-	sd	zero, 8(s1)
-	sd	zero, 16(s1)
-	.loc	1 164 5                         # 3_forward_llvm.mlir:164:5
-	mv	a1, sp
-	mv	a0, s2
-	mv	a2, s1
-	call	forward_kernel_0@plt
-	.loc	1 166 5                         # 3_forward_llvm.mlir:166:5
+	.loc	1 114 5                         # 3_forward_llvm.mlir:114:5
+	sw	a1, 0(s1)
+	lw	a0, 36(sp)
+	sw	a0, 4(s1)
+	lw	a0, 40(sp)
+	sw	a0, 8(s1)
+	lw	a0, 44(sp)
+	sw	a0, 12(s1)
+	lw	a0, 48(sp)
+	sw	a0, 16(s1)
+	lw	a0, 52(sp)
+	sw	a0, 20(s1)
+	.loc	1 117 5                         # 3_forward_llvm.mlir:117:5
+	addi	a2, sp, 128
 	mv	a0, s1
-	addi	sp, s0, -192
-	ld	ra, 184(sp)                     # 8-byte Folded Reload
-	ld	s0, 176(sp)                     # 8-byte Folded Reload
-	ld	s1, 168(sp)                     # 8-byte Folded Reload
-	ld	s2, 160(sp)                     # 8-byte Folded Reload
-	addi	sp, sp, 192
+	mv	a1, s2
+	call	forward_kernel_2@plt
+	.loc	1 119 5                         # 3_forward_llvm.mlir:119:5
+	mv	a0, s1
+	addi	sp, s0, -320
+	ld	ra, 312(sp)                     # 8-byte Folded Reload
+	ld	s0, 304(sp)                     # 8-byte Folded Reload
+	ld	s1, 296(sp)                     # 8-byte Folded Reload
+	ld	s2, 288(sp)                     # 8-byte Folded Reload
+	addi	sp, sp, 320
 	ret
 .Ltmp1:
 .Lfunc_end0:
 	.size	forward, .Lfunc_end0-forward
 	.cfi_endproc
                                         # -- End function
+	.type	.L__constant_3x3xf32,@object    # @__constant_3x3xf32
+	.section	.rodata,"a",@progbits
+	.p2align	4
+.L__constant_3x3xf32:
+	.word	0xbed4e383                      # float -0.415798277
+	.word	0x3e217df6                      # float 0.157707065
+	.word	0x3e05c977                      # float 0.13065134
+	.word	0xbeeaefcb                      # float -0.458860725
+	.word	0xbdc179a7                      # float -0.0944703146
+	.word	0xbed17610                      # float -0.40910387
+	.word	0x3e444f0e                      # float 0.19170782
+	.word	0xbe0e88b3                      # float -0.139193341
+	.word	0xbed41473                      # float -0.414218515
+	.size	.L__constant_3x3xf32, 36
+
 	.section	.debug_abbrev,"",@progbits
 	.byte	1                               # Abbreviation Code
 	.byte	17                              # DW_TAG_compile_unit

@@ -21,5 +21,6 @@ rootfolder=$(pwd)
 cgra-opt  --fdra-extract-affine-for-to-kernel  0_all_Affine.mlir > 1_kernel.mlir
 
 cgra-opt --affine-loop-fusion  --arith-expand --memref-expand -reconcile-unrealized-casts \
+ --fdra-hoist-loadstore \
  --fdra-extract-kernel-to-function="kernel-gen-dir=$rootfolder kernel-explicit-datablock-trans=false" \
  1_kernel.mlir > 2_host.mlir

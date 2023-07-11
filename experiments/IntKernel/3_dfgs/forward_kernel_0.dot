@@ -1,0 +1,15 @@
+Digraph G {
+Output27[opcode=Output, ref_name="arg2", size="24", offset="0, 0", pattern="0, 3, 4, 3, 4, 2"];
+Input32[opcode=Input, ref_name="arg2", size="24", offset="0, 0", pattern="0, 3, 4, 3, 4, 2"];
+Input40[opcode=Input, ref_name="arg", size="24", offset="0, 0", pattern="4, 3, -8, 3, 4, 2"];
+Input44[opcode=Input, ref_name="arg1", size="36", offset="0, 0", pattern="12, 3, -20, 3, -32, 2"];
+MUL45[opcode=MUL];
+ACC88[opcode=ACC, acc_params="0, 3, 1, 6", acc_first=1];
+ADD89[opcode=ADD];
+Input40 -> MUL45[operand = 0 ,color = black, style = bold, label = "Op=0"];
+Input44 -> MUL45[operand = 1 ,color = black, style = bold, label = "Op=1"];
+MUL45 -> ACC88[operand = 0 ,color = black, style = bold, label = "Op=0"];
+ADD89 -> Output27[operand = 0 ,color = black, style = bold, label = "Op=0"];
+Input32 -> ADD89[operand = 0 ,color = black, style = bold, label = "Op=0"];
+ACC88 -> ADD89[operand = 1 ,color = black, style = bold, label = "Op=1"];
+}

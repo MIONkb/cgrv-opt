@@ -15,74 +15,65 @@ module attributes {llvm.data_layout = "", torch.debug_module_name = "L"} {
     %10 = llvm.insertvalue %9, %8[3, 1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
     %11 = llvm.mlir.constant(1 : index) : i64
     %12 = llvm.insertvalue %11, %10[4, 1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    %13 = llvm.mlir.constant(2 : index) : i64
-    %14 = llvm.mlir.constant(1 : index) : i64
-    %15 = llvm.mlir.constant(3 : index) : i64
-    %16 = llvm.mlir.constant(0 : index) : i64
-    %17 = llvm.mlir.constant(0.000000e+00 : f32) : f32
-    %18 = llvm.mlir.constant(3 : index) : i64
-    %19 = llvm.mlir.constant(3 : index) : i64
-    %20 = llvm.mlir.constant(1 : index) : i64
-    %21 = llvm.mlir.constant(9 : index) : i64
-    %22 = llvm.mlir.null : !llvm.ptr<f32>
-    %23 = llvm.getelementptr %22[9] : (!llvm.ptr<f32>) -> !llvm.ptr<f32>
-    %24 = llvm.ptrtoint %23 : !llvm.ptr<f32> to i64
-    %25 = llvm.mlir.addressof @__constant_3x3xf32 : !llvm.ptr<array<3 x array<3 x f32>>>
-    %26 = llvm.getelementptr %25[0, 0, 0] : (!llvm.ptr<array<3 x array<3 x f32>>>) -> !llvm.ptr<f32>
-    %27 = llvm.mlir.constant(3735928559 : index) : i64
-    %28 = llvm.inttoptr %27 : i64 to !llvm.ptr<f32>
-    %29 = llvm.mlir.undef : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)>
-    %30 = llvm.insertvalue %28, %29[0] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    %31 = llvm.insertvalue %26, %30[1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    %32 = llvm.mlir.constant(0 : index) : i64
-    %33 = llvm.insertvalue %32, %31[2] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    %34 = llvm.insertvalue %18, %33[3, 0] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    %35 = llvm.insertvalue %19, %34[3, 1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    %36 = llvm.insertvalue %19, %35[4, 0] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    %37 = llvm.insertvalue %20, %36[4, 1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    %38 = llvm.mlir.constant(3 : index) : i64
-    %39 = llvm.mlir.constant(3 : index) : i64
-    %40 = llvm.mlir.constant(1 : index) : i64
-    %41 = llvm.mlir.constant(9 : index) : i64
-    %42 = llvm.mlir.null : !llvm.ptr<f32>
-    %43 = llvm.getelementptr %42[9] : (!llvm.ptr<f32>) -> !llvm.ptr<f32>
-    %44 = llvm.ptrtoint %43 : !llvm.ptr<f32> to i64
-    %45 = llvm.alloca %44 x f32 {alignment = 64 : i64} : (i64) -> !llvm.ptr<f32>
-    %46 = llvm.mlir.undef : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)>
-    %47 = llvm.insertvalue %45, %46[0] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    %48 = llvm.insertvalue %45, %47[1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    %49 = llvm.mlir.constant(0 : index) : i64
-    %50 = llvm.insertvalue %49, %48[2] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    %51 = llvm.insertvalue %38, %50[3, 0] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    %52 = llvm.insertvalue %39, %51[3, 1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    %53 = llvm.insertvalue %39, %52[4, 0] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    %54 = llvm.insertvalue %40, %53[4, 1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    llvm.br ^bb1(%16 : i64)
-  ^bb1(%55: i64):  // 2 preds: ^bb0, ^bb5
-    %56 = llvm.icmp "slt" %55, %15 : i64
-    llvm.cond_br %56, ^bb2, ^bb6
-  ^bb2:  // pred: ^bb1
-    llvm.br ^bb3(%16 : i64)
-  ^bb3(%57: i64):  // 2 preds: ^bb2, ^bb4
-    %58 = llvm.icmp "slt" %57, %15 : i64
-    llvm.cond_br %58, ^bb4, ^bb5
-  ^bb4:  // pred: ^bb3
-    %59 = llvm.mlir.constant(3 : index) : i64
-    %60 = llvm.mul %55, %59  : i64
-    %61 = llvm.add %60, %57  : i64
-    %62 = llvm.getelementptr %26[%61] : (!llvm.ptr<f32>, i64) -> !llvm.ptr<f32>
-    %63 = llvm.load %62 : !llvm.ptr<f32>
-    %64 = llvm.mlir.constant(3 : index) : i64
-    %65 = llvm.mul %57, %64  : i64
-    %66 = llvm.add %65, %55  : i64
-    %67 = llvm.getelementptr %45[%66] : (!llvm.ptr<f32>, i64) -> !llvm.ptr<f32>
-    llvm.store %63, %67 : !llvm.ptr<f32>
-    %68 = llvm.add %57, %14  : i64
-    llvm.br ^bb3(%68 : i64)
-  ^bb5:  // pred: ^bb3
-    %69 = llvm.add %55, %14  : i64
-    llvm.br ^bb1(%69 : i64)
-  ^bb6:  // pred: ^bb1
+    %13 = llvm.mlir.constant(3 : index) : i64
+    %14 = llvm.mlir.constant(3 : index) : i64
+    %15 = llvm.mlir.constant(1 : index) : i64
+    %16 = llvm.mlir.constant(9 : index) : i64
+    %17 = llvm.mlir.null : !llvm.ptr<f32>
+    %18 = llvm.getelementptr %17[9] : (!llvm.ptr<f32>) -> !llvm.ptr<f32>
+    %19 = llvm.ptrtoint %18 : !llvm.ptr<f32> to i64
+    %20 = llvm.mlir.addressof @__constant_3x3xf32 : !llvm.ptr<array<3 x array<3 x f32>>>
+    %21 = llvm.getelementptr %20[0, 0, 0] : (!llvm.ptr<array<3 x array<3 x f32>>>) -> !llvm.ptr<f32>
+    %22 = llvm.mlir.constant(3735928559 : index) : i64
+    %23 = llvm.inttoptr %22 : i64 to !llvm.ptr<f32>
+    %24 = llvm.mlir.undef : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)>
+    %25 = llvm.insertvalue %23, %24[0] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    %26 = llvm.insertvalue %21, %25[1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    %27 = llvm.mlir.constant(0 : index) : i64
+    %28 = llvm.insertvalue %27, %26[2] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    %29 = llvm.insertvalue %13, %28[3, 0] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    %30 = llvm.insertvalue %14, %29[3, 1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    %31 = llvm.insertvalue %14, %30[4, 0] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    %32 = llvm.insertvalue %15, %31[4, 1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    %33 = llvm.mlir.constant(3 : index) : i64
+    %34 = llvm.mlir.constant(3 : index) : i64
+    %35 = llvm.mlir.constant(1 : index) : i64
+    %36 = llvm.mlir.constant(9 : index) : i64
+    %37 = llvm.mlir.null : !llvm.ptr<f32>
+    %38 = llvm.getelementptr %37[9] : (!llvm.ptr<f32>) -> !llvm.ptr<f32>
+    %39 = llvm.ptrtoint %38 : !llvm.ptr<f32> to i64
+    %40 = llvm.alloca %39 x f32 {alignment = 64 : i64} : (i64) -> !llvm.ptr<f32>
+    %41 = llvm.mlir.undef : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)>
+    %42 = llvm.insertvalue %40, %41[0] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    %43 = llvm.insertvalue %40, %42[1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    %44 = llvm.mlir.constant(0 : index) : i64
+    %45 = llvm.insertvalue %44, %43[2] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    %46 = llvm.insertvalue %33, %45[3, 0] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    %47 = llvm.insertvalue %34, %46[3, 1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    %48 = llvm.insertvalue %34, %47[4, 0] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    %49 = llvm.insertvalue %35, %48[4, 1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    %50 = llvm.extractvalue %32[1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    %51 = llvm.extractvalue %49[1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    llvm.call @forward_kernel_0(%50, %51) : (!llvm.ptr<f32>, !llvm.ptr<f32>) -> ()
+    %52 = llvm.mlir.constant(2 : index) : i64
+    %53 = llvm.mlir.constant(3 : index) : i64
+    %54 = llvm.mlir.constant(1 : index) : i64
+    %55 = llvm.mlir.constant(6 : index) : i64
+    %56 = llvm.mlir.null : !llvm.ptr<f32>
+    %57 = llvm.getelementptr %56[6] : (!llvm.ptr<f32>) -> !llvm.ptr<f32>
+    %58 = llvm.ptrtoint %57 : !llvm.ptr<f32> to i64
+    %59 = llvm.alloca %58 x f32 : (i64) -> !llvm.ptr<f32>
+    %60 = llvm.mlir.undef : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)>
+    %61 = llvm.insertvalue %59, %60[0] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    %62 = llvm.insertvalue %59, %61[1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    %63 = llvm.mlir.constant(0 : index) : i64
+    %64 = llvm.insertvalue %63, %62[2] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    %65 = llvm.insertvalue %52, %64[3, 0] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    %66 = llvm.insertvalue %53, %65[3, 1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    %67 = llvm.insertvalue %53, %66[4, 0] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    %68 = llvm.insertvalue %54, %67[4, 1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    %69 = llvm.extractvalue %68[1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    llvm.call @forward_kernel_1(%69) : (!llvm.ptr<f32>) -> ()
     %70 = llvm.mlir.constant(2 : index) : i64
     %71 = llvm.mlir.constant(3 : index) : i64
     %72 = llvm.mlir.constant(1 : index) : i64
@@ -90,81 +81,45 @@ module attributes {llvm.data_layout = "", torch.debug_module_name = "L"} {
     %74 = llvm.mlir.null : !llvm.ptr<f32>
     %75 = llvm.getelementptr %74[6] : (!llvm.ptr<f32>) -> !llvm.ptr<f32>
     %76 = llvm.ptrtoint %75 : !llvm.ptr<f32> to i64
-    %77 = llvm.alloca %76 x f32 : (i64) -> !llvm.ptr<f32>
-    %78 = llvm.mlir.undef : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)>
-    %79 = llvm.insertvalue %77, %78[0] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    %80 = llvm.insertvalue %77, %79[1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    %81 = llvm.mlir.constant(0 : index) : i64
-    %82 = llvm.insertvalue %81, %80[2] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    %83 = llvm.insertvalue %70, %82[3, 0] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    %84 = llvm.insertvalue %71, %83[3, 1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    %85 = llvm.insertvalue %71, %84[4, 0] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    %86 = llvm.insertvalue %72, %85[4, 1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    llvm.br ^bb7(%16 : i64)
-  ^bb7(%87: i64):  // 2 preds: ^bb6, ^bb11
-    %88 = llvm.icmp "slt" %87, %13 : i64
-    llvm.cond_br %88, ^bb8, ^bb12
-  ^bb8:  // pred: ^bb7
-    llvm.br ^bb9(%16 : i64)
-  ^bb9(%89: i64):  // 2 preds: ^bb8, ^bb10
-    %90 = llvm.icmp "slt" %89, %15 : i64
-    llvm.cond_br %90, ^bb10, ^bb11
-  ^bb10:  // pred: ^bb9
-    %91 = llvm.mlir.constant(3 : index) : i64
-    %92 = llvm.mul %87, %91  : i64
-    %93 = llvm.add %92, %89  : i64
-    %94 = llvm.getelementptr %77[%93] : (!llvm.ptr<f32>, i64) -> !llvm.ptr<f32>
-    llvm.store %17, %94 : !llvm.ptr<f32>
-    %95 = llvm.add %89, %14  : i64
-    llvm.br ^bb9(%95 : i64)
-  ^bb11:  // pred: ^bb9
-    %96 = llvm.add %87, %14  : i64
-    llvm.br ^bb7(%96 : i64)
-  ^bb12:  // pred: ^bb7
-    %97 = llvm.mlir.constant(2 : index) : i64
-    %98 = llvm.mlir.constant(3 : index) : i64
-    %99 = llvm.mlir.constant(1 : index) : i64
-    %100 = llvm.mlir.constant(6 : index) : i64
-    %101 = llvm.mlir.null : !llvm.ptr<f32>
-    %102 = llvm.getelementptr %101[6] : (!llvm.ptr<f32>) -> !llvm.ptr<f32>
-    %103 = llvm.ptrtoint %102 : !llvm.ptr<f32> to i64
-    %104 = llvm.mlir.constant(64 : index) : i64
-    %105 = llvm.add %103, %104  : i64
-    %106 = llvm.call @malloc(%105) : (i64) -> !llvm.ptr<i8>
-    %107 = llvm.bitcast %106 : !llvm.ptr<i8> to !llvm.ptr<f32>
-    %108 = llvm.ptrtoint %107 : !llvm.ptr<f32> to i64
-    %109 = llvm.mlir.constant(1 : index) : i64
-    %110 = llvm.sub %104, %109  : i64
-    %111 = llvm.add %108, %110  : i64
-    %112 = llvm.urem %111, %104  : i64
-    %113 = llvm.sub %111, %112  : i64
-    %114 = llvm.inttoptr %113 : i64 to !llvm.ptr<f32>
-    %115 = llvm.mlir.undef : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)>
-    %116 = llvm.insertvalue %107, %115[0] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    %117 = llvm.insertvalue %114, %116[1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    %118 = llvm.mlir.constant(0 : index) : i64
-    %119 = llvm.insertvalue %118, %117[2] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    %120 = llvm.insertvalue %97, %119[3, 0] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    %121 = llvm.insertvalue %98, %120[3, 1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    %122 = llvm.insertvalue %98, %121[4, 0] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    %123 = llvm.insertvalue %99, %122[4, 1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    %124 = llvm.mlir.constant(1 : index) : i64
-    %125 = llvm.mul %124, %70  : i64
-    %126 = llvm.mul %125, %71  : i64
-    %127 = llvm.mlir.null : !llvm.ptr<f32>
-    %128 = llvm.getelementptr %127[1] : (!llvm.ptr<f32>) -> !llvm.ptr<f32>
-    %129 = llvm.ptrtoint %128 : !llvm.ptr<f32> to i64
-    %130 = llvm.mul %126, %129  : i64
-    %131 = llvm.getelementptr %77[%81] : (!llvm.ptr<f32>, i64) -> !llvm.ptr<f32>
-    %132 = llvm.getelementptr %114[%118] : (!llvm.ptr<f32>, i64) -> !llvm.ptr<f32>
-    %133 = llvm.mlir.constant(false) : i1
-    "llvm.intr.memcpy"(%132, %131, %130, %133) : (!llvm.ptr<f32>, !llvm.ptr<f32>, i64, i1) -> ()
-    %134 = llvm.extractvalue %54[1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    %135 = llvm.extractvalue %123[1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    llvm.call @forward_kernel_0(%arg0, %134, %135) : (!llvm.ptr<f32>, !llvm.ptr<f32>, !llvm.ptr<f32>) -> ()
-    %136 = llvm.extractvalue %123[1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
-    llvm.return %136 : !llvm.ptr<f32>
+    %77 = llvm.mlir.constant(64 : index) : i64
+    %78 = llvm.add %76, %77  : i64
+    %79 = llvm.call @malloc(%78) : (i64) -> !llvm.ptr<i8>
+    %80 = llvm.bitcast %79 : !llvm.ptr<i8> to !llvm.ptr<f32>
+    %81 = llvm.ptrtoint %80 : !llvm.ptr<f32> to i64
+    %82 = llvm.mlir.constant(1 : index) : i64
+    %83 = llvm.sub %77, %82  : i64
+    %84 = llvm.add %81, %83  : i64
+    %85 = llvm.urem %84, %77  : i64
+    %86 = llvm.sub %84, %85  : i64
+    %87 = llvm.inttoptr %86 : i64 to !llvm.ptr<f32>
+    %88 = llvm.mlir.undef : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)>
+    %89 = llvm.insertvalue %80, %88[0] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    %90 = llvm.insertvalue %87, %89[1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    %91 = llvm.mlir.constant(0 : index) : i64
+    %92 = llvm.insertvalue %91, %90[2] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    %93 = llvm.insertvalue %70, %92[3, 0] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    %94 = llvm.insertvalue %71, %93[3, 1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    %95 = llvm.insertvalue %71, %94[4, 0] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    %96 = llvm.insertvalue %72, %95[4, 1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    %97 = llvm.mlir.constant(1 : index) : i64
+    %98 = llvm.mul %97, %52  : i64
+    %99 = llvm.mul %98, %53  : i64
+    %100 = llvm.mlir.null : !llvm.ptr<f32>
+    %101 = llvm.getelementptr %100[1] : (!llvm.ptr<f32>) -> !llvm.ptr<f32>
+    %102 = llvm.ptrtoint %101 : !llvm.ptr<f32> to i64
+    %103 = llvm.mul %99, %102  : i64
+    %104 = llvm.getelementptr %59[%63] : (!llvm.ptr<f32>, i64) -> !llvm.ptr<f32>
+    %105 = llvm.getelementptr %87[%91] : (!llvm.ptr<f32>, i64) -> !llvm.ptr<f32>
+    %106 = llvm.mlir.constant(false) : i1
+    "llvm.intr.memcpy"(%105, %104, %103, %106) : (!llvm.ptr<f32>, !llvm.ptr<f32>, i64, i1) -> ()
+    %107 = llvm.extractvalue %96[1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    %108 = llvm.extractvalue %49[1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    llvm.call @forward_kernel_2(%107, %arg0, %108) : (!llvm.ptr<f32>, !llvm.ptr<f32>, !llvm.ptr<f32>) -> ()
+    %109 = llvm.extractvalue %96[1] : !llvm.struct<(ptr<f32>, ptr<f32>, i64, array<2 x i64>, array<2 x i64>)> 
+    llvm.return %109 : !llvm.ptr<f32>
   }
-  llvm.func @forward_kernel_0(!llvm.ptr<f32>, !llvm.ptr<f32>, !llvm.ptr<f32>) attributes {Kernel, forward_kernel_0}
+  llvm.func @forward_kernel_0(!llvm.ptr<f32>, !llvm.ptr<f32>) attributes {Kernel, forward_kernel_0}
+  llvm.func @forward_kernel_1(!llvm.ptr<f32>) attributes {Kernel, forward_kernel_1}
+  llvm.func @forward_kernel_2(!llvm.ptr<f32>, !llvm.ptr<f32>, !llvm.ptr<f32>) attributes {Kernel, forward_kernel_2}
 }
 

@@ -17,15 +17,15 @@
             // "/home/tianyi/MLIRCGRA/CGRA-Flow/mlir-cgra/experiments/LJHtest/gemm/0_gemm.mlir"
             // "--fdra-extract-kernel-to-function=\'kernel-gen-dir=/home/tianyi/MLIRCGRA/CGRA-Flow/mlir-cgra/experiments/LJHtest/LinearModel kernel-explicit-datablock-trans=false \'",
             // "--fdra-convert-kernelcall-to-llvm",
-            // "--fdra-auto-dse",
+            "--fdra-auto-dse=\'cdfg-pass-so=/home/tianyi/new_fdra/fdra/app-compiler/build/llvm-pass/libCDFGPass.s cgra-adg=/home/tianyi/new_fdra/fdra/cgra-mg/src/main/resources/cgra_adg.json\'",
             // "--adjust-kernel-mem-footprint=\'cachesize=5 singlearraysize=2\'",
-            "--fdra-hoist-loadstore",
+            // "--fdra-hoist-loadstore",
             // "/home/tianyi/MLIRCGRA/CGRA-Flow/mlir-cgra/experiments/LJHtest/gemm/2_gemm_kernel_noOutline.mlir"
             // "~/MLIRCGRA/CGRA-Flow/mlir-cgra/experiments/LJHtest/three_mm_32/2_mm_kernel_footprint.mlir",
             // "~/MLIRCGRA/CGRA-Flow/mlir-cgra/experiments/LJHtest/three_mm_32/1_mm_kernel.mlir",
             // "/home/tianyi/MLIRCGRA/CGRA-Flow/mlir-cgra/experiments/LJHtest/gemm_new/0_gemm.mlir",
-            "/home/tianyi/fdra/app-compiler/cgra-opt/experiments/FloatKernel/kernels/forward_kernel_0.mlir",
-            // "/home/tianyi/MLIRCGRA/CGRA-Flow/mlir-cgra/experiments/LJHtest/LinearModel/0_all_Affine.mlir",
+            "/home/tianyi/fdra/app-compiler/cgra-opt/experiments/FloatKernel/kernels/forward_kernel_2.mlir",
+            // "/home/tianyi/fdra/app-compiler/cgra-opt/experiments/LinearModel/0_all_Affine.mlir",
             // "/home/tianyi/MLIRCGRA/CGRA-Flow/mlir-cgra/experiments/LJHtest/LinearModel/1_kernel.mlir",
             // "/home/tianyi/MLIRCGRA/CGRA-Flow/mlir-cgra/experiments/LJHtest/LinearModel/2_half_host.mlir"
         ],

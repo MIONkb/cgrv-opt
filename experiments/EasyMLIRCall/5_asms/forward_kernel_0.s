@@ -30,12 +30,12 @@ forward_kernel_0:
 	sd	a4,56(sp)
 	ld	a4,80(a5)
 	sd	a3,64(sp)
-	ld	a3,88(a5)
+	lhu	a3,88(a5)
 	sd	a6,72(sp)
 	sd	a4,80(sp)
 	mv	a5,a1
 	mv	a4,a2
-	sd	a3,88(sp)
+	sh	a3,88(sp)
 	mv	a1,sp
 	ld	a2,.LC1
  #APP
@@ -44,18 +44,9 @@ forward_kernel_0:
 	
 # 0 "" 2
  #NO_APP
-	li	a2,5
-	mv	a1,a0
-	slli	a2,a2,35
- #APP
-# 34 "/home/tianyi/chipyard/generators/fdra/software/tests/include/ISA.h" 1
-	.word 0b0001011 | (0 << (7)) | (1 << (7+5)) | (1 << (7+5+1)) | (0 << (7+5+2)) | (11 << (7+5+3)) | (12 << (7+5+3+5)) | ((((~(~0 << 7) << 0) & 1) >> 0) << (7+5+3+5+5))
-	
-# 0 "" 2
- #NO_APP
 	li	a2,5242880
 	addi	a2,a2,1
-	mv	a1,a5
+	mv	a1,a0
 	slli	a2,a2,15
  #APP
 # 34 "/home/tianyi/chipyard/generators/fdra/software/tests/include/ISA.h" 1
@@ -63,16 +54,26 @@ forward_kernel_0:
 	
 # 0 "" 2
  #NO_APP
-	li	a2,1
+	li	a2,20971520
+	addi	a2,a2,5
+	mv	a1,a5
+	slli	a2,a2,13
+ #APP
+# 34 "/home/tianyi/chipyard/generators/fdra/software/tests/include/ISA.h" 1
+	.word 0b0001011 | (0 << (7)) | (1 << (7+5)) | (1 << (7+5+1)) | (0 << (7+5+2)) | (11 << (7+5+3)) | (12 << (7+5+3+5)) | ((((~(~0 << 7) << 0) & 1) >> 0) << (7+5+3+5+5))
+	
+# 0 "" 2
+ #NO_APP
+	li	a2,15
 	li	a1,0
-	slli	a2,a2,36
+	slli	a2,a2,32
  #APP
 # 50 "/home/tianyi/chipyard/generators/fdra/software/tests/include/ISA.h" 1
 	.word 0b0001011 | (0 << (7)) | (1 << (7+5)) | (1 << (7+5+1)) | (0 << (7+5+2)) | (11 << (7+5+3)) | (12 << (7+5+3+5)) | ((((~(~0 << 7) << 0) & 3) >> 0) << (7+5+3+5+5))
 	
 # 0 "" 2
  #NO_APP
-	li	a1,104
+	li	a1,112
 	li	a2,0
  #APP
 # 58 "/home/tianyi/chipyard/generators/fdra/software/tests/include/ISA.h" 1
@@ -80,10 +81,10 @@ forward_kernel_0:
 	
 # 0 "" 2
  #NO_APP
-	li	a5,20971520
-	addi	a2,a5,5
+	li	a5,10485760
+	addi	a2,a5,3
 	mv	a1,a4
-	slli	a2,a2,13
+	slli	a2,a2,14
  #APP
 # 42 "/home/tianyi/chipyard/generators/fdra/software/tests/include/ISA.h" 1
 	.word 0b0001011 | (0 << (7)) | (1 << (7+5)) | (1 << (7+5+1)) | (0 << (7+5+2)) | (11 << (7+5+3)) | (12 << (7+5+3+5)) | ((((~(~0 << 7) << 0) & 2) >> 0) << (7+5+3+5+5))
@@ -96,36 +97,36 @@ forward_kernel_0:
 	.section	.srodata.cst8,"aM",@progbits,8
 	.align	3
 .LC1:
-	.dword	36029209335955456
+	.dword	36029183566151680
 	.section	.rodata
 	.align	3
 	.set	.LANCHOR0,. + 0
 .LC0:
+	.half	12288
+	.half	10240
+	.half	20
+	.half	0
+	.half	0
+	.half	21
+	.half	0
+	.half	-30464
+	.half	22
+	.half	128
+	.half	0
+	.half	23
 	.half	8192
-	.half	10240
-	.half	16
-	.half	0
-	.half	0
-	.half	17
-	.half	0
-	.half	256
-	.half	18
-	.half	0
-	.half	0
-	.half	19
-	.half	10240
 	.half	10240
 	.half	24
 	.half	0
 	.half	0
 	.half	25
 	.half	0
-	.half	-30464
+	.half	256
 	.half	26
 	.half	0
 	.half	0
 	.half	27
-	.half	8192
+	.half	10240
 	.half	10240
 	.half	28
 	.half	0
@@ -137,10 +138,7 @@ forward_kernel_0:
 	.half	0
 	.half	0
 	.half	31
-	.half	0
-	.half	0
-	.half	56
-	.half	-32752
+	.half	256
 	.half	0
 	.half	60
 	.half	0
@@ -148,5 +146,5 @@ forward_kernel_0:
 	.half	64
 	.half	-30706
 	.half	0
-	.half	93
+	.half	97
 	.ident	"GCC: (g2ee5e430018) 12.2.0"

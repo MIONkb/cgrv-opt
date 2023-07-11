@@ -30,27 +30,38 @@ fi
 cd $rootfolder
 # 遍历文件夹中的所有文件
 cnt=0
-    
-for file in "$srcfolder"/*; do
+
+cd $tempfolder
+for file in "$srcfolder"/*.ll; do
     # 检查文件是否为普通文件
     filename=$(basename "$file" .ll)
     echo "$filename"
     if [[ -f "$file" ]]; then
         # 运行指令，替换下面的 command with your command
-    opt -gvn -mem2reg -memdep -memcpyopt -lcssa -loop-simplify\
+      # opt  --disable-loop-unrolling \
+      #    $file -S -o "$tempfolder"/"$filename"_Opt.ll
+
+      opt  --loop-rotate -gvn -mem2reg -memdep -memcpyopt -lcssa -loop-simplify \
          -licm -loop-deletion -indvars -simplifycfg\
-         -mergereturn -indvars -instnamer\
-         $file -S -o "$tempfolder"/"$filename"_gvn.ll
+         -mergereturn -indvars -instnamer \
+         $file \
+         -S -o "$tempfolder"/"$filename"_gvn.ll
+
+      opt  --dot-cfg "$tempfolder"/"$filename"_gvn.ll -S -o "$tempfolder"/"$filename"_cdfg.ll -enable-new-pm=0
+      
+      mv ./."$filename".dot ./"$filename"_init_cdfg.dot
+
       ((cnt++))
       echo $cnt
     fi
 done
 cnt=0
+cd -
 
 cd $tempfolder
 
 gvn_ll_list=()
-for file in "$tempfolder"/*; do
+for file in "$tempfolder"/*_gvn.ll; do
     echo $cnt:$file
     gvn_ll_list+=("$file")
     ((cnt++))

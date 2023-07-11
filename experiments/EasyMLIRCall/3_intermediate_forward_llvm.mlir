@@ -1,4 +1,11 @@
 // -----// IR Dump After PromoteBuffersToStack (promote-buffers-to-stack) //----- //
+func.func @forward(%arg0: memref<10xf32>, %arg1: memref<10xf32>) -> memref<10xf32> {
+  %0 = memref.alloc() {alignment = 64 : i64} : memref<10xf32>
+  FDRA.KernelCall @forward_kernel_0(%arg0, %arg1, %0) : (memref<10xf32>, memref<10xf32>, memref<10xf32>) -> ()
+  return %0 : memref<10xf32>
+}
+
+// -----// IR Dump After PromoteBuffersToStack (promote-buffers-to-stack) //----- //
 func.func @forward_kernel_0(%arg0: memref<10xf32>, %arg1: memref<10xf32>, %arg2: memref<10xf32>) attributes {Kernel, forward_kernel_0} {
   cf.br ^bb1
 ^bb1:  // pred: ^bb0
@@ -9,13 +16,6 @@ func.func @forward_kernel_0(%arg0: memref<10xf32>, %arg1: memref<10xf32>, %arg2:
     affine.store %2, %arg2[%arg3] : memref<10xf32>
   }
   return
-}
-
-// -----// IR Dump After PromoteBuffersToStack (promote-buffers-to-stack) //----- //
-func.func @forward(%arg0: memref<10xf32>, %arg1: memref<10xf32>) -> memref<10xf32> {
-  %0 = memref.alloc() {alignment = 64 : i64} : memref<10xf32>
-  FDRA.KernelCall @forward_kernel_0(%arg0, %arg1, %0) : (memref<10xf32>, memref<10xf32>, memref<10xf32>) -> ()
-  return %0 : memref<10xf32>
 }
 
 // -----// IR Dump After ArithmeticExpandOps (arith-expand) //----- //
