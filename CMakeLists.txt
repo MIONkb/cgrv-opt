@@ -49,6 +49,7 @@ add_definitions(${LLVM_DEFINITIONS})
 message("[test] Before include ")
 add_subdirectory(include/RAAA)
 message("[test] Before lib ")
+
 add_subdirectory(lib)
 # message("[test] Before test ")
 # add_subdirectory(test)
@@ -56,3 +57,4 @@ message("[test] Before tools ")
 add_subdirectory(tools)
 # message("[test] Before llvm_plugins/lib ")
 # add_subdirectory(llvm_plugins/lib)
+

@@ -17,7 +17,7 @@
             // "/home/tianyi/MLIRCGRA/CGRA-Flow/mlir-cgra/experiments/LJHtest/gemm/0_gemm.mlir"
             // "--fdra-extract-kernel-to-function=\'kernel-gen-dir=/home/tianyi/MLIRCGRA/CGRA-Flow/mlir-cgra/experiments/LJHtest/LinearModel kernel-explicit-datablock-trans=false \'",
             // "--fdra-convert-kernelcall-to-llvm",
-            "--fdra-auto-dse=\'cdfg-pass-so=/home/tianyi/new_fdra/fdra/app-compiler/build/llvm-pass/libCDFGPass.s cgra-adg=/home/tianyi/new_fdra/fdra/cgra-mg/src/main/resources/cgra_adg.json\'",
+            "--fdra-auto-dse=\'cdfg-pass-so=/home/tianyi/new_fdra/fdra/app-compiler/build/llvm-pass/libCDFGPass.so cgra-adg=/home/tianyi/new_fdra/fdra/cgra-mg/src/main/resources/cgra_adg.json\'",
             // "--adjust-kernel-mem-footprint=\'cachesize=5 singlearraysize=2\'",
             // "--fdra-hoist-loadstore",
             // "/home/tianyi/MLIRCGRA/CGRA-Flow/mlir-cgra/experiments/LJHtest/gemm/2_gemm_kernel_noOutline.mlir"

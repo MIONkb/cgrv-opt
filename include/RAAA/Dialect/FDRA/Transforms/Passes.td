@@ -285,10 +285,10 @@ def AutoDesignSpaceExplore : Pass<"fdra-auto-dse", "ModuleOp"> {
     //        "File path: the path for dumping the CSV of design spaces">,
 
     Option<"CGRAadg", "cgra-adg", "std::string",
-           /*default=*/"\"noDefine\"",
+           /*default=*/"\"notdefined\"",
            "File path: target cgra backend ADG(Architecture Description Graph)">,
     Option<"llvmCDFGPass", "cdfg-pass-so", "std::string",
-           /*default=*/"\"noDefine\"",
+           /*default=*/"\"notdefined\"",
            "File path: the llvm shared library(.so) of DFG generator(app-compiler)">
   ];
 }

@@ -7,7 +7,9 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "mlir/Parser/Parser.h"
 
+#include "llvm/Support/SourceMgr.h"
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/FileUtilities.h"
 #include "llvm/Support/Debug.h"
@@ -17,11 +19,14 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/JSON.h"
 #include "llvm/Support/FileSystem.h"
+#include "llvm/Support/GraphWriter.h"
 
 #include <numeric>
 #include <iostream>
 #include <filesystem>
 #include <fstream>
+#include <regex>
+#include <stack>
 
 #include "RAAA/Dialect/FDRA/IR/FDRA.h"
 #include "RAAA/Dialect/FDRA/Transforms/Passes.h"
@@ -46,14 +51,20 @@ using DesignPoint = SmallVector<unsigned,12>;
 struct AutoDesignSpaceExplorer : public AutoDesignSpaceExploreBase<AutoDesignSpaceExplorer> {
   AutoDesignSpaceExplorer() = default;
 
+  /* Class define */
+  class DFGInfo { 
+    public: int Num_ALU = 0 , Num_LSU = 0;
+  };
+
   /* Function define */
-//   AppDesignSpaceExplore(std::string dseTargetSpec) { targetSpec = dseTargetSpec; }
   FDRA::ForNode* findTargetLoopNode(SmallVector<FDRA::ForNode>& NodeVec, mlir::AffineForOp forop);
   void NestedGenTree(FDRA::ForNode*, SmallVector<FDRA::ForNode>&);
   SmallVector<FDRA::ForNode> createAffineForTree(func::FuncOp topfunc);
   SmallVector<unsigned> FindUnrollingFactors(FDRA::ForNode& Node); 
   SmallVector<DesignPoint> ExpandTilingAndUnrollingFactors(FDRA::ForNode Node, SmallVector<DesignPoint> CurrentDesignSpace);
   SmallVector<DesignPoint> ConstructTilingUnrollSpace(SmallVector<FDRA::ForNode> ForNodes);
+  std::string GenDFGfromAffinewithCMD(std::string KernelsDir, std::string kernelFnName);
+  DFGInfo GetDFGinfo(std::string DFGPath);
   void runOnOperation() override; 
 
 };
@@ -251,14 +262,152 @@ SmallVector<DesignPoint> AutoDesignSpaceExplorer::
   return AllDesignSpace;
 }
 
+/// @brief This function is to generate DFG from a kernel in affine dialect
+///        with linux command.
+///        Users need to contain path of cgra-opt, mlir-translate and 
+///        LLVM opt in linux system's search path, for example:
+///        modify ~/.bashrc:        
+///         $PATH="~/fdra/app-compiler/cgra-opt/build/bin:$PATH"
+///         $PATH="~/llvm16-project/build/bin:$PATH"
+/// @param KernelsDir  The directory containing the kernel to generate DFG
+/// @param kernelFnName The kernel to generate DFG
+/// @return Absolute path of DFG
+std::string AutoDesignSpaceExplorer::
+          GenDFGfromAffinewithCMD(std::string KernelsDir, std::string kernelFnName)
+{
+  /// Set cmd execute paths
+  std::filesystem::path oldPath = std::filesystem::current_path();
+  std::filesystem::current_path(KernelsDir);
+
+  /// Lower to llvm dialect
+  std::string sys_cmd = \
+    "cgra-opt --arith-expand --memref-expand\
+      -lower-affine --scf-for-loop-canonicalization  -convert-scf-to-cf\
+      -convert-memref-to-llvm  --convert-math-to-llvm --convert-math-to-libm\
+      --convert-arith-to-llvm\
+      --affine-simplify-structures\
+      -convert-func-to-llvm=use-bare-ptr-memref-call-conv\
+      -reconcile-unrealized-casts "
+      + KernelsDir+"/"+ kernelFnName + ".mlir"
+      + " -o " + KernelsDir+"/"+ kernelFnName + "_ll.mlir";
+
+  int result = system(sys_cmd.c_str());
+  if(result != 0){
+    assert(false && "[Error] Lowering to LLVM dialect with cgra-opt falied! ");
+    return "";
+  }
+
+  /// mlir-translate *_ll.mlir to llvm IR
+  sys_cmd = \
+    "mlir-translate --mlir-to-llvmir "
+    + KernelsDir+"/"+ kernelFnName + "_ll.mlir" 
+    + " -o " 
+    + KernelsDir+"/"+ kernelFnName + ".ll";
+
+  result = system(sys_cmd.c_str());
+  if(result != 0){
+    assert(false && "[Error] Fail to translate to LLVM IR with mlir-translate! ");
+    return "";
+  }     
+
+  /// Generate optimized LLVM IR
+  sys_cmd = \
+    "opt \
+      --loop-rotate -gvn -mem2reg -memdep -memcpyopt -lcssa -loop-simplify \
+      -licm -loop-deletion -indvars -simplifycfg\
+      -mergereturn -indvars -instnamer "
+      + KernelsDir + "/" + kernelFnName + ".ll" \
+      + " -S -o " 
+      + KernelsDir + "/" + kernelFnName + "_gvn.ll";
+
+  result = system(sys_cmd.c_str());
+  if(result != 0){
+    assert(false && "[Error] Optimizing LLVM IR with LLVM opt falied! ");
+    return "";
+  }       
+
+  /// Generate DFG
+  sys_cmd = \
+    "opt -load "
+      + llvmCDFGPass + " \"-mapping-all=true\" "
+      + " --cdfg "
+      + KernelsDir + "/" + kernelFnName + "_gvn.ll"
+      + " -S -o " 
+      + KernelsDir + "/" + kernelFnName + "_cdfg.ll" 
+      + " -enable-new-pm=0";
+      
+  result = system(sys_cmd.c_str());
+  if(result != 0){
+    assert(false && "[Error] Generating DFG with llvmCDFGPass.so falied! ");
+    return "";
+  }       
+
+  /// Get DFG Path
+  std::string affinedot = KernelsDir + "/affine.dot";
+  if(!std::filesystem::exists(affinedot)){
+    assert(false && "[Error] Generating affine.dot failed! ");
+    return "";
+  }
+  std::filesystem::rename(affinedot, KernelsDir + "/" + kernelFnName +".dot");
+  std::filesystem::current_path(oldPath);  // Come back to old path
+  return KernelsDir + "/" + kernelFnName +".dot";
+}
+
+/// @brief 
+/// @param DFGPath Absolute path of dot file
+/// @return ALU and LSU number of DFG
+AutoDesignSpaceExplorer::DFGInfo AutoDesignSpaceExplorer::GetDFGinfo(std::string DFGPath)
+{
+  DFGInfo dfginfo;
+  std::ifstream  DFGdotStream;  
+
+  DFGdotStream.open(DFGPath);
+  if (!DFGdotStream.is_open()) {
+    assert(0 && "DFG .dot can not be open.");
+  } 
+
+ 	std::stringstream  DFGStrstream;
+  DFGStrstream << DFGdotStream.rdbuf();
+  DFGdotStream.close();
+  std::string strline;
+  std::smatch match;
+
+  std::regex node_pattern("([a-zA-Z0-9]+)\\[opcode=([a-zA-Z0-9]+)"); //eg. FACC3283[opcode=FACC32, acc_params="0, 4, 1, 12", acc_first=1];
+  std::regex edge_pattern("([a-zA-Z0-9]+) -> ([a-zA-Z0-9]+)\\[operand = ([0-9]+)"); //eg. const1->sub3[operand=0];
+  /// read in every line
+  while (getline(DFGStrstream, strline)){
+    std::cout << "strline:" << strline << std::endl;
+    bool found = regex_search(strline, match, node_pattern);
+    /**** Found a node ****/
+    if(found){ 
+      std::string opcode;
+      opcode = match.str(2);
+      if(opcode == "Input" || opcode == "Output"){
+        dfginfo.Num_LSU ++;
+      }
+      else{
+        dfginfo.Num_ALU ++;
+      }
+    }
+    // found = regex_search(strline, match, edge_pattern);
+    // /**** Found an edge ****/
+    // if(found){
+    // }
+  }
+      	// DFGdotstr = DFGStrstream.str();
+      	// std::cout<<DFGdotstr<<std::endl
+  return dfginfo;
+}       
+
 
 /// @brief 
 void AutoDesignSpaceExplorer::runOnOperation(){
   ModuleOp topmodule = getOperation();
+  MLIRContext* context = topmodule.getContext();
   auto originmodule = topmodule.getOperation()->clone();
   unsigned func_cnt = 0;
   SmallVector<DesignPoint> AllDesignSpace;
-  SmallVector<std::string> DesignSpacePaths;
+  SmallVector<std::string> DesignSpaceFiles;
   for (auto func : topmodule.getOps<func::FuncOp>()) {
     SmallVector<FDRA::ForNode> ForNodes = createAffineForTree(func);
 
@@ -287,8 +436,8 @@ void AutoDesignSpaceExplorer::runOnOperation(){
 
   // make a new dir
   std::string folderName = "DesignSpace";
-  std::filesystem::path folderPath = currentPath / folderName;
-  std::filesystem::create_directory(folderPath);
+  std::filesystem::path DesignSpacefolderPath = currentPath / folderName;
+  std::filesystem::create_directory(DesignSpacefolderPath);
 
   /** Traverse the whole design space **/
   for(DesignPoint point : AllDesignSpace){
@@ -319,14 +468,15 @@ void AutoDesignSpaceExplorer::runOnOperation(){
       }
 
       /// create a new mlir file
-      std::string filePath = folderPath.string() + "/" + fileName + ".mlir";
+      std::string filePath = DesignSpacefolderPath.string() + "/" + fileName + ".mlir";
+      llvm::errs() << "filePath: " << filePath << "\n";
       std::error_code ec;
       llvm::raw_fd_ostream outputFile(filePath, ec, sys::fs::FA_Write);
       if (ec) {
         llvm::errs() << "Error opening file: " << ec.message() << filePath << "\n";
         return signalPassFailure();
       }
-      DesignSpacePaths.push_back(filePath);
+      DesignSpaceFiles.push_back(fileName);
 
       topmodule.print(outputFile);
       llvm::errs() << "[Info] design point " << fileName << ":\n";
@@ -341,11 +491,11 @@ void AutoDesignSpaceExplorer::runOnOperation(){
   /// Find the best unrolling factor for every kernel if CGRA ADG and 
   /// llvm DFG generator shared library(.so) is specified. 
   //////////////////////////
-  if(CGRAadg == "noDefine"){
+  if(CGRAadg == "notdefined"){
     llvm::errs() << "[Info]No cgra-adg specified. Generate design space only.\n";
     return;
   }
-  if(llvmCDFGPass == "noDefine"){
+  if(llvmCDFGPass == "notdefined"){
     llvm::errs() << "[Info]No DFG generator shared library(.so) specified." 
                   << " Generate design space only.\n";
     return;
@@ -389,74 +539,126 @@ void AutoDesignSpaceExplorer::runOnOperation(){
       NumIOB++;
   }
 
-  for(auto DesignPointFile : DesignSpacePaths){
-    std::error_code ec;
-    llvm::raw_fd_ostream outputFile(DesignPointFile, ec, sys::fs::FA_Read);
-    if (ec) {
-      llvm::errs() << "Error opening file: " << ec.message() << DesignPointFile << "\n";
-      return signalPassFailure();
+  for(auto DesignPointFile : DesignSpaceFiles){
+    std::string FilePath = DesignSpacefolderPath.string() 
+                                    + "/" + DesignPointFile + ".mlir";
+    // llvm::errs() << "FilePath:" << FilePath << "\n";
+    // llvm::StringRef FileName = DesignPointFile;
+    // Set up the input file.
+    std::string errorMessage;
+    auto file = openInputFile(FilePath, &errorMessage);
+    if (!file) {
+      llvm::errs() << errorMessage << "\n";
+      assert(0);
     }
+
+    llvm::SourceMgr sourceMgr;
+    sourceMgr.AddNewSourceBuffer(std::move(file), SMLoc());
+    mlir::OwningOpRef<mlir::ModuleOp> m = parseSourceFile<ModuleOp>(sourceMgr, context); 
+    mlir::ModuleOp moduleop = m.get();
+    SymbolTable symbolTable(moduleop.getOperation());
+    // llvm::errs() << "module:" << moduleop << "\n";
+
+    //////////////////
+    /// Extract all affine-for kernel
+    //////////////////
+    unsigned cnt = 0;
+    for (auto func : moduleop.getOps<func::FuncOp>()) {
+      for (Operation &op : llvm::make_early_inc_range(func.getOps())) {
+        if (auto forOp = dyn_cast<AffineForOp>(&op)) {
+          FDRA::SpecifiedAffineFortoKernel(forOp);
+        }
+      }
+
+      func.walk([&](FDRA::KernelOp Kernel)
+      {
+        // Insert just after the function.
+        // Block::iterator insertPt(Kernel.getOperation()->getNextNode());
+        auto KernelWalkResult = Kernel.walk([&](FDRA::KernelOp op) 
+        {
+          llvm::SetVector<Value> operands;
+          std::string kernelFnName = "kernel_"+std::to_string(cnt);
+          Kernel.setKernelName(kernelFnName);
+          // Pull in instructions that can be sunk
+          if (failed(sinkOperationsIntoKernelOp(op)))
+            return WalkResult::interrupt();
+      
+          // ///////////////
+          // /// Generate explicit data block movement (load/store) for kernel to consume
+          // ///////////////
+          // if(ExplicitDataTrans==true){
+          //   /// generate explicit data movement around Kernel{...}
+          //   // llvm::errs() << "[dubug] Before ExplicitKernelDataBLockLoadStore: \n";topFunc.dump();
+          //   ExplicitKernelDataBLockLoadStore(Kernel);
+          //   // llvm::errs() << "[dubug] After ExplicitKernelDataBLockLoadStore: \n";topFunc.dump();
+        
+          //   /// Eliminate the affine transformation of the upper/lower bound 
+          //   /// of most-out loop in Kernel{...}
+          //   EliminateOuterLoopAffineTrans(Kernel);
+          // }
+
+          func::FuncOp NewKernelFunc = GenKernelFunc(op, operands);
+          symbolTable.insert(NewKernelFunc);
+
+          /// If option "kernel-gen-dir" is set
+          OpBuilder builder(NewKernelFunc);
+          std::string KernelsDir = DesignSpacefolderPath.string() 
+                                      + "/"+ DesignPointFile + "_kernels";
+
+          std::filesystem::create_directory(KernelsDir);
+          std::string KernelFilePath_str = KernelsDir+"/"+ kernelFnName + ".mlir";
+          std::error_code ec;
+          llvm::raw_fd_ostream file(KernelFilePath_str, ec, sys::fs::FA_Write);
+          if (ec) {
+            llvm::errs() << "Error opening file: " << ec.message() << KernelFilePath_str << "\n";
+            return WalkResult::advance();
+          }
+          llvm::errs() << "Kernel:"  << kernelFnName << "\n";
+          NewKernelFunc.dump();
+          // NewKernelFunc.print(llvm::errs());
+          NewKernelFunc.print(file);
+          file.close();
+          NewKernelFunc.erase();
+          
+          /// Generate DFG with linux system command
+          std::string DFGPath = GenDFGfromAffinewithCMD(KernelsDir, kernelFnName);
+          if(DFGPath.empty()){
+            llvm::errs() << "[Error] Generate DFG failed!";
+            return WalkResult::interrupt();
+          }
+
+          /// Read in DFG from dot
+          DFGInfo dfginfo = GetDFGinfo(DFGPath);          
+
+          /// Convert FDRA.Kernel{ ... } to func.call
+          // OpBuilder builder(op);
+          // builder.create<FDRA::KernelCallOp>(op.getLoc(), NewKernelFunc, operands.getArrayRef());
+          return WalkResult::advance();
+        });
+        if (KernelWalkResult.wasInterrupted())
+          return signalPassFailure();
+        llvm::errs() << "module:" << moduleop << "\n";
+
+        //////////////////
+        /// Run lowering with linux system command
+        /// TODO: use nested pass manager??
+        //////////////////
+        // mlir::PassManager nestedPM(&getContext());
+        // nestedPM.addPass(std::make_unique<MyFirstPass>());
+        // nestedPM.addPass(std::make_unique<MySecondPass>());
+
+        // if (failed(nestedPM.run(getModule()))) {
+        //   llvm::errs() << "Nested pipeline failed to run!\n";
+        // }        
+
+        // cnt_to_KernelOP[cnt] = Kernel;
+        cnt++;
+      });
+
+    }
+
+    llvm::errs() << "module:" << moduleop << "\n";
   }
-
-  // for(auto& nodeJson : adgJson["sub_modules"]){
-  //   ADGNode* node = parseADGNode(nodeJson);
-  //   modules[node->id()] = std::make_pair(node, false);
-  // }
-  // for(auto& nodeJson : adgJson["instances"]){
-  //   ADGNode* node = parseADGNode(nodeJson, modules);
-  //   int nodeId = nodeJson["id"].get<int>();
-  //   if(node){ // not store sub-module of "This" type
-  //     adg->addNode(nodeId, node);
-  //   }else{ // "This" sub-module
-  //     adg->setId(nodeId);
-  //   }
-  // }
-  // unsigned NumGPE = configObj->getArray("instances");
-  // for(auto obj : )
-
-  // unsigned maxInitParallel =
-  //       configObj->getInteger("max_init_parallel").value_or(32);
-//     unsigned maxExplParallel =
-//         configObj->getInteger("max_expl_parallel").value_or(1024);
-//     unsigned maxLoopParallel =
-//         configObj->getInteger("max_loop_parallel").value_or(128);
-
-//     assert(maxInitParallel <= maxExplParallel &&
-//            maxLoopParallel <= maxExplParallel &&
-//            "invalid configuration of DSE");
-
-//     unsigned maxIterNum = configObj->getInteger("max_iter_num").value_or(30);
-//     float maxDistance = configObj->getNumber("max_distance").value_or(3.0);
-
-//     bool directiveOnly =
-//         configObj->getBoolean("directive_only").value_or(false);
-//     bool resourceConstr =
-//         configObj->getBoolean("resource_constr").value_or(true);
-
-//     // Collect profiling latency and DSP usage data, where default values are
-//     // based on Xilinx PYNQ-Z1 board.
-//     llvm::StringMap<int64_t> latencyMap;
-//     getLatencyMap(configObj, latencyMap);
-//     llvm::StringMap<int64_t> dspUsageMap;
-//     getDspUsageMap(configObj, dspUsageMap);
-
-//     unsigned maxDspNum = ceil(configObj->getInteger("dsp").value_or(220) * 1.1);
-//     if (!resourceConstr)
-//       maxDspNum = UINT_MAX;
-
-//     // Initialize an performance and resource estimator.
-//     auto estimator = ScaleHLSEstimator(latencyMap, dspUsageMap, true);
-//     auto explorer = ScaleHLSExplorer(estimator, outputNum, maxDspNum,
-//                                      maxInitParallel, maxExplParallel,
-//                                      maxLoopParallel, maxIterNum, maxDistance);
-
-//     // Optimize the top function.
-//     // TODO: Support to contain sub-functions.
-//     for (auto func : module.getOps<func::FuncOp>()) {
-//       if (hasTopFuncAttr(func))
-//         explorer.applyDesignSpaceExplore(func, directiveOnly, outputPath,
-//                                          csvPath);
-//     }
 }
 
 

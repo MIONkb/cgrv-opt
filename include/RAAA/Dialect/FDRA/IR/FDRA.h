@@ -49,6 +49,13 @@ AffineExpr getConstPartofAffineExpr(AffineExpr& expr);
 void eliminateUnusedIndices(Operation *op);
 SmallVector<Value> getOperandInRank(Operation *op, unsigned rank);
 
+///// following 4 functions are defined to help extract kernel function
+// bool isSinkingBeneficiary(Operation *op);
+// static bool extractBeneficiaryOps(Operation *op, llvm::SetVector<Value> existingDependencies,
+//       llvm::SetVector<Operation *> &beneficiaryOps, llvm::SmallPtrSetImpl<Value> &availableValues);
+LogicalResult sinkOperationsIntoKernelOp(FDRA::KernelOp kernelOp);
+func::FuncOp GenKernelFunc(FDRA::KernelOp KernelOp, llvm::SetVector<Value> &operands);
+
 //===----------------------------------------------------------------------===//
 // A templated find func for smallvector
 //===----------------------------------------------------------------------===//
