@@ -36,6 +36,7 @@
 
 using namespace llvm; // for llvm.errs()
 using namespace mlir;
+using namespace mlir::affine;
 using namespace mlir::FDRA;
 
 
@@ -57,7 +58,7 @@ struct AutoDesignSpaceExplorer : public AutoDesignSpaceExploreBase<AutoDesignSpa
   };
 
   /* Function define */
-  FDRA::ForNode* findTargetLoopNode(SmallVector<FDRA::ForNode>& NodeVec, mlir::AffineForOp forop);
+  FDRA::ForNode* findTargetLoopNode(SmallVector<FDRA::ForNode>& NodeVec, mlir::affine::AffineForOp forop);
   void NestedGenTree(FDRA::ForNode*, SmallVector<FDRA::ForNode>&);
   SmallVector<FDRA::ForNode> createAffineForTree(func::FuncOp topfunc);
   SmallVector<unsigned> FindUnrollingFactors(FDRA::ForNode& Node); 
@@ -75,7 +76,7 @@ struct AutoDesignSpaceExplorer : public AutoDesignSpaceExploreBase<AutoDesignSpa
 /// @param forop a target loop we want to find 
 /// @return the pointer to the target Loop Node which is the for op we want to find
 FDRA::ForNode* AutoDesignSpaceExplorer::
-              findTargetLoopNode(SmallVector<FDRA::ForNode>& NodeVec, mlir::AffineForOp forop)
+              findTargetLoopNode(SmallVector<FDRA::ForNode>& NodeVec, mlir::affine::AffineForOp forop)
 {
   ForNode* ib = NodeVec.begin();
   ForNode* ie = NodeVec.end();
@@ -98,9 +99,9 @@ void AutoDesignSpaceExplorer::
   auto ib = For.getLoopBody().front().begin();
   auto ie = For.getLoopBody().front().end();
   for(; ib != ie; ib ++ ){
-    if(ib->getName().getStringRef() == mlir::AffineForOp::getOperationName())
+    if(ib->getName().getStringRef() == mlir::affine::AffineForOp::getOperationName())
     {
-      mlir::AffineForOp NestFor = dyn_cast<AffineForOp>(ib);
+      mlir::affine::AffineForOp NestFor = dyn_cast<AffineForOp>(ib);
       // FDRA::ForNode ChildForNode(NestFor, /*Level=*/Level);
       FDRA::ForNode* ChildForNode = findTargetLoopNode(NodeVec, NestFor);
       ChildForNode->setParent(rootNode);
@@ -111,13 +112,13 @@ void AutoDesignSpaceExplorer::
     if(ib->getName().getStringRef() == FDRA::KernelOp::getOperationName())
     {
       FDRA::KernelOp NestKernel = dyn_cast<FDRA::KernelOp>(ib);
-      auto kn_ib = NestKernel.body().front().begin();
-      auto kn_ie = NestKernel.body().front().end();
+      auto kn_ib = NestKernel.getBody().front().begin();
+      auto kn_ie = NestKernel.getBody().front().end();
       for(; kn_ib != kn_ie; kn_ib ++ ){
         /// search nested loop in KernelOp
-        if(ib->getName().getStringRef() == mlir::AffineForOp::getOperationName())
+        if(ib->getName().getStringRef() == mlir::affine::AffineForOp::getOperationName())
         {
-          mlir::AffineForOp NestFor = dyn_cast<AffineForOp>(ib);
+          mlir::affine::AffineForOp NestFor = dyn_cast<AffineForOp>(ib);
           FDRA::ForNode* ChildForNode = findTargetLoopNode(NodeVec, NestFor);
           ChildForNode->setParent(rootNode);
           ChildForNode->setLevel(Level);
@@ -138,8 +139,8 @@ SmallVector<FDRA::ForNode> AutoDesignSpaceExplorer::
                       createAffineForTree(func::FuncOp topfunc){
   SmallVector<FDRA::ForNode> ForNodeVec;
   topfunc.walk([&](mlir::Operation* op){
-    if(op->getName().getStringRef()== mlir::AffineForOp::getOperationName()){
-      mlir::AffineForOp forop = dyn_cast<AffineForOp>(op);
+    if(op->getName().getStringRef()== mlir::affine::AffineForOp::getOperationName()){
+      mlir::affine::AffineForOp forop = dyn_cast<AffineForOp>(op);
       assert(forop != NULL);
       FDRA::ForNode newForNode(forop);
       ForNodeVec.push_back(newForNode);
@@ -566,7 +567,7 @@ void AutoDesignSpaceExplorer::runOnOperation(){
     for (auto func : moduleop.getOps<func::FuncOp>()) {
       for (Operation &op : llvm::make_early_inc_range(func.getOps())) {
         if (auto forOp = dyn_cast<AffineForOp>(&op)) {
-          FDRA::SpecifiedAffineFortoKernel(forOp);
+          (void)FDRA::SpecifiedAffineFortoKernel(forOp);
         }
       }
 

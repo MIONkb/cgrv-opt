@@ -28,8 +28,11 @@ if(MLIR_ENABLE_BINDINGS_PYTHON)
   mlir_configure_python_dev_packages()
 endif()
 
-set(LLVM_INCLUDE_DIRS "/home/tianyi/MLIRCGRA/llvm-project/build/include")
-set(LLVM_LIBRARY_DIRS "/home/tianyi/MLIRCGRA/llvm-project/build/lib")
+# set(LLVM_INCLUDE_DIRS "/home/tianyi/MLIRCGRA/llvm-project/build/include")
+# set(LLVM_LIBRARY_DIRS "/home/tianyi/MLIRCGRA/llvm-project/build/lib")
+
+set(LLVM_INCLUDE_DIRS "/home/tianyi/Tools/llvm-18/build/include")
+set(LLVM_LIBRARY_DIRS "/home/tianyi/Tools/llvm-18/build/lib")
 
 link_directories(${LLVM_LIBRARY_DIRS})
 include_directories(${LLVM_INCLUDE_DIRS})
@@ -46,15 +49,9 @@ add_definitions(${LLVM_DEFINITIONS})
 #   message(STATUS "SODA-OPT Python bindings are disabled.")
 # endif()
 
-message("[test] Before include ")
 add_subdirectory(include/RAAA)
-message("[test] Before lib ")
-
 add_subdirectory(lib)
-# message("[test] Before test ")
 # add_subdirectory(test)
-message("[test] Before tools ")
 add_subdirectory(tools)
-# message("[test] Before llvm_plugins/lib ")
 # add_subdirectory(llvm_plugins/lib)
 

@@ -18,7 +18,7 @@ class L(nn.Module):
         return x
 
 a = L(3)
-img2 = torch.ones(2, 3)
+img2 = torch.ones(3, 3)
 preds = a(img2)
 
 module = torch_mlir.compile(a, img2, output_type="TORCH",verbose=True)

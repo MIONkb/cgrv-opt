@@ -12,7 +12,7 @@
 #include "mlir/Support/FileUtilities.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/IR/AffineExprVisitor.h"
-#include "mlir/IR/BlockAndValueMapping.h"
+// #include "mlir/IR/BlockAndValueMapping.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/SymbolTable.h"
 #include "mlir/IR/Location.h"
@@ -36,6 +36,7 @@
 
 using namespace llvm; // for llvm.errs()
 using namespace mlir;
+using namespace mlir::affine;
 using namespace mlir::FDRA;
 
 //===----------------------------------------------------------------------===//
@@ -82,7 +83,7 @@ void KernelToFuncPass::ExplicitKernelDataBLockLoadStore(FDRA::KernelOp Kernel)
   MemRefRegion memrefRegion(Kernel.getLoc());
   Value memref;
   SmallVector<Value, 4> IVs;
-  mlir::OpBuilder builder(Kernel.body().getContext());
+  mlir::OpBuilder builder(Kernel.getBody().getContext());
 
   // Tofix:
   // If dependency within iteration
@@ -178,7 +179,7 @@ void KernelToFuncPass::ExplicitKernelDataBLockLoadStore(FDRA::KernelOp Kernel)
       BlockLoad.setKernelName(Kernel.getKernelName());
 
       // llvm::errs() << "[debug] Before replace Kernel: ";Kernel.dump();
-      loadop.getOperation()->replaceUsesOfWith(memref, BlockLoad.result());
+      loadop.getOperation()->replaceUsesOfWith(memref, BlockLoad.getResult());
       // llvm::errs() << "[debug] BlockLoad: " << BlockLoad << "\n";
       /////////
       /// Step 4 : Change index of loadop according to the new BlockLoadOp
@@ -380,7 +381,7 @@ void KernelToFuncPass::ExplicitKernelDataBLockLoadStore(FDRA::KernelOp Kernel)
 
     /// DataBlockStoreOp which is coupled with above DataBlockLoadOp
     FDRA::DataBlockStoreOp BlockStore = builder.create<FDRA::DataBlockStoreOp>\
-                (Kernel.getLoc(), BlockLoad.result(), memref, memIVmap, IVs);
+                (Kernel.getLoc(), BlockLoad.getResult(), memref, memIVmap, IVs);
     Kernel.getOperation()->getBlock()->push_back(BlockStore);
     BlockStore.getOperation()->moveAfter(Kernel);
     BlockStore.setKernelName(Kernel.getKernelName());
@@ -390,7 +391,7 @@ void KernelToFuncPass::ExplicitKernelDataBLockLoadStore(FDRA::KernelOp Kernel)
     /////////
     for(auto StoreAndMem : StoreToMem){
       if(StoreAndMem.getSecond() == MemAndRegion.getFirst()){
-        StoreAndMem.getFirst().getOperation()->replaceUsesOfWith(memref, BlockLoad.result());
+        StoreAndMem.getFirst().getOperation()->replaceUsesOfWith(memref, BlockLoad.getResult());
         AffineStoreOp storeop =  StoreAndMem.getFirst();
         /** 
           * Complete a conversion for load op's index, here is an example:
@@ -466,8 +467,8 @@ void KernelToFuncPass::EliminateOuterLoopAffineTrans(FDRA::KernelOp Kernel)
 {
   MemRefRegion memrefRegion(Kernel.getLoc());
   Value memref;
-  // Block& knBlock = Kernel.body().front(); /// kernel block
-  mlir::OpBuilder builder(Kernel.body().getContext());
+  // Block& knBlock = Kernel.getBody().front(); /// kernel block
+  mlir::OpBuilder builder(Kernel.getBody().getContext());
   // llvm::SetVector<Value> memIVs;
   llvm::SmallVector<Value, 4> IVs;
 

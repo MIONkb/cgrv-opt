@@ -90,6 +90,8 @@ def FDRA_KernelOp : FDRA_Op<"kernel">,
       return getOperation()->getAttr("KernelName")
         .cast<StringAttr>().str();
     }
+
+
   }];
 
   let hasCustomAssemblyFormat = 1;
@@ -99,7 +101,7 @@ def FDRA_KernelOp : FDRA_Op<"kernel">,
 
 
 def FDRA_TerminatorOp : FDRA_Op<"terminator", [HasParent<"KernelOp">,
-                                             NoSideEffect, Terminator]>,
+                                              Terminator]>,
     Arguments<(ins)>, Results<(outs)> {
   let summary = "Terminator for FDRA_KernelOp regions.";
   let description = [{
@@ -154,7 +156,7 @@ def FDRA_DataBlockLoadOp: FDRA_Op<"BlockLoad", []>{
     // unsigned int BlockLen = 0;
     // void setBlockLen(unsigned l){ BlockLen = l;};
     // unsigned int getBlockLen(){ return BlockLen;};
-    Value getOriginalMemref(){ return OriginalMemref();};
+    // Value getOriginalMemref(){ return OriginalMemref();};
 
     static StringRef getMapAttrStr() { return "map"; }
     static StringRef getKernelNameAttrStr() { return "KernelName"; }
@@ -177,10 +179,10 @@ def FDRA_DataBlockLoadOp: FDRA_Op<"BlockLoad", []>{
     }
 
     MemRefType getOriginalMemrefType() {
-      return OriginalMemref().getType().cast<MemRefType>();
+      return getOriginalMemref().getType().cast<MemRefType>();
     }
     MemRefType getResultType() {
-      return result().getType().cast<MemRefType>();
+      return getResult().getType().cast<MemRefType>();
     }
 
     operand_range getMapOperands() {
@@ -234,8 +236,8 @@ def FDRA_DataBlockStoreOp: FDRA_Op<"BlockStore", []>{
     // unsigned int BlockLen = 0;
     // void setBlockLen(unsigned l){ BlockLen = l;};
     // unsigned int getBlockLen(){ return BlockLen;};
-    Value getSourceMemref(){ return SourceMemref();};    
-    Value getTargetMemref(){ return TargetMemref();};
+    // Value getSourceMemref(){ return SourceMemref();};    
+    // Value getTargetMemref(){ return TargetMemref();};
 
     static StringRef getMapAttrStr() { return "map"; }
     static StringRef getKernelNameAttrStr() { return "KernelName"; }
@@ -255,10 +257,10 @@ def FDRA_DataBlockStoreOp: FDRA_Op<"BlockStore", []>{
     }
 
     MemRefType getSourceMemrefType() {
-      return SourceMemref().getType().cast<MemRefType>();
+      return getSourceMemref().getType().cast<MemRefType>();
     }
     MemRefType getTargetMemrefType() {
-      return TargetMemref().getType().cast<MemRefType>();
+      return getTargetMemref().getType().cast<MemRefType>();
     }
 
     operand_range getMapOperands() {
@@ -334,6 +336,10 @@ def KernelCallOp : FDRA_Op<"KernelCall",
     CallInterfaceCallable getCallableForCallee() {
       return (*this)->getAttrOfType<SymbolRefAttr>("callee");
     }
+    void setCalleeFromCallable(CallInterfaceCallable callee) {
+      (*this)->setAttr("callee", callee.get<SymbolRefAttr>());
+    }
+
   }];
 
   let assemblyFormat = [{

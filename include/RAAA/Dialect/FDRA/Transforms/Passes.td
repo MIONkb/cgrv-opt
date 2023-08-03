@@ -19,7 +19,7 @@ def FDRALoopCdfgGen : Pass<"fdra-loop-dfg-gen", ""> {
   let summary = "Generate cdfg of FDRA from a for-loop";
   let constructor = "mlir::FDRA::createFDRALoopCdfgGenPass()";
   let dependentDialects = [
-    "arith::ArithmeticDialect",
+    "arith::ArithDialect",
     "::mlir::FDRA::FDRADialect",
     "::mlir::scf::SCFDialect"
   ];
@@ -241,7 +241,7 @@ def HoistLoadStoreInLoopNest : Pass<"fdra-hoist-loadstore", "func::FuncOp"> {
   let constructor = "mlir::FDRA::createHoistLoadStoreInLoopNestPass()";
   let dependentDialects = [
     "::mlir::FDRA::FDRADialect",
-    "::mlir::AffineDialect"
+    "::mlir::affine::AffineDialect"
   ];
   let options = [
     // Option<"outputPath", "output-path", "std::string",

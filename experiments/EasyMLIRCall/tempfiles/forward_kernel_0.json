@@ -6,39 +6,39 @@
   "objects": [
     {
       "_gvid": 0,
+      "name": "Input12",
+      "label": "\\N",
+      "offset": "0, 0",
+      "opcode": "Input",
+      "pattern": "4, 11",
+      "ref_name": "arg",
+      "size": "44"
+    },
+    {
+      "_gvid": 1,
       "name": "Input14",
       "label": "\\N",
       "offset": "0, 0",
       "opcode": "Input",
-      "pattern": "4, 10",
-      "ref_name": "arg",
-      "size": "40"
-    },
-    {
-      "_gvid": 1,
-      "name": "Input16",
-      "label": "\\N",
-      "offset": "0, 0",
-      "opcode": "Input",
-      "pattern": "4, 10",
+      "pattern": "4, 11",
       "ref_name": "arg1",
-      "size": "40"
+      "size": "44"
     },
     {
       "_gvid": 2,
-      "name": "FADD3217",
+      "name": "FADD3215",
       "label": "\\N",
       "opcode": "FADD32"
     },
     {
       "_gvid": 3,
-      "name": "Output19",
+      "name": "Output17",
       "label": "\\N",
       "offset": "0, 0",
       "opcode": "Output",
-      "pattern": "4, 10",
+      "pattern": "4, 11",
       "ref_name": "arg2",
-      "size": "40"
+      "size": "44"
     }
   ],
   "edges": [

@@ -37,7 +37,7 @@
 // #include "soda/Misc/Passes.h"
 // #include "soda/Misc/Pipelines.h"
 
-#include "mlir/Dialect/Arithmetic/Transforms/Passes.h"
+#include "mlir/Dialect/Arith/Transforms/Passes.h"
 #include "mlir/Dialect/Func/Transforms/Passes.h"
 
 // Defined in the test directory, no public header.
@@ -58,17 +58,17 @@ inline void registerLinalgPassesForSoda() {
 // Register important affine passes
 inline void registerAffinePassesForFDRA() {
 
-  mlir::registerAffineDataCopyGenerationPass();
-  mlir::registerAffineLoopInvariantCodeMotionPass();
-  mlir::registerAffineLoopTilingPass();
-  mlir::registerAffineLoopFusionPass();
-  mlir::registerAffineLoopUnrollPass();
-  mlir::registerAffineScalarReplacementPass();
+  mlir::affine::registerAffineDataCopyGenerationPass();
+  mlir::affine::registerAffineLoopInvariantCodeMotionPass();
+  mlir::affine::registerAffineLoopTilingPass();
+  mlir::affine::registerAffineLoopFusionPass();
+  mlir::affine::registerAffineLoopUnrollPass();
+  mlir::affine::registerAffineScalarReplacementPass();
 
   // my add
-  mlir::registerAffineLoopUnrollAndJamPass();
-  mlir::registerAffineLoopNormalizePass();
-  mlir::registerSimplifyAffineStructuresPass();
+  mlir::affine::registerAffineLoopUnrollAndJamPass();
+  mlir::affine::registerAffineLoopNormalizePass();
+  mlir::affine::registerSimplifyAffineStructuresPass();
 
   // Test passes
   mlir::registerTestLoopPermutationPass();
@@ -95,13 +95,13 @@ int main(int argc, char **argv) {
   // mlir::registerConvertLinalgToLLVMPass(); // This pass maps linalg to blas
   mlir::registerLinalgLowerToAffineLoopsPass();
   mlir::registerConvertFuncToLLVMPass();
-  mlir::registerConvertMemRefToLLVMPass();
+  mlir::registerFinalizeMemRefToLLVMConversionPass();
   mlir::registerSCFToControlFlowPass();
   mlir::registerConvertAffineToStandardPass();
   mlir::registerConvertMathToLLVMPass();
   mlir::registerConvertMathToLibmPass();
-  mlir::registerConvertArithmeticToLLVMPass();
-  mlir::arith::registerArithmeticExpandOpsPass();
+  mlir::registerArithToLLVMConversionPass();
+  mlir::arith::registerArithExpandOpsPass();
   mlir::memref::registerExpandOpsPass();
   mlir::memref::registerNormalizeMemRefsPass();
   mlir::registerReconcileUnrealizedCastsPass();
@@ -118,9 +118,12 @@ int main(int argc, char **argv) {
                   mlir::scf::SCFDialect,
                   mlir::cf::ControlFlowDialect,
                   mlir::vector::VectorDialect,
-                  mlir::arith::ArithmeticDialect,
-                  mlir::AffineDialect,
-                  mlir::DLTIDialect>();
+                  mlir::arith::ArithDialect,
+                  mlir::affine::AffineDialect,
+                  mlir::DLTIDialect,
+                  mlir::ml_program::MLProgramDialect,
+                  mlir::tensor::TensorDialect,
+                  mlir::bufferization::BufferizationDialect>();
   // clang-format on
   // mlir::registerAllDialects(registry);
 

@@ -1,9 +1,9 @@
 Digraph G {
+"Input12"[label = "\N\nlat=3"];
 "Input14"[label = "\N\nlat=3"];
-"Input16"[label = "\N\nlat=3"];
-"FADD3217"[label = "\N\nlat=4"];
-"Input14"->"FADD3217"[label = "lat=0\nop=0"];
-"Input16"->"FADD3217"[label = "lat=0\nop=1"];
-"Output19"[label = "\N\nlat=5"];
-"FADD3217"->"Output19"[label = "lat=0\nop=0"];
+"FADD3215"[label = "\N\nlat=4"];
+"Input12"->"FADD3215"[label = "lat=0\nop=0"];
+"Input14"->"FADD3215"[label = "lat=0\nop=1"];
+"Output17"[label = "\N\nlat=5"];
+"FADD3215"->"Output17"[label = "lat=0\nop=0"];
 }

@@ -8,7 +8,7 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/RegionUtils.h"
 #include "mlir/Support/LLVM.h"
-#include "mlir/IR/BlockAndValueMapping.h"
+// #include "mlir/IR/BlockAndValueMapping.h"
 
 #include "llvm/Support/CommandLine.h"
 #include "llvm/ADT/ArrayRef.h"
@@ -44,7 +44,7 @@ mlir::Operation* mlir::FDRA::eraseKernel(func::FuncOp& TopFunc, FDRA::KernelOp& 
       if(Kernel_captured == Kernel){
         /// Found the kernel we need to handle
         /// traverse every op of every block
-        for(auto blk_itr=Kernel.body().begin(); blk_itr!=Kernel.body().end(); blk_itr++){
+        for(auto blk_itr=Kernel.getBody().begin(); blk_itr!=Kernel.getBody().end(); blk_itr++){
           for(auto op_itr=(*blk_itr).begin(); op_itr!=(*blk_itr).end(); op_itr++){
             if(op_itr->getName().getStringRef()== FDRA::TerminatorOp::getOperationName()){
               /// "FDRA.terminator" do not need to be replicated
@@ -75,22 +75,44 @@ mlir::Operation* mlir::FDRA::eraseKernel(func::FuncOp& TopFunc, FDRA::KernelOp& 
 //===----------------------------------------------------------------------===//
 // SpecifiedAffineFortoKernel
 //===----------------------------------------------------------------------===//
-void mlir::FDRA::SpecifiedAffineFortoKernel(mlir::AffineForOp& kernelforOp){
-  /// traverse every operation in TopFunc
+OpTable TramUnsupportOpTable = 
+{
+  /// math dialect
+  ::mlir::math::ExpOp::getOperationName(), // math.exp
+  ::mlir::math::ErfOp::getOperationName(), // math.erf
+  /// arith dialect
+  ::mlir::arith::CmpFOp::getOperationName() // arith.cmpf
+};
+LogicalResult mlir::FDRA::SpecifiedAffineFortoKernel(mlir::affine::AffineForOp& kernelforOp){
+  /// Walk every op in this forop to check whether unsupport op is contained
+  auto WalkResult = kernelforOp.getBody()->walk([&](mlir::Operation* op){
+    StringRef opname = op->getName().getStringRef();
+    if(TramUnsupportOpTable.count(opname)){ /// unsupported op is contained by forop
+      return WalkResult::interrupt();
+    }
+    return WalkResult::advance();
+  });
+  if(WalkResult.wasInterrupted()){
+    llvm::errs() << "[Info] Containing unsupported operations.\n" ;
+    return LogicalResult::failure();
+  }
+
   // errs()<<"    op :" << op->getName().getStringRef() << "\n";
   OpBuilder builder(kernelforOp.getOperation());
 
   // Create a kernel op and move the body region of the innermost loop into it
   Location loc = kernelforOp.getLoc();
   auto KernelOp = builder.create<FDRA::KernelOp>(loc);
-  builder.setInsertionPointToEnd(&KernelOp.body().front());
+  builder.setInsertionPointToEnd(&KernelOp.getBody().front());
   builder.create<FDRA::TerminatorOp>(loc);
-  builder.setInsertionPointToStart(&KernelOp.body().front());
+  builder.setInsertionPointToStart(&KernelOp.getBody().front());
 
   // Copy root loop and its operations into the Kernel
   auto &ops = kernelforOp.getBody()->getOperations();
-  KernelOp.body().front().getOperations().splice(
-  KernelOp.body().front().begin(), ops, Block::iterator(kernelforOp));
+  KernelOp.getBody().front().getOperations().splice(
+  KernelOp.getBody().front().begin(), ops, Block::iterator(kernelforOp));
+
+  return LogicalResult::success();
 }
 
 //===----------------------------------------------------------------------===//
@@ -245,7 +267,7 @@ SmallVector<Value> mlir::FDRA::getOperandInRank(Operation* op, unsigned rank){
   }
   else if (auto BlockLoad = dyn_cast<FDRA::DataBlockLoadOp>(op)){
     map = BlockLoad.getAffineMap();
-    mapOperands = BlockLoad.indices();
+    mapOperands = BlockLoad.getIndices();
   }
   else
     assert("Operation should be AffineStoreOp, AffineLoadOp or BlockLoadOp.");
@@ -275,8 +297,8 @@ bool FDRA::ForNode::IsInnermost(){
   // llvm::errs() << "[debug] forop:\n";  
   // ForOp.dump();
   auto WalkResult = ForOp.getBody()->walk([&](mlir::Operation* op){
-    if(op->getName().getStringRef()== mlir::AffineForOp::getOperationName()){
-      mlir::AffineForOp forop = dyn_cast<AffineForOp>(op);
+    if(op->getName().getStringRef()== mlir::affine::AffineForOp::getOperationName()){
+      mlir::affine::AffineForOp forop = dyn_cast<AffineForOp>(op);
       assert(forop != NULL);
       return WalkResult::interrupt();
     }
@@ -298,9 +320,9 @@ bool FDRA::ForNode::IsThisLevelPerfect(){
   auto ib = ParentFor->getLoopBody().front().begin();
   auto ie = ParentFor->getLoopBody().front().end();
   for(; ib != ie; ib ++ ){
-    if(ib->getName().getStringRef() == mlir::AffineForOp::getOperationName() ||
+    if(ib->getName().getStringRef() == mlir::affine::AffineForOp::getOperationName() ||
        ib->getName().getStringRef() == FDRA::KernelOp::getOperationName() ||
-       ib->getName().getStringRef() == mlir::AffineYieldOp::getOperationName())
+       ib->getName().getStringRef() == mlir::affine::AffineYieldOp::getOperationName())
     {
       OpCount++;
     } 
@@ -386,7 +408,7 @@ static bool extractBeneficiaryOps(Operation *op,
 /// @return 
 LogicalResult mlir::FDRA::sinkOperationsIntoKernelOp(FDRA::KernelOp kernelOp)
 {
-  Region &KernelOpBody = kernelOp.body();
+  Region &KernelOpBody = kernelOp.getBody();
 
   // Identify uses from values defined outside of the scope of the launch
   // operation.
@@ -404,7 +426,7 @@ LogicalResult mlir::FDRA::sinkOperationsIntoKernelOp(FDRA::KernelOp kernelOp)
   }
 
   // Insert operations so that the defs get cloned before uses.
-  BlockAndValueMapping map;
+  mlir::IRMapping map;
   OpBuilder builder(KernelOpBody);
   for (Operation *op : toBeSunk)
   {
@@ -412,7 +434,7 @@ LogicalResult mlir::FDRA::sinkOperationsIntoKernelOp(FDRA::KernelOp kernelOp)
     // Only replace uses within the launch op.
     for (auto pair : llvm::zip(op->getResults(), clonedOp->getResults()))
       replaceAllUsesInRegionWith(std::get<0>(pair), std::get<1>(pair),
-                                 kernelOp.body());
+                                 kernelOp.getBody());
   }
   return success();
 }
@@ -433,9 +455,9 @@ func::FuncOp mlir::FDRA::
   Location loc = KernelOp.getLoc();
   // Create a builder with no insertion point, insertion will happen separately
   // due to symbol table manipulation
-  OpBuilder builder(KernelOp.body().getContext());
+  OpBuilder builder(KernelOp.getBody().getContext());
   // Contains the region of code that will be outlined
-  Region &KernelOpBody = KernelOp.body();
+  Region &KernelOpBody = KernelOp.getBody();
   std::string kernelFnName = KernelOp.getKernelName();
 
   // errs() << kernelFnName << ":\n";
@@ -468,7 +490,7 @@ func::FuncOp mlir::FDRA::
 
   KernelFunc.getBody().getBlocks().push_back(entryBlock);
 
-  BlockAndValueMapping mapping;
+  mlir::IRMapping mapping;
   // Block &entryBlock = KernelFunc.getBody().front();
   for (unsigned index = 0; index < operands.size(); index++)
   {

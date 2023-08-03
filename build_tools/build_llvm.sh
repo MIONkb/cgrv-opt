@@ -43,6 +43,10 @@ echo "Beginning build (commands will echo)"
 set -x
 
 
+LLVM_SRC_DIR=/home/tianyi/Tools/llvm-18/
+build_dir=$LLVM_SRC_DIR/build
+install_dir=$LLVM_SRC_DIR/build
+
 cmake -GNinja \
   "-H$LLVM_SRC_DIR/llvm" \
   "-B$build_dir" \
@@ -64,3 +68,4 @@ cmake -GNinja \
  # -DLLVM_OPTIMIZED_TABLEGEN=ON -DLLVM_ENABLE_OCAMLDOC=OFF -DLLVM_ENABLE_BINDINGS=OFF 
 
 cmake --build "$build_dir" --target opt mlir-opt mlir-translate mlir-cpu-runner install
+ninja -j 7 install 

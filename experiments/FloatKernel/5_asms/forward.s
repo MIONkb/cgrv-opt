@@ -11,64 +11,53 @@ forward:                                # @forward
 	.loc	1 4 0                           # 3_forward_llvm.mlir:4:0
 	.cfi_startproc
 # %bb.0:
-	addi	sp, sp, -320
-	.cfi_def_cfa_offset 320
-	sd	ra, 312(sp)                     # 8-byte Folded Spill
-	sd	s0, 304(sp)                     # 8-byte Folded Spill
-	sd	s1, 296(sp)                     # 8-byte Folded Spill
-	sd	s2, 288(sp)                     # 8-byte Folded Spill
+	addi	sp, sp, -192
+	.cfi_def_cfa_offset 192
+	sd	ra, 184(sp)                     # 8-byte Folded Spill
+	sd	s0, 176(sp)                     # 8-byte Folded Spill
+	sd	s1, 168(sp)                     # 8-byte Folded Spill
+	sd	s2, 160(sp)                     # 8-byte Folded Spill
 	.cfi_offset ra, -8
 	.cfi_offset s0, -16
 	.cfi_offset s1, -24
 	.cfi_offset s2, -32
-	addi	s0, sp, 320
+	addi	s0, sp, 192
 	.cfi_def_cfa s0, 0
 	andi	sp, sp, -64
 	mv	s2, a0
 .Lpcrel_hi0:
 .Ltmp0:
-	.loc	1 57 5 prologue_end             # 3_forward_llvm.mlir:57:5
+	.loc	1 61 5 prologue_end             # 3_forward_llvm.mlir:61:5
 	auipc	a0, %pcrel_hi(.L__constant_3x3xf32)
 	addi	a0, a0, %pcrel_lo(.Lpcrel_hi0)
-	addi	a1, sp, 128
+	mv	a1, sp
 	call	forward_kernel_0@plt
-	.loc	1 76 5                          # 3_forward_llvm.mlir:76:5
-	addi	a0, sp, 32
-	call	forward_kernel_1@plt
-	.loc	1 86 11                         # 3_forward_llvm.mlir:86:11
-	li	a0, 88
+	.loc	1 109 11                        # 3_forward_llvm.mlir:109:11
+	li	a0, 100
 	call	malloc@plt
-	.loc	1 91 11                         # 3_forward_llvm.mlir:91:11
+	.loc	1 114 11                        # 3_forward_llvm.mlir:114:11
 	addi	a0, a0, 63
-	.loc	1 114 5                         # 3_forward_llvm.mlir:114:5
-	lw	a1, 32(sp)
-	.loc	1 93 11                         # 3_forward_llvm.mlir:93:11
+	.loc	1 116 11                        # 3_forward_llvm.mlir:116:11
 	andi	s1, a0, -64
-	.loc	1 114 5                         # 3_forward_llvm.mlir:114:5
-	sw	a1, 0(s1)
-	lw	a0, 36(sp)
-	sw	a0, 4(s1)
-	lw	a0, 40(sp)
-	sw	a0, 8(s1)
-	lw	a0, 44(sp)
-	sw	a0, 12(s1)
-	lw	a0, 48(sp)
-	sw	a0, 16(s1)
-	lw	a0, 52(sp)
-	sw	a0, 20(s1)
-	.loc	1 117 5                         # 3_forward_llvm.mlir:117:5
-	addi	a2, sp, 128
+	.loc	1 137 5                         # 3_forward_llvm.mlir:137:5
+	sd	zero, 0(s1)
+	sd	zero, 8(s1)
+	sd	zero, 16(s1)
+	sd	zero, 24(s1)
+	sw	zero, 32(s1)
+	.loc	1 140 5                         # 3_forward_llvm.mlir:140:5
+	mv	a2, sp
 	mv	a0, s1
 	mv	a1, s2
-	call	forward_kernel_2@plt
-	.loc	1 119 5                         # 3_forward_llvm.mlir:119:5
+	call	forward_kernel_1@plt
+	.loc	1 142 5                         # 3_forward_llvm.mlir:142:5
 	mv	a0, s1
-	addi	sp, s0, -320
-	ld	ra, 312(sp)                     # 8-byte Folded Reload
-	ld	s0, 304(sp)                     # 8-byte Folded Reload
-	ld	s1, 296(sp)                     # 8-byte Folded Reload
-	ld	s2, 288(sp)                     # 8-byte Folded Reload
-	addi	sp, sp, 320
+	addi	sp, s0, -192
+	ld	ra, 184(sp)                     # 8-byte Folded Reload
+	ld	s0, 176(sp)                     # 8-byte Folded Reload
+	ld	s1, 168(sp)                     # 8-byte Folded Reload
+	ld	s2, 160(sp)                     # 8-byte Folded Reload
+	addi	sp, sp, 192
 	ret
 .Ltmp1:
 .Lfunc_end0:
@@ -79,15 +68,15 @@ forward:                                # @forward
 	.section	.rodata,"a",@progbits
 	.p2align	4
 .L__constant_3x3xf32:
-	.word	0xbed4e383                      # float -0.415798277
-	.word	0x3e217df6                      # float 0.157707065
-	.word	0x3e05c977                      # float 0.13065134
-	.word	0xbeeaefcb                      # float -0.458860725
-	.word	0xbdc179a7                      # float -0.0944703146
-	.word	0xbed17610                      # float -0.40910387
-	.word	0x3e444f0e                      # float 0.19170782
-	.word	0xbe0e88b3                      # float -0.139193341
-	.word	0xbed41473                      # float -0.414218515
+	.word	0xbf08a305                      # float -0.533737481
+	.word	0x3d94da0e                      # float 0.0726815313
+	.word	0x3f0c532c                      # float 0.548144102
+	.word	0x3eadde8c                      # float 0.339588523
+	.word	0xbe5990d1                      # float -0.212466493
+	.word	0x3e04a9ba                      # float 0.129553705
+	.word	0x3ed8a549                      # float 0.423136026
+	.word	0x3eebcecc                      # float 0.46056211
+	.word	0xbd1174c8                      # float -0.0355117619
 	.size	.L__constant_3x3xf32, 36
 
 	.section	.debug_abbrev,"",@progbits

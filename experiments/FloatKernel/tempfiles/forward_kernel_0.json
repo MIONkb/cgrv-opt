@@ -6,23 +6,23 @@
   "objects": [
     {
       "_gvid": 0,
-      "name": "Input20",
+      "name": "Input10",
       "label": "\\N",
       "offset": "0, 0",
       "opcode": "Input",
-      "pattern": "4, 4, 0, 4",
+      "pattern": "4, 3, 4, 3",
       "ref_name": "arg",
-      "size": "52"
+      "size": "36"
     },
     {
       "_gvid": 1,
-      "name": "Output24",
+      "name": "Output14",
       "label": "\\N",
       "offset": "0, 0",
       "opcode": "Output",
-      "pattern": "12, 4, -32, 4",
+      "pattern": "12, 3, -20, 3",
       "ref_name": "arg1",
-      "size": "52"
+      "size": "36"
     }
   ],
   "edges": [

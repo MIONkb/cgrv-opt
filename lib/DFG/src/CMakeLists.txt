@@ -7,8 +7,8 @@ add_library(GeneralCDFGGen
   )
 
 
-set(LLVM_INCLUDE_DIRS "/home/tianyi/MLIRCGRA/llvm-project/build/include")
-set(LLVM_LIBRARY_DIRS "/home/tianyi/MLIRCGRA/llvm-project/build/lib")
+# set(LLVM_INCLUDE_DIRS "/home/tianyi/MLIRCGRA/llvm-project/build/include")
+# set(LLVM_LIBRARY_DIRS "/home/tianyi/MLIRCGRA/llvm-project/build/lib")
 
 target_include_directories(GeneralCDFGGen
   PRIVATE ${PROJ_INCLUDE_DIR}/lib/DFG/inc

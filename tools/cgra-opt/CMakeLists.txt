@@ -20,13 +20,13 @@ set(LIBS
   MLIRLinalgDialect
   MLIRMemRefDialect
   MLIRAffineDialect
-  MLIRArithmeticDialect
+  MLIRArithDialect
   MLIRMathDialect
   MLIRFuncDialect
   MLIRSCFDialect
+  MLIRMLProgramDialect
+  MLIRTensorDialect
 
-  # My add
-  # ComplexOPDialect
  
   # Transforms
   MLIRFuncTransforms
@@ -46,26 +46,10 @@ set(LIBS
   MLIRMemRefToLLVM
   MLIRMathToLLVM
   MLIRMathToLibm
-  MLIRArithmeticToLLVM
+  MLIRArithToLLVM
   MLIRFuncToLLVM
   MLIRLinalgToLLVM
   MLIRLinalgToStandard
-
-  # Conversion SODA
-  # SODAKERNELToSODA
-
-  # SODA
-  # SODAMisc
-  # MLIRSODAOps
-  # MLIRSODATransforms
-
-  # SNN
-  # MLIRSNNOps
-  # MLIRSNNTransforms
-
-  # Test
-  # MLIRMyTestOps
-  # MLIRMyTestTransforms
 
   #FDRA
   MLIRFDRAMisc

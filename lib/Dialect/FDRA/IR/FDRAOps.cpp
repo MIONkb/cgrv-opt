@@ -2,7 +2,7 @@
 //===----------------------------------------------------------------------===//
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 // #include "mlir/Dialect/Affine/IR/AffineValueMap.h"
-#include "mlir/IR/BlockAndValueMapping.h"
+// #include "mlir/IR/BlockAndValueMapping.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/Matchers.h"
 #include "mlir/IR/PatternMatch.h"
@@ -17,6 +17,7 @@
 using namespace mlir;
 using namespace mlir::FDRA;
 using namespace mlir::func;
+using namespace mlir::affine;
 
 //===----------------------------------------------------------------------===//
 // KernelOp
@@ -60,7 +61,7 @@ LogicalResult KernelOp::verify() {
   // Block terminators without successors are expected to exit the kernel region
   // and must be `soda.terminator`.
   /// To Fix
-  for (Block &block : body()) {
+  for (Block &block : getBody()) {
     if (block.empty())
       continue;
     if (block.back().getNumSuccessors() != 0)
@@ -75,7 +76,7 @@ LogicalResult KernelOp::verify() {
     // }
   }
   
-  Region& knRegion = body();
+  Region& knRegion = getBody();
   /// A kernel should only contain 1 region
   /// and this region should only contain 1 block
   if(knRegion.getBlocks().size() != 1)
@@ -92,7 +93,7 @@ LogicalResult KernelOp::verify() {
 
 void KernelOp::print(OpAsmPrinter &printer) {
   printer << ' ';
-  printer.printRegion(body(), /*printEntryBlockArgs=*/true,/*printBlockTerminators=*/true);
+  printer.printRegion(getBody(), /*printEntryBlockArgs=*/true,/*printBlockTerminators=*/true);
   printer.printOptionalAttrDict((*this)->getAttrs());
 }
 

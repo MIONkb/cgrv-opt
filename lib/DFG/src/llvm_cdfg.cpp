@@ -305,7 +305,8 @@ void LLVMCDFG::initialize()
                     Indices.push_back (CE->getOperand(index));
                 }
                 llvm::Value *temp_v_ptr = CE->getOperand(0);
-                GEP = GetElementPtrInst::CreateInBounds(temp_v_ptr->getType()->getScalarType()->getPointerElementType(),temp_v_ptr,Indices,CE->getName(),ins);
+                // GEP = GetElementPtrInst::CreateInBounds(temp_v_ptr->getType()->getScalarType()->getPointerElementType(),temp_v_ptr,Indices,CE->getName(),ins);
+                GEP = GetElementPtrInst::CreateInBounds(temp_v_ptr->getType()->getScalarType()->getNonOpaquePointerElementType(),temp_v_ptr,Indices,CE->getName(),ins);
                 ins->replaceUsesOfWith(CE, GEP);
             }
         }
@@ -2283,9 +2284,9 @@ void LLVMCDFG::LoopIdxAnalyze(){
                 }
             }
         } 
-        if (auto LoopBound = nestloops[level]->getBounds(*SE)){
-            errs() << "\tdirection: " << int(LoopBound.getPointer()->getDirection()) <<"\n";
-        }
+        // if (auto LoopBound = nestloops[level]->getBounds(*SE)){
+        //     errs() << "\tdirection: " << int(LoopBound.getPointer()->getDirection()) <<"\n";
+        // }
         detected.insert(temNestBBs.begin(),temNestBBs.end());
     }
     // load stride information when loopsAffine is true

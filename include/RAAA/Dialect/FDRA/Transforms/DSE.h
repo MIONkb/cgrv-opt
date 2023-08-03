@@ -17,6 +17,7 @@
 
 using namespace std;
 using namespace mlir;
+using namespace mlir::affine;
 using namespace llvm;
 
 namespace mlir {
@@ -26,7 +27,7 @@ class ForNode
 {
 private:
   /* data */
-  mlir::AffineForOp ForOp;
+  mlir::affine::AffineForOp ForOp;
   ForNode* ParentNode = nullptr;
   llvm::SmallVector<ForNode*> ChildrenNodes;
   unsigned Level;
@@ -45,7 +46,7 @@ public:
   ForNode(AffineForOp For, unsigned level): ForOp(For), Level(level){};
   // ~ForNode();
 
-  mlir::AffineForOp& getForOp() {return ForOp;}
+  mlir::affine::AffineForOp& getForOp() {return ForOp;}
 
   void setChildren(llvm::SmallVector<ForNode*>& Children){ ChildrenNodes = Children;}
   llvm::SmallVector<ForNode*> getChildren() const {return ChildrenNodes;}

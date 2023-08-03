@@ -11,7 +11,6 @@
 // #include "mlir/Support/FileUtilities.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/IR/AffineExprVisitor.h"
-#include "mlir/IR/BlockAndValueMapping.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/SymbolTable.h"
 #include "mlir/IR/Location.h"
@@ -37,6 +36,7 @@
 
 using namespace llvm; // for llvm.errs()
 using namespace mlir;
+using namespace mlir::affine;
 using namespace mlir::FDRA;
 
 //===----------------------------------------------------------------------===//
@@ -251,7 +251,7 @@ void HoistLoadStoreInLoopNestPass::runOnOperation()
 
             // Create a new loop with additional iterOperands, iter_args and yield
             // operands. This new loop will take the loop body of the original loop.
-            AffineForOp newForOp = mlir::replaceForOpWithNewYields(
+            AffineForOp newForOp = replaceForOpWithNewYields(
                 builder, oldForOp, dupIterOperands, dupYieldOperands, dupIterArgs); 
             oldForOp.getOperation()->erase();
  

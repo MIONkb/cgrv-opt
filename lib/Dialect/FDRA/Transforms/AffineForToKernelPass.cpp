@@ -17,6 +17,7 @@
 using namespace llvm; // for llvm.errs()
 using namespace mlir;
 using namespace mlir::FDRA;
+using namespace mlir::affine;
 
 //===----------------------------------------------------------------------===//
 // AffineToKERNEL

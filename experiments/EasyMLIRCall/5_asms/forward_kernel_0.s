@@ -44,8 +44,8 @@ forward_kernel_0:
 	
 # 0 "" 2
  #NO_APP
-	li	a2,5242880
-	addi	a2,a2,1
+	li	a2,5767168
+	addi	a2,a2,3
 	mv	a1,a0
 	slli	a2,a2,15
  #APP
@@ -54,8 +54,8 @@ forward_kernel_0:
 	
 # 0 "" 2
  #NO_APP
-	li	a2,20971520
-	addi	a2,a2,5
+	li	a2,23068672
+	addi	a2,a2,13
 	mv	a1,a5
 	slli	a2,a2,13
  #APP
@@ -73,7 +73,7 @@ forward_kernel_0:
 	
 # 0 "" 2
  #NO_APP
-	li	a1,112
+	li	a1,57344
 	li	a2,0
  #APP
 # 58 "/home/tianyi/chipyard/generators/fdra/software/tests/include/ISA.h" 1
@@ -81,8 +81,8 @@ forward_kernel_0:
 	
 # 0 "" 2
  #NO_APP
-	li	a5,10485760
-	addi	a2,a5,3
+	li	a5,11534336
+	addi	a2,a5,7
 	mv	a1,a4
 	slli	a2,a2,14
  #APP
@@ -102,49 +102,49 @@ forward_kernel_0:
 	.align	3
 	.set	.LANCHOR0,. + 0
 .LC0:
-	.half	12288
+	.half	-8178
+	.half	0
+	.half	317
+	.half	64
+	.half	0
+	.half	352
+	.half	1
+	.half	0
+	.half	356
 	.half	10240
-	.half	20
+	.half	11264
+	.half	384
 	.half	0
 	.half	0
-	.half	21
+	.half	385
+	.half	0
+	.half	256
+	.half	386
+	.half	0
+	.half	0
+	.half	387
+	.half	8192
+	.half	11264
+	.half	388
+	.half	0
+	.half	0
+	.half	389
+	.half	0
+	.half	256
+	.half	390
+	.half	0
+	.half	0
+	.half	391
+	.half	12288
+	.half	11264
+	.half	392
+	.half	0
+	.half	0
+	.half	393
 	.half	0
 	.half	-30464
-	.half	22
-	.half	128
-	.half	0
-	.half	23
-	.half	8192
-	.half	10240
-	.half	24
+	.half	394
 	.half	0
 	.half	0
-	.half	25
-	.half	0
-	.half	256
-	.half	26
-	.half	0
-	.half	0
-	.half	27
-	.half	10240
-	.half	10240
-	.half	28
-	.half	0
-	.half	0
-	.half	29
-	.half	0
-	.half	256
-	.half	30
-	.half	0
-	.half	0
-	.half	31
-	.half	256
-	.half	0
-	.half	60
-	.half	0
-	.half	0
-	.half	64
-	.half	-30706
-	.half	0
-	.half	97
+	.half	395
 	.ident	"GCC: (g2ee5e430018) 12.2.0"

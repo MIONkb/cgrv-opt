@@ -7,6 +7,8 @@
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
+#include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/Math/IR/Math.h"
 
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Dialect.h"
@@ -18,6 +20,8 @@
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Interfaces/ViewLikeInterface.h"
 
+// #include "llvm/ADT/SmallSet.h" /// use std::unordered_set instead of std::list
+#include<set>
 //===----------------------------------------------------------------------===//
 // Test Dialect
 //===----------------------------------------------------------------------===//
@@ -42,8 +46,11 @@ namespace FDRA {
 ///////////////
 /// Utilities.cpp
 ///////////////
+// Define supported affine operations on CGRA
+typedef std::set<StringRef> OpTable;
+
 mlir::Operation* eraseKernel(::mlir::func::FuncOp& TopFunc, FDRA::KernelOp& Kernel);
-void SpecifiedAffineFortoKernel(::mlir::AffineForOp& forOp);
+LogicalResult SpecifiedAffineFortoKernel(::mlir::affine::AffineForOp& forOp);
 AffineExpr getConstPartofAffineExpr(AffineExpr& expr);
 // void removeUnusedRegionArgs(Region &region);
 void eliminateUnusedIndices(Operation *op);

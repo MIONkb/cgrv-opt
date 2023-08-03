@@ -6,7 +6,7 @@ ssh -T git@github.com
 
 # git init
 git add .
-git commit -m "dse process: read in adg and dfg successfully. dfg is generated through linux cmd."
+git commit -m "new branch for llvm-18"
 git branch -M main
 git remote add origin git@github.com:segmentKOBE/cgra-opt.git
 git push -u origin main

@@ -385,7 +385,7 @@ General options:
     =ieee                                                               -   IEEE 754 denormal numbers
     =preserve-sign                                                      -   the sign of a  flushed-to-zero number is preserved in the sign of 0
     =positive-zero                                                      -   denormals are flushed to positive zero
-  --disable-builtin=<string>                                            - Disable specific target library builtin function
+  --disable-builtin=<string>                                            - Disable specific target library builtin funct ion
   --disable-debug-info-type-map                                         - Don't use a uniquing type map for debug info
   --disable-i2p-p2i-opt                                                 - Disables inttoptr/ptrtoint roundtrip optimization
   --disable-loop-unrolling                                              - Disable loop unrolling in all relevant passes

@@ -38,13 +38,13 @@ for file in "$srcfolder"/*.ll; do
     echo "$filename"
     if [[ -f "$file" ]]; then
         # 运行指令，替换下面的 command with your command
-      # opt  --disable-loop-unrolling \
-      #    $file -S -o "$tempfolder"/"$filename"_Opt.ll
-
-      opt  --loop-rotate -gvn -mem2reg -memdep -memcpyopt -lcssa -loop-simplify \
+      opt -O2  --disable-loop-unrolling \
+         $file -S -o "$tempfolder"/"$filename"_Opt.ll
+      # --loop-rotate 
+      opt  -gvn -mem2reg -memdep -memcpyopt -lcssa -loop-simplify \
          -licm -loop-deletion -indvars -simplifycfg\
          -mergereturn -indvars -instnamer \
-         $file \
+         "$tempfolder"/"$filename"_Opt.ll \
          -S -o "$tempfolder"/"$filename"_gvn.ll
 
       opt  --dot-cfg "$tempfolder"/"$filename"_gvn.ll -S -o "$tempfolder"/"$filename"_cdfg.ll -enable-new-pm=0

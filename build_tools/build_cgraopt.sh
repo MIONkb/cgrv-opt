@@ -1,12 +1,12 @@
 #!/bin/bash
 
-LLVM_BUILD_DIR=/home/tianyi/MLIRCGRA/llvm-project/build
-LLVM_INSTALL_DIR=/home/tianyi/MLIRCGRA/llvm-project/build
+# LLVM_BUILD_DIR=/home/tianyi/MLIRCGRA/llvm-project/build
+# LLVM_INSTALL_DIR=/home/tianyi/MLIRCGRA/llvm-project/build
 
 
 
-
-
+LLVM_BUILD_DIR=/home/tianyi/Tools/llvm-18/build
+LLVM_INSTALL_DIR=/home/tianyi/Tools/llvm-18/build
 
 
 

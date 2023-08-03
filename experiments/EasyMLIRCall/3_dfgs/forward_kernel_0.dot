@@ -1,9 +1,9 @@
 Digraph G {
-Input14[opcode=Input, ref_name="arg", size="40", offset="0, 0", pattern="4, 10"];
-Input16[opcode=Input, ref_name="arg1", size="40", offset="0, 0", pattern="4, 10"];
-FADD3217[opcode=FADD32];
-Output19[opcode=Output, ref_name="arg2", size="40", offset="0, 0", pattern="4, 10"];
-Input14 -> FADD3217[operand = 0 ,color = black, style = bold, label = "Op=0"];
-Input16 -> FADD3217[operand = 1 ,color = black, style = bold, label = "Op=1"];
-FADD3217 -> Output19[operand = 0 ,color = black, style = bold, label = "Op=0"];
+Input12[opcode=Input, ref_name="arg", size="44", offset="0, 0", pattern="4, 11"];
+Input14[opcode=Input, ref_name="arg1", size="44", offset="0, 0", pattern="4, 11"];
+FADD3215[opcode=FADD32];
+Output17[opcode=Output, ref_name="arg2", size="44", offset="0, 0", pattern="4, 11"];
+Input12 -> FADD3215[operand = 0 ,color = black, style = bold, label = "Op=0"];
+Input14 -> FADD3215[operand = 1 ,color = black, style = bold, label = "Op=1"];
+FADD3215 -> Output17[operand = 0 ,color = black, style = bold, label = "Op=0"];
 }

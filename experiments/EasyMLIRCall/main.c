@@ -6,15 +6,15 @@
 #include "include/encoding.h"
 #include "include/ISA.h"
 
-float* forward(float[10], float[10]);
+float* forward(float[2][5], float[2][5]);
 // int* forward(int[2], int[2]);
 int main(int argc, char** argv)
 {
   printf("CPU+cgra execute!\n");
   long long unsigned start;
   long long unsigned end;
-	float a[10] = {0, 1.8,  2.65, 3222.7,     4.77,  5,  -236.23,  -7,  -8.23,   -9};
-  float b[10] = {0, 3.4,  10.33,62312.898,  1.87,  -1, 4.98,    -30,  240.23,   9};
+	float a[2][5] = {{0, 1.8,  2.65, 3222.7,     4.77},{  5,  -236.23,  -7,  -8.23,   -9}};
+  float b[2][5] = {{0, 3.4,  10.33,62312.898,  1.87},{ -1, 4.98,    -30,  240.23,   9}};
 
 	// int a[2] = {1,2};
   // int b[2] = {30,40};

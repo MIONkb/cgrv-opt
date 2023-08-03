@@ -1,0 +1,20 @@
+digraph "CFG for 'forward_kernel_0' function" {
+	label="CFG for 'forward_kernel_0' function";
+
+	Node0x556beaf7b770 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#7396f570",label="{bb:\l  br label %.preheader, !dbg !7\l}"];
+	Node0x556beaf7b770 -> Node0x556beaf7b820;
+	Node0x556beaf7b820 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#cedaeb70",label="{.preheader:                                       \l  %i = phi i64 [ 0, %bb ], [ %i27, %bb26 ]\l  %i3 = mul nuw nsw i64 %i, 30\l  br label %bb4, !dbg !9\l}"];
+	Node0x556beaf7b820 -> Node0x556beaf7c310;
+	Node0x556beaf7c310 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#f7a88970",label="{bb4:                                              \l  %i5 = phi i64 [ 0, %.preheader ], [ %i24, %bb23 ]\l  %i6 = add nuw nsw i64 %i5, %i3, !dbg !10\l  %i7 = getelementptr float, ptr %arg, i64 %i6, !dbg !11\l  %i8 = load float, ptr %i7, align 4, !dbg !12\l  br label %bb9, !dbg !13\l}"];
+	Node0x556beaf7c310 -> Node0x556beaf7cf20;
+	Node0x556beaf7cf20 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870",label="{bb9:                                              \l  %i10 = phi float [ %i8, %bb4 ], [ %i20, %bb9 ]\l  %i11 = phi i64 [ 0, %bb4 ], [ %i21, %bb9 ]\l  %i12 = add nuw nsw i64 %i11, %i3, !dbg !14\l  %i13 = getelementptr float, ptr %arg1, i64 %i12, !dbg !15\l  %i14 = load float, ptr %i13, align 4, !dbg !16\l  %i15 = mul nuw nsw i64 %i11, 30, !dbg !17\l  %i16 = add nuw nsw i64 %i15, %i5, !dbg !18\l  %i17 = getelementptr float, ptr %arg2, i64 %i16, !dbg !19\l  %i18 = load float, ptr %i17, align 4, !dbg !20\l  %i19 = fmul float %i14, %i18, !dbg !21\l  %i20 = fadd float %i10, %i19, !dbg !22\l  %i21 = add nuw nsw i64 %i11, 1, !dbg !23\l  %i22 = icmp ult i64 %i11, 29, !dbg !24\l  br i1 %i22, label %bb9, label %bb23, !dbg !13\l|{<s0>T|<s1>F}}"];
+	Node0x556beaf7cf20:s0 -> Node0x556beaf7cf20;
+	Node0x556beaf7cf20:s1 -> Node0x556beaf7c5f0;
+	Node0x556beaf7c5f0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#f7a88970",label="{bb23:                                             \l  %.lcssa = phi float [ %i20, %bb9 ], !dbg !22\l  store float %.lcssa, ptr %i7, align 4, !dbg !25\l  %i24 = add nuw nsw i64 %i5, 1, !dbg !26\l  %i25 = icmp ult i64 %i5, 29, !dbg !27\l  br i1 %i25, label %bb4, label %bb26, !dbg !9\l|{<s0>T|<s1>F}}"];
+	Node0x556beaf7c5f0:s0 -> Node0x556beaf7c310;
+	Node0x556beaf7c5f0:s1 -> Node0x556beaf7c090;
+	Node0x556beaf7c090 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#cedaeb70",label="{bb26:                                             \l  %i27 = add nuw nsw i64 %i, 1, !dbg !28\l  %i28 = icmp ult i64 %i, 2, !dbg !29\l  br i1 %i28, label %.preheader, label %bb29, !dbg !7\l|{<s0>T|<s1>F}}"];
+	Node0x556beaf7c090:s0 -> Node0x556beaf7b820;
+	Node0x556beaf7c090:s1 -> Node0x556beaf80ae0;
+	Node0x556beaf80ae0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#7396f570",label="{bb29:                                             \l  ret void, !dbg !30\l}"];
+}

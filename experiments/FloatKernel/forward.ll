@@ -1,7 +1,7 @@
 ; ModuleID = 'LLVMDialectModule'
 source_filename = "LLVMDialectModule"
 
-@__constant_3x3xf32 = private constant [3 x [3 x float]] [[3 x float] [float 0xBFDA9C7060000000, float 0x3FC42FBEC0000000, float 0x3FC0B92EE0000000], [3 x float] [float 0xBFDD5DF960000000, float 0xBFB82F34E0000000, float 0xBFDA2EC200000000], [3 x float] [float 0x3FC889E1C0000000, float 0xBFC1D11660000000, float 0xBFDA828E60000000]]
+@__constant_3x3xf32 = private constant [3 x [3 x float]] [[3 x float] [float 0xBFE11460A0000000, float 0x3FB29B41C0000000, float 0x3FE18A6580000000], [3 x float] [float 0x3FD5BBD180000000, float 0xBFCB321A20000000, float 0x3FC0953740000000], [3 x float] [float 0x3FDB14A920000000, float 0x3FDD79D980000000, float 0xBFA22E9900000000]]
 
 declare ptr @malloc(i64)
 
@@ -11,7 +11,7 @@ define ptr @forward(ptr %0) !dbg !3 {
   %2 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } undef, ptr %0, 0, !dbg !7
   %3 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %2, ptr %0, 1, !dbg !9
   %4 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %3, i64 0, 2, !dbg !10
-  %5 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %4, i64 2, 3, 0, !dbg !11
+  %5 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %4, i64 3, 3, 0, !dbg !11
   %6 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %5, i64 3, 4, 0, !dbg !12
   %7 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %6, i64 3, 3, 1, !dbg !13
   %8 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %7, i64 1, 4, 1, !dbg !14
@@ -25,44 +25,68 @@ define ptr @forward(ptr %0) !dbg !3 {
   %16 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %15, i64 1, 4, 1, !dbg !22
   %17 = extractvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %16, 1, !dbg !23
   call void @forward_kernel_0(ptr @__constant_3x3xf32, ptr %17), !dbg !24
-  %18 = alloca float, i64 ptrtoint (ptr getelementptr (float, ptr null, i32 6) to i64), align 4, !dbg !25
+  %18 = alloca float, i64 ptrtoint (ptr getelementptr (float, ptr null, i32 9) to i64), align 4, !dbg !25
   %19 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } undef, ptr %18, 0, !dbg !26
   %20 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %19, ptr %18, 1, !dbg !27
   %21 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %20, i64 0, 2, !dbg !28
-  %22 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %21, i64 2, 3, 0, !dbg !29
+  %22 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %21, i64 3, 3, 0, !dbg !29
   %23 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %22, i64 3, 3, 1, !dbg !30
   %24 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %23, i64 3, 4, 0, !dbg !31
   %25 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %24, i64 1, 4, 1, !dbg !32
-  %26 = extractvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %25, 1, !dbg !33
-  call void @forward_kernel_1(ptr %26), !dbg !34
-  %27 = call ptr @malloc(i64 add (i64 ptrtoint (ptr getelementptr (float, ptr null, i32 6) to i64), i64 64)), !dbg !35
-  %28 = ptrtoint ptr %27 to i64, !dbg !36
-  %29 = add i64 %28, 63, !dbg !37
-  %30 = urem i64 %29, 64, !dbg !38
-  %31 = sub i64 %29, %30, !dbg !39
-  %32 = inttoptr i64 %31 to ptr, !dbg !40
-  %33 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } undef, ptr %27, 0, !dbg !41
-  %34 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %33, ptr %32, 1, !dbg !42
-  %35 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %34, i64 0, 2, !dbg !43
-  %36 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %35, i64 2, 3, 0, !dbg !44
-  %37 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %36, i64 3, 3, 1, !dbg !45
-  %38 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %37, i64 3, 4, 0, !dbg !46
-  %39 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %38, i64 1, 4, 1, !dbg !47
-  %40 = getelementptr float, ptr %18, i64 0, !dbg !48
-  %41 = getelementptr float, ptr %32, i64 0, !dbg !49
-  call void @llvm.memcpy.p0.p0.i64(ptr %41, ptr %40, i64 mul (i64 ptrtoint (ptr getelementptr (float, ptr null, i32 1) to i64), i64 6), i1 false), !dbg !50
-  %42 = extractvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %39, 1, !dbg !51
-  %43 = extractvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %16, 1, !dbg !52
-  call void @forward_kernel_2(ptr %42, ptr %0, ptr %43), !dbg !53
-  %44 = extractvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %39, 1, !dbg !54
-  ret ptr %44, !dbg !55
+  br label %26, !dbg !33
+
+26:                                               ; preds = %38, %1
+  %27 = phi i64 [ %39, %38 ], [ 0, %1 ]
+  %28 = icmp slt i64 %27, 3, !dbg !34
+  br i1 %28, label %29, label %40, !dbg !35
+
+29:                                               ; preds = %26
+  br label %30, !dbg !36
+
+30:                                               ; preds = %33, %29
+  %31 = phi i64 [ %37, %33 ], [ 0, %29 ]
+  %32 = icmp slt i64 %31, 3, !dbg !37
+  br i1 %32, label %33, label %38, !dbg !38
+
+33:                                               ; preds = %30
+  %34 = mul i64 %27, 3, !dbg !39
+  %35 = add i64 %34, %31, !dbg !40
+  %36 = getelementptr float, ptr %18, i64 %35, !dbg !41
+  store float 0.000000e+00, ptr %36, align 4, !dbg !42
+  %37 = add i64 %31, 1, !dbg !43
+  br label %30, !dbg !44
+
+38:                                               ; preds = %30
+  %39 = add i64 %27, 1, !dbg !45
+  br label %26, !dbg !46
+
+40:                                               ; preds = %26
+  %41 = call ptr @malloc(i64 add (i64 ptrtoint (ptr getelementptr (float, ptr null, i32 9) to i64), i64 64)), !dbg !47
+  %42 = ptrtoint ptr %41 to i64, !dbg !48
+  %43 = add i64 %42, 63, !dbg !49
+  %44 = urem i64 %43, 64, !dbg !50
+  %45 = sub i64 %43, %44, !dbg !51
+  %46 = inttoptr i64 %45 to ptr, !dbg !52
+  %47 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } undef, ptr %41, 0, !dbg !53
+  %48 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %47, ptr %46, 1, !dbg !54
+  %49 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %48, i64 0, 2, !dbg !55
+  %50 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %49, i64 3, 3, 0, !dbg !56
+  %51 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %50, i64 3, 3, 1, !dbg !57
+  %52 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %51, i64 3, 4, 0, !dbg !58
+  %53 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %52, i64 1, 4, 1, !dbg !59
+  %54 = getelementptr float, ptr %18, i64 0, !dbg !60
+  %55 = getelementptr float, ptr %46, i64 0, !dbg !61
+  call void @llvm.memcpy.p0.p0.i64(ptr %55, ptr %54, i64 mul (i64 ptrtoint (ptr getelementptr (float, ptr null, i32 1) to i64), i64 9), i1 false), !dbg !62
+  %56 = extractvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %53, 1, !dbg !63
+  %57 = extractvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %16, 1, !dbg !64
+  call void @forward_kernel_1(ptr %56, ptr %0, ptr %57), !dbg !65
+  %58 = extractvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %53, 1, !dbg !66
+  ret ptr %58, !dbg !67
 }
 
 declare void @forward_kernel_0(ptr, ptr)
 
-declare void @forward_kernel_1(ptr)
-
-declare void @forward_kernel_2(ptr, ptr, ptr)
+declare void @forward_kernel_1(ptr, ptr, ptr)
 
 ; Function Attrs: argmemonly nocallback nofree nounwind willreturn
 declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly, ptr noalias nocapture readonly, i64, i1 immarg) #0
@@ -87,44 +111,56 @@ attributes #0 = { argmemonly nocallback nofree nounwind willreturn }
 !12 = !DILocation(line: 13, column: 10, scope: !8)
 !13 = !DILocation(line: 15, column: 11, scope: !8)
 !14 = !DILocation(line: 17, column: 11, scope: !8)
-!15 = !DILocation(line: 45, column: 11, scope: !8)
-!16 = !DILocation(line: 47, column: 11, scope: !8)
-!17 = !DILocation(line: 48, column: 11, scope: !8)
-!18 = !DILocation(line: 50, column: 11, scope: !8)
-!19 = !DILocation(line: 51, column: 11, scope: !8)
-!20 = !DILocation(line: 52, column: 11, scope: !8)
-!21 = !DILocation(line: 53, column: 11, scope: !8)
-!22 = !DILocation(line: 54, column: 11, scope: !8)
-!23 = !DILocation(line: 56, column: 11, scope: !8)
-!24 = !DILocation(line: 57, column: 5, scope: !8)
-!25 = !DILocation(line: 65, column: 11, scope: !8)
-!26 = !DILocation(line: 67, column: 11, scope: !8)
-!27 = !DILocation(line: 68, column: 11, scope: !8)
-!28 = !DILocation(line: 70, column: 11, scope: !8)
-!29 = !DILocation(line: 71, column: 11, scope: !8)
-!30 = !DILocation(line: 72, column: 11, scope: !8)
-!31 = !DILocation(line: 73, column: 11, scope: !8)
-!32 = !DILocation(line: 74, column: 11, scope: !8)
-!33 = !DILocation(line: 75, column: 11, scope: !8)
-!34 = !DILocation(line: 76, column: 5, scope: !8)
-!35 = !DILocation(line: 86, column: 11, scope: !8)
-!36 = !DILocation(line: 88, column: 11, scope: !8)
-!37 = !DILocation(line: 91, column: 11, scope: !8)
-!38 = !DILocation(line: 92, column: 11, scope: !8)
-!39 = !DILocation(line: 93, column: 11, scope: !8)
-!40 = !DILocation(line: 94, column: 11, scope: !8)
-!41 = !DILocation(line: 96, column: 11, scope: !8)
-!42 = !DILocation(line: 97, column: 11, scope: !8)
-!43 = !DILocation(line: 99, column: 11, scope: !8)
-!44 = !DILocation(line: 100, column: 11, scope: !8)
-!45 = !DILocation(line: 101, column: 11, scope: !8)
-!46 = !DILocation(line: 102, column: 11, scope: !8)
-!47 = !DILocation(line: 103, column: 11, scope: !8)
-!48 = !DILocation(line: 111, column: 12, scope: !8)
-!49 = !DILocation(line: 112, column: 12, scope: !8)
-!50 = !DILocation(line: 114, column: 5, scope: !8)
-!51 = !DILocation(line: 115, column: 12, scope: !8)
-!52 = !DILocation(line: 116, column: 12, scope: !8)
-!53 = !DILocation(line: 117, column: 5, scope: !8)
-!54 = !DILocation(line: 118, column: 12, scope: !8)
-!55 = !DILocation(line: 119, column: 5, scope: !8)
+!15 = !DILocation(line: 49, column: 11, scope: !8)
+!16 = !DILocation(line: 51, column: 11, scope: !8)
+!17 = !DILocation(line: 52, column: 11, scope: !8)
+!18 = !DILocation(line: 54, column: 11, scope: !8)
+!19 = !DILocation(line: 55, column: 11, scope: !8)
+!20 = !DILocation(line: 56, column: 11, scope: !8)
+!21 = !DILocation(line: 57, column: 11, scope: !8)
+!22 = !DILocation(line: 58, column: 11, scope: !8)
+!23 = !DILocation(line: 60, column: 11, scope: !8)
+!24 = !DILocation(line: 61, column: 5, scope: !8)
+!25 = !DILocation(line: 69, column: 11, scope: !8)
+!26 = !DILocation(line: 71, column: 11, scope: !8)
+!27 = !DILocation(line: 72, column: 11, scope: !8)
+!28 = !DILocation(line: 74, column: 11, scope: !8)
+!29 = !DILocation(line: 75, column: 11, scope: !8)
+!30 = !DILocation(line: 76, column: 11, scope: !8)
+!31 = !DILocation(line: 77, column: 11, scope: !8)
+!32 = !DILocation(line: 78, column: 11, scope: !8)
+!33 = !DILocation(line: 79, column: 5, scope: !8)
+!34 = !DILocation(line: 81, column: 11, scope: !8)
+!35 = !DILocation(line: 82, column: 5, scope: !8)
+!36 = !DILocation(line: 84, column: 5, scope: !8)
+!37 = !DILocation(line: 86, column: 11, scope: !8)
+!38 = !DILocation(line: 87, column: 5, scope: !8)
+!39 = !DILocation(line: 90, column: 11, scope: !8)
+!40 = !DILocation(line: 91, column: 11, scope: !8)
+!41 = !DILocation(line: 92, column: 11, scope: !8)
+!42 = !DILocation(line: 93, column: 5, scope: !8)
+!43 = !DILocation(line: 94, column: 11, scope: !8)
+!44 = !DILocation(line: 95, column: 5, scope: !8)
+!45 = !DILocation(line: 97, column: 11, scope: !8)
+!46 = !DILocation(line: 98, column: 5, scope: !8)
+!47 = !DILocation(line: 109, column: 11, scope: !8)
+!48 = !DILocation(line: 111, column: 11, scope: !8)
+!49 = !DILocation(line: 114, column: 11, scope: !8)
+!50 = !DILocation(line: 115, column: 11, scope: !8)
+!51 = !DILocation(line: 116, column: 11, scope: !8)
+!52 = !DILocation(line: 117, column: 12, scope: !8)
+!53 = !DILocation(line: 119, column: 12, scope: !8)
+!54 = !DILocation(line: 120, column: 12, scope: !8)
+!55 = !DILocation(line: 122, column: 12, scope: !8)
+!56 = !DILocation(line: 123, column: 12, scope: !8)
+!57 = !DILocation(line: 124, column: 12, scope: !8)
+!58 = !DILocation(line: 125, column: 12, scope: !8)
+!59 = !DILocation(line: 126, column: 12, scope: !8)
+!60 = !DILocation(line: 134, column: 12, scope: !8)
+!61 = !DILocation(line: 135, column: 12, scope: !8)
+!62 = !DILocation(line: 137, column: 5, scope: !8)
+!63 = !DILocation(line: 138, column: 12, scope: !8)
+!64 = !DILocation(line: 139, column: 12, scope: !8)
+!65 = !DILocation(line: 140, column: 5, scope: !8)
+!66 = !DILocation(line: 141, column: 12, scope: !8)
+!67 = !DILocation(line: 142, column: 5, scope: !8)

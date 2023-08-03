@@ -113,7 +113,7 @@ int main(int argc, char **argv) {
                   mlir::cf::ControlFlowDialect,
                   mlir::vector::VectorDialect,
                   mlir::arith::ArithmeticDialect,
-                  mlir::AffineDialect>();
+                  mlir::affine::AffineDialect>();
   // clang-format on
   // mlir::registerAllDialects(registry);
 
