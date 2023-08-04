@@ -31,7 +31,7 @@ for file in "$srcfolder"/*.mlir; do
       cgra-opt\
         --arith-expand --memref-expand\
         -lower-affine --scf-for-loop-canonicalization  -convert-scf-to-cf\
-        -convert-memref-to-llvm  --convert-math-to-llvm --convert-math-to-libm\
+        --finalize-memref-to-llvm=use-opaque-pointers  --convert-math-to-llvm --convert-math-to-libm\
         --convert-arith-to-llvm\
         --affine-simplify-structures\
         -convert-func-to-llvm=use-bare-ptr-memref-call-conv\

@@ -20,15 +20,16 @@ rootfolder=$(pwd)
  -linalg-generalize-named-ops \
  -arith-bufferize -func-bufferize  -tensor-bufferize \
  -convert-linalg-to-affine-loops \
- -fold-memref-alias-ops --fold-memref-subview-ops \
+ -fold-memref-alias-ops  --normalize-memrefs --memref-expand  \
  --canonicalize \
  LINALG_TENSOR.mlir -o 0_all_Affine.mlir \
  --mlir-print-ir-after-all 2>&1 | cat > 0_intermediate_before_affine.mlir
 
 
-cgra-opt  --fdra-extract-affine-for-to-kernel  0_all_Affine.mlir > 1_kernel.mlir
+cgra-opt  --fdra-extract-affine-for-to-kernel  --fdra-hoist-loadstore  0_all_Affine.mlir > 1_kernel.mlir
 
 cgra-opt --affine-loop-fusion  --arith-expand --memref-expand -reconcile-unrealized-casts \
- --fdra-hoist-loadstore \
+ --allow-unregistered-dialect\
  --fdra-extract-kernel-to-function="kernel-gen-dir=$rootfolder kernel-explicit-datablock-trans=false" \
- 1_kernel.mlir > 2_host.mlir
+ 1_kernel.mlir -o 2_host.mlir \
+  --mlir-print-ir-after-all 2>&1 | cat > 2_intermediate_before_host.mlir

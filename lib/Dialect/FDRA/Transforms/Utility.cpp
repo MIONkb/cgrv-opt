@@ -81,7 +81,7 @@ OpTable TramUnsupportOpTable =
   ::mlir::math::ExpOp::getOperationName(), // math.exp
   ::mlir::math::ErfOp::getOperationName(), // math.erf
   /// arith dialect
-  ::mlir::arith::CmpFOp::getOperationName() // arith.cmpf
+  // ::mlir::arith::CmpFOp::getOperationName() // arith.cmpf
 };
 LogicalResult mlir::FDRA::SpecifiedAffineFortoKernel(mlir::affine::AffineForOp& kernelforOp){
   /// Walk every op in this forop to check whether unsupport op is contained
