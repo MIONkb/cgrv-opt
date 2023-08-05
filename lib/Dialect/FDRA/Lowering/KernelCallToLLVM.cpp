@@ -47,9 +47,9 @@
 #include <functional>
 
 #include "./LowerPassDetail.h"
-#include "RAAA/Dialect/FDRA/Lowering/ConvertKernelCallToLLVMPass.h"
-#include "RAAA/Dialect/FDRA/Lowering/LowerPasses.h.inc"
+#include "RAAA/Dialect/FDRA/Lowering/LowerPasses.h"
 #include "RAAA/Dialect/FDRA/IR/FDRA.h"
+
 // using namespace llvm; // for llvm.errs()
 using namespace mlir;
 using namespace mlir::FDRA;

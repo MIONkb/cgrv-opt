@@ -17,7 +17,7 @@
 
 #include "RAAA/Dialect/FDRA/IR/FDRA.h"
 #include "RAAA/Dialect/FDRA/Transforms/Passes.h"
-#include "RAAA/Dialect/FDRA/Lowering/ConvertKernelCallToLLVMPass.h"
+#include "RAAA/Dialect/FDRA/Lowering/LowerPasses.h"
 #include "RAAA/Misc/Passes.h"
 
 // #include "soda/Conversion/Passes.h"
@@ -146,8 +146,10 @@ int main(int argc, char **argv) {
   mlir::FDRA::registerExtractKernelToFuncPass();
   mlir::FDRA::registerAutoDesignSpaceExplorePass();
   mlir::FDRA::registerTestPrintOpNestingPass();
-  mlir::FDRA::registerConvertKernelCallToLLVMPass();
   mlir::FDRA::registerHoistLoadStoreInLoopNestPass();
+
+  mlir::FDRA::registerConvertKernelCallToLLVMPass();
+  mlir::FDRA::registerApproximateMathWithArith();
 
   mlir::registerSCFForLoopCanonicalizationPass();
   

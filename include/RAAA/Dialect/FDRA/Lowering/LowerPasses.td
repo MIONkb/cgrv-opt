@@ -33,21 +33,40 @@ def ConvertKernelCallToLLVM : Pass<"fdra-convert-kernelcall-to-llvm", "ModuleOp"
     returns are updated accordingly. Block argument types are updated to use
     LLVM IR types.
   }];
-  let constructor = "mlir::FDRA::createConvertKernelCallToLLVMPass()";
+  let constructor = "createConvertKernelCallToLLVMPass()";
   let dependentDialects = ["LLVM::LLVMDialect","::mlir::FDRA::FDRADialect"];
-  // let options = [
-  //   // Option<"useBarePtrCallConv", "use-bare-ptr-memref-call-conv", "bool",
-  //   //        /*default=*/"false",
-  //   //        "Replace FuncOp's MemRef arguments with bare pointers to the MemRef "
-  //   //        "element types">,
-  //   // Option<"indexBitwidth", "index-bitwidth", "unsigned",
-  //   //        /*default=kDeriveIndexBitwidthFromDataLayout*/"0",
-  //   //        "Bitwidth of the index type, 0 to use size of machine word">,
-  //   // Option<"dataLayout", "data-layout", "std::string",
-  //   //        /*default=*/"\"\"",
-  //   //        "String description (LLVM format) of the data layout that is "
-  //   //        "expected on the produced module">
-  // ];
+}
+
+def ApproximateMathWithArith : Pass<"fdra-approximate-math", "ModuleOp"> {
+  let summary = "Approximate math op with a combination of arith ops";
+  let description = [{
+  Approximate/Lower math op with a combination of arith ops.
+
+  math.rsqrt:
+  """
+  %y = math.rsqrt %x : f32
+  """
+  lower to
+  """
+  %cst_1_2 = arith.const 0.5 : f32
+  %x2 = arith.mulf %x, %cst_1/2 : f32
+
+  %i0 = arith.bitcast %x : f32  to i32
+  %cst_1i = arith.const 1 : i32
+  %i1 = arith.shrui %i0, %cst_1i : i32
+  %cst_magic = arith.const 1597463007 : i32 // 0x5f3759df
+  %i2 = arith.subi %cst_magic, %i1 : i32
+  %f0 = arith.bitcast %i2 : i32 to f32
+
+  %cst_3_2 = arith.const 1.5 : f32
+  %f1 = arith.mulf %f0, %f0 : f32
+  %f2 = arith.mulf %f1, %x2 : f32
+  %f3 = arith.subf %cst_3_2, %f2 : f32
+  %y = arith.mulf %f3, %f1: f32
+  """
+  }];
+  let constructor = "createApproximateMathWithArithPass()";
+  let dependentDialects = ["math::MathDialect","arith::ArithDialect"];
 }
 
 #endif // FDRA_DIALECT_PASSES

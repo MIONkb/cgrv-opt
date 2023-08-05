@@ -44,9 +44,11 @@ using namespace mlir::FDRA;
 // AdjustKernelMemoryFootprint to meet cachesize
 //===----------------------------------------------------------------------===//
 
+
+
 namespace
 {
-
+  
   // A pass that traverses Kernels in the Module and
   // Adjust or Partition Kernel according to a customized Cachesize
   struct AdjustMemoryFootprintPass : public AdjustKernelMemoryFootprintBase<AdjustMemoryFootprintPass>
@@ -62,6 +64,37 @@ namespace
     mlir::affine::AffineForOp constructOuterLoopNest(mlir::affine::AffineForOp &OriginforOp);
   };
 } // namespace
+
+/// @brief Find the max space accessed of a single memref load/store in affine for loop
+/// @param forOp Only walk within this for-looop level, and outer level will not be considered
+/// @return the access count(not footprint) of a single memref load/store * databits  
+std::optional<int64_t> mlir::FDRA::getSingleMemrefAccessSpace(AffineForOp forOp){
+  int64_t MaxSpace = 0;
+  forOp.walk([&](mlir::Operation *op){
+    if( isa<AffineLoadOp>(op) || isa<AffineStoreOp>(op)){
+      unsigned BitWidth;
+      if(isa<AffineLoadOp>(op))
+        BitWidth = dyn_cast<AffineLoadOp>(op).getMemref().getType().getElementTypeBitWidth();
+      else
+        BitWidth = dyn_cast<AffineStoreOp>(op).getMemref().getType().getElementTypeBitWidth();
+
+      int64_t TotalTC = 1;
+      mlir::Operation* parent = op->getParentOp();
+      assert(isa<AffineForOp>(parent) && "AffineLoadOp or StoreOp 's parent op should be AffineForOp!");
+      AffineForOp parentFor = dyn_cast<AffineForOp>(*parent);
+      while(parentFor != forOp){
+        TotalTC *= getConstantTripCount(parentFor).value_or(0);
+        parent = parent->getParentOp();
+        assert(isa<AffineForOp>(parent) && "Nest ForOp 's parent op should be AffineForOp!");
+        parentFor = dyn_cast<AffineForOp>(*parent);
+      }
+      assert(TotalTC != 0 && "Trip count should not be zero.");
+      MaxSpace = std::max(MaxSpace, TotalTC * BitWidth);
+    }
+  });
+  assert(MaxSpace != 0 && "Trip count should not be zero.");
+  return MaxSpace;
+}
 
 
 std::optional<int64_t> AdjustMemoryFootprintPass::
@@ -210,26 +243,38 @@ uint64_t AdjustMemoryFootprintPass::
 {
   unsigned Toploop_cnt = 0;
   uint64_t excessFactor;
+  
+  /// get how many times larger memory footprint is compared to cacheSize
+  uint64_t cacheSizeBytes = Cachesize_Kib * 1024;
+  uint64_t singleArraySizeBytes;
+
+  if(SingleArray_Size == 0){
+    singleArraySizeBytes = cacheSizeBytes;
+  }
+  else{
+    singleArraySizeBytes = SingleArray_Size * 1024;
+  }
+
   for (mlir::affine::AffineForOp forOp : Kernel.getOps<mlir::affine::AffineForOp>())
   {
     // errs()<<"[Info] Found a forOP:\n"; forOp.dump();
-    /// get memory footprint of this kernel
-    std::optional<int64_t> fp_totalMem = getMemoryFootprintBytes(forOp);
-    std::optional<int64_t> fp_singleMem = AdjustMemoryFootprintPass::getSingleMemrefFootprintBytes(forOp);
-
-    /// get how many times larger memory footprint is compared to cacheSize
-    uint64_t cacheSizeBytes = Cachesize_Kib * 1024;
-    uint64_t singleArraySizeBytes;
-
-    if(SingleArray_Size == 0){
-      singleArraySizeBytes = cacheSizeBytes;
+    if(AffineAccessPatern == true){
+      /***********
+       * If memory access is in affine pattern, the scratchpad space an array occupied
+       * equals to the trip-count.
+      ***********/
+      std::optional<int64_t> maxSpace_singleMem = getSingleMemrefAccessSpace(forOp);
+      excessFactor = llvm::divideCeil(*maxSpace_singleMem, cacheSizeBytes);
     }
     else{
-      singleArraySizeBytes = SingleArray_Size * 1024;
+      /// get memory footprint of this kernel
+      std::optional<int64_t> fp_totalMem = getMemoryFootprintBytes(forOp);
+      std::optional<int64_t> fp_singleMem = AdjustMemoryFootprintPass::getSingleMemrefFootprintBytes(forOp);
+
+      excessFactor = std::max(llvm::divideCeil(*fp_totalMem, cacheSizeBytes)
+                              ,llvm::divideCeil(*fp_singleMem, singleArraySizeBytes));
     }
 
-    excessFactor = std::max(llvm::divideCeil(*fp_totalMem, cacheSizeBytes)
-                              ,llvm::divideCeil(*fp_singleMem, singleArraySizeBytes));
     Toploop_cnt++;
   }
   assert(Toploop_cnt == 1 && "Kernel have only 1 top-loop!");

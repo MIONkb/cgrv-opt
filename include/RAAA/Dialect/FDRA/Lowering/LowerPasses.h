@@ -21,6 +21,7 @@ namespace FDRA {
 
 /// Creates a pass to convert the Func dialect into the LLVMIR dialect.
 std::unique_ptr<OperationPass<ModuleOp>> createConvertKernelCallToLLVMPass();
+std::unique_ptr<OperationPass<ModuleOp>> createApproximateMathWithArithPass();
 // std::unique_ptr<OperationPass<ModuleOp>>
 // createConvertKernelCallToLLVMPass(const LowerToLLVMOptions &options);
 #define GEN_PASS_REGISTRATION

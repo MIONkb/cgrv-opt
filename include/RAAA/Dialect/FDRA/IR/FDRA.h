@@ -42,6 +42,11 @@
 
 namespace mlir {
 namespace FDRA {
+///////////////
+/// AdjustMemoryFootprint.cpp
+///////////////
+std::optional<int64_t> getSingleMemrefAccessSpace(::mlir::affine::AffineForOp forOp);
+
 
 ///////////////
 /// Utilities.cpp
