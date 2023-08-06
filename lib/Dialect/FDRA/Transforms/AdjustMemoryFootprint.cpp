@@ -44,7 +44,7 @@ using namespace mlir::FDRA;
 // AdjustKernelMemoryFootprint to meet cachesize
 //===----------------------------------------------------------------------===//
 
-
+#define PASS_NAME "fdra-adjust-kernel-mem-footprint"
 
 namespace
 {
@@ -71,25 +71,31 @@ namespace
 std::optional<int64_t> mlir::FDRA::getSingleMemrefAccessSpace(AffineForOp forOp){
   int64_t MaxSpace = 0;
   forOp.walk([&](mlir::Operation *op){
-    if( isa<AffineLoadOp>(op) || isa<AffineStoreOp>(op)){
+    if(isa<AffineLoadOp>(op) || isa<AffineStoreOp>(op)){
       unsigned BitWidth;
       if(isa<AffineLoadOp>(op))
         BitWidth = dyn_cast<AffineLoadOp>(op).getMemref().getType().getElementTypeBitWidth();
       else
         BitWidth = dyn_cast<AffineStoreOp>(op).getMemref().getType().getElementTypeBitWidth();
 
+      assert(BitWidth % 8 == 0);
+
       int64_t TotalTC = 1;
       mlir::Operation* parent = op->getParentOp();
       assert(isa<AffineForOp>(parent) && "AffineLoadOp or StoreOp 's parent op should be AffineForOp!");
       AffineForOp parentFor = dyn_cast<AffineForOp>(*parent);
+      // parentFor.dump();
+      // forOp.dump();
       while(parentFor != forOp){
         TotalTC *= getConstantTripCount(parentFor).value_or(0);
         parent = parent->getParentOp();
         assert(isa<AffineForOp>(parent) && "Nest ForOp 's parent op should be AffineForOp!");
         parentFor = dyn_cast<AffineForOp>(*parent);
       }
+      TotalTC *= getConstantTripCount(parentFor).value_or(0);
+
       assert(TotalTC != 0 && "Trip count should not be zero.");
-      MaxSpace = std::max(MaxSpace, TotalTC * BitWidth);
+      MaxSpace = std::max(MaxSpace, TotalTC * BitWidth / 8);
     }
   });
   assert(MaxSpace != 0 && "Trip count should not be zero.");
@@ -258,7 +264,7 @@ uint64_t AdjustMemoryFootprintPass::
   for (mlir::affine::AffineForOp forOp : Kernel.getOps<mlir::affine::AffineForOp>())
   {
     // errs()<<"[Info] Found a forOP:\n"; forOp.dump();
-    if(AffineAccessPatern == true){
+    if(AffineAccessPattern == true){
       /***********
        * If memory access is in affine pattern, the scratchpad space an array occupied
        * equals to the trip-count.
@@ -321,6 +327,14 @@ void AdjustMemoryFootprintPass::
 
   mlir::affine::AffineForOp OutforOp;
   OpBuilder b(forOp.getOperation());
+
+  if(DisableRemainderBlock && largestDiv % Part_Factor != 0)
+  {
+    while(largestDiv % Part_Factor != 0 && Part_Factor < largestDiv)
+    {
+      Part_Factor++;
+    }
+  }
 
   if (mayBeConstantCount && Part_Factor >= mayBeConstantCount.value())
   {
@@ -540,6 +554,8 @@ void AdjustMemoryFootprintPass::runOnOperation()
   { // KernelToPart != NULL
     // errs() << "\n[debug]topFunc:\n";
     // topFunc.dump();
+    errs() << "\n[debug]KernelToPart:\n";
+    KernelToPart.dump();
     outloop_partition(topFunc, KernelToPart, part_factor);
     KernelToPart = check_AllKernelMemoryFootprint(topFunc, part_factor);
     // break; ///for debug

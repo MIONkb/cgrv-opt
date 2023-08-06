@@ -1,3 +1,10 @@
+#map = affine_map<(d0) -> (d0)>
+#map1 = affine_map<(d0) -> (d0 + 5)>
+#map2 = affine_map<(d0) -> (d0 + 16)>
+#map3 = affine_map<(d0) -> (d0 + 8)>
+#map4 = affine_map<(d0) -> (d0 + 6)>
+#map5 = affine_map<(d0) -> (d0 + 28)>
+#map6 = affine_map<(d0) -> (d0 + 4)>
 module attributes {torch.debug_module_name = "ResNet"} {
   memref.global "private" constant @__constant_64xf32_2 : memref<64xf32> = dense<[0.230717152, 0.253822476, -1.05429808E-6, -0.664388895, -1.65705547E-8, 0.161521927, 0.454503953, -4.301950e-07, 0.300513744, -8.005240e-06, 0.349418074, 0.311480612, -0.249529764, -3.474890e-05, 0.107726313, 0.218970656, 0.381412596, -0.529882133, -0.628644109, 0.571398079, 0.299846917, 0.584303737, 0.48202154, 0.328526348, 0.196717009, 0.194961801, 0.152145416, 0.085522361, 0.513142824, 0.0152367353, 0.166441768, 0.332394391, 0.249211237, 0.443366677, -0.280169278, -0.0203848016, -2.45068748E-7, 0.321340501, -4.9151744E-8, 0.237767309, 0.232907727, 0.315274626, 0.427762389, 0.293127537, 0.263794243, 0.675975859, 0.429100394, 0.345662743, -8.69090186E-8, 0.247294366, 0.303160846, 0.615772783, 0.39834857, 0.332067341, -0.412187815, 0.378069043, 0.178953409, 0.25747788, -0.449079722, 0.213058949, 0.569339037, 5.727430e-01, -0.402383476, 0.23406373]>
   memref.global "private" constant @__constant_64xf32_1 : memref<64xf32> = dense<[0.234872743, 0.266257942, -5.10959595E-8, 0.518699706, 3.44040196E-9, 0.222385287, 0.422887057, 1.31532403E-7, 0.25093165, 1.5152026E-6, 0.316871643, 0.250491828, 0.378926098, 1.08618351E-5, 2.752640e-01, 0.236741036, 0.242021769, 0.395314813, 0.469346285, 0.2908957, 0.272684187, 0.27802828, 0.290692091, 0.206927493, 0.258990377, 0.278710574, 0.291149527, 0.316013753, 0.388891488, 0.304111898, 0.267757207, 0.210925162, 0.287084132, 0.332426429, 0.42672804, 0.373260558, 7.48037578E-8, 0.19067812, 1.47401256E-8, 0.223029822, 0.179079413, 0.248600766, 0.27399528, 0.259228647, 0.294202209, 0.299236417, 0.223688841, 0.262799472, 2.20011476E-8, 0.266098082, 0.220890298, 0.284285516, 0.330723315, 0.226809531, 0.365380913, 0.21229881, 0.239653021, 0.24949576, 0.525830686, 0.248247579, 0.295652747, 0.258776665, 0.4832564, 0.26670444]>
@@ -15,17 +22,19 @@ module attributes {torch.debug_module_name = "ResNet"} {
     %3 = memref.get_global @__constant_64xf32_1 : memref<64xf32>
     %4 = memref.get_global @__constant_64xf32_2 : memref<64xf32>
     %alloc = memref.alloc() {alignment = 64 : i64} : memref<1x3x230x230xf32>
-    FDRA.kernel {
-      affine.for %arg1 = 0 to 1 {
-        affine.for %arg2 = 0 to 3 {
-          affine.for %arg3 = 0 to 230 {
-            affine.for %arg4 = 0 to 230 {
-              affine.store %cst_1, %alloc[%arg1, %arg2, %arg3, %arg4] : memref<1x3x230x230xf32>
+    affine.for %arg1 = 0 to 1 {
+      affine.for %arg2 = 0 to 3 {
+        affine.for %arg3 = 0 to 230 step 5 {
+          FDRA.kernel {
+            affine.for %arg4 = #map(%arg3) to #map1(%arg3) {
+              affine.for %arg5 = 0 to 230 {
+                affine.store %cst_1, %alloc[%arg1, %arg2, %arg4, %arg5] : memref<1x3x230x230xf32>
+              }
             }
+            FDRA.terminator
           }
         }
       }
-      FDRA.terminator
     }
     memref.dealloc %alloc : memref<1x3x230x230xf32>
     %alloc_2 = memref.alloc() {alignment = 64 : i64} : memref<1x3x230x230xf32>
@@ -33,115 +42,125 @@ module attributes {torch.debug_module_name = "ResNet"} {
     %subview = memref.subview %alloc_2[0, 0, 3, 3] [1, 3, 224, 224] [1, 1, 1, 1] : memref<1x3x230x230xf32> to memref<1x3x224x224xf32, strided<[158700, 52900, 230, 1], offset: 693>>
     memref.copy %arg0, %subview : memref<1x3x224x224xf32> to memref<1x3x224x224xf32, strided<[158700, 52900, 230, 1], offset: 693>>
     %alloc_3 = memref.alloc() {alignment = 64 : i64} : memref<1x64x112x112xf32>
-    FDRA.kernel {
-      affine.for %arg1 = 0 to 1 {
-        affine.for %arg2 = 0 to 64 {
-          affine.for %arg3 = 0 to 112 {
-            affine.for %arg4 = 0 to 112 {
-              affine.store %cst_1, %alloc_3[%arg1, %arg2, %arg3, %arg4] : memref<1x64x112x112xf32>
+    affine.for %arg1 = 0 to 1 {
+      affine.for %arg2 = 0 to 64 {
+        affine.for %arg3 = 0 to 112 step 16 {
+          FDRA.kernel {
+            affine.for %arg4 = #map(%arg3) to #map2(%arg3) {
+              affine.for %arg5 = 0 to 112 {
+                affine.store %cst_1, %alloc_3[%arg1, %arg2, %arg4, %arg5] : memref<1x64x112x112xf32>
+              }
             }
+            FDRA.terminator
           }
         }
       }
-      FDRA.terminator
     }
     %alloc_4 = memref.alloc() {alignment = 64 : i64} : memref<1x64x112x112xf32>
     memref.copy %alloc_3, %alloc_4 : memref<1x64x112x112xf32> to memref<1x64x112x112xf32>
     memref.dealloc %alloc_3 : memref<1x64x112x112xf32>
-    FDRA.kernel {
-      affine.for %arg1 = 0 to 1 {
-        affine.for %arg2 = 0 to 64 {
-          affine.for %arg3 = 0 to 112 {
-            affine.for %arg4 = 0 to 112 {
-              %5 = affine.load %alloc_4[%arg1, %arg2, %arg3, %arg4] : memref<1x64x112x112xf32>
-              %6 = affine.for %arg5 = 0 to 3 iter_args(%arg6 = %5) -> (f32) {
-                %7 = affine.for %arg7 = 0 to 7 iter_args(%arg8 = %arg6) -> (f32) {
-                  %8 = affine.for %arg9 = 0 to 7 iter_args(%arg10 = %arg8) -> (f32) {
-                    %9 = affine.load %alloc_2[%arg1, %arg5, %arg3 * 2 + %arg7, %arg4 * 2 + %arg9] : memref<1x3x230x230xf32>
-                    %10 = affine.load %0[%arg2, %arg5, %arg7, %arg9] : memref<64x3x7x7xf32>
-                    %11 = arith.mulf %9, %10 : f32
-                    %12 = arith.addf %arg10, %11 : f32
-                    affine.yield %12 : f32
+    affine.for %arg1 = 0 to 1 {
+      affine.for %arg2 = 0 to 64 {
+        affine.for %arg3 = 0 to 112 {
+          affine.for %arg4 = 0 to 112 step 8 {
+            FDRA.kernel {
+              affine.for %arg5 = #map(%arg4) to #map3(%arg4) {
+                %5 = affine.load %alloc_4[%arg1, %arg2, %arg3, %arg5] : memref<1x64x112x112xf32>
+                %6 = affine.for %arg6 = 0 to 3 iter_args(%arg7 = %5) -> (f32) {
+                  %7 = affine.for %arg8 = 0 to 7 iter_args(%arg9 = %arg7) -> (f32) {
+                    %8 = affine.for %arg10 = 0 to 7 iter_args(%arg11 = %arg9) -> (f32) {
+                      %9 = affine.load %alloc_2[%arg1, %arg6, %arg3 * 2 + %arg8, %arg5 * 2 + %arg10] : memref<1x3x230x230xf32>
+                      %10 = affine.load %0[%arg2, %arg6, %arg8, %arg10] : memref<64x3x7x7xf32>
+                      %11 = arith.mulf %9, %10 : f32
+                      %12 = arith.addf %arg11, %11 : f32
+                      affine.yield %12 : f32
+                    }
+                    affine.yield %8 : f32
                   }
-                  affine.yield %8 : f32
+                  affine.yield %7 : f32
                 }
-                affine.yield %7 : f32
+                affine.store %6, %alloc_4[%arg1, %arg2, %arg3, %arg5] : memref<1x64x112x112xf32>
               }
-              affine.store %6, %alloc_4[%arg1, %arg2, %arg3, %arg4] : memref<1x64x112x112xf32>
+              FDRA.terminator
             }
           }
         }
       }
-      FDRA.terminator
     }
     %alloc_5 = memref.alloc() {alignment = 64 : i64} : memref<1x64x112x112xf32>
-    FDRA.kernel {
-      affine.for %arg1 = 0 to 1 {
-        affine.for %arg2 = 0 to 64 {
-          %5 = affine.load %3[%arg2] : memref<64xf32>
-          %6 = affine.load %4[%arg2] : memref<64xf32>
-          %7 = affine.load %1[%arg2] : memref<64xf32>
-          %8 = affine.load %2[%arg2] : memref<64xf32>
-          affine.for %arg3 = 0 to 112 {
-            affine.for %arg4 = 0 to 112 {
-              %9 = affine.load %alloc_4[%arg1, %arg2, %arg3, %arg4] : memref<1x64x112x112xf32>
-              %10 = arith.truncf %cst : f64 to f32
-              %11 = arith.addf %8, %10 : f32
-              %cst_12 = arith.constant 5.000000e-01 : f32
-              %12 = arith.mulf %11, %cst_12 : f32
-              %13 = arith.bitcast %11 : f32 to i32
-              %c1_i32 = arith.constant 1 : i32
-              %14 = arith.shrui %13, %c1_i32 : i32
-              %c1597463007_i32 = arith.constant 1597463007 : i32
-              %15 = arith.subi %c1597463007_i32, %14 : i32
-              %16 = arith.bitcast %15 : i32 to f32
-              %cst_13 = arith.constant 1.500000e+00 : f32
-              %17 = arith.mulf %16, %16 : f32
-              %18 = arith.mulf %17, %12 : f32
-              %19 = arith.subf %cst_13, %18 : f32
-              %20 = arith.mulf %19, %17 : f32
-              %21 = arith.subf %9, %7 : f32
-              %22 = arith.mulf %21, %20 : f32
-              %23 = arith.mulf %22, %5 : f32
-              %24 = arith.addf %23, %6 : f32
-              affine.store %24, %alloc_5[%arg1, %arg2, %arg3, %arg4] : memref<1x64x112x112xf32>
+    affine.for %arg1 = 0 to 1 {
+      affine.for %arg2 = 0 to 64 {
+        %5 = affine.load %3[%arg2] : memref<64xf32>
+        %6 = affine.load %4[%arg2] : memref<64xf32>
+        %7 = affine.load %1[%arg2] : memref<64xf32>
+        %8 = affine.load %2[%arg2] : memref<64xf32>
+        affine.for %arg3 = 0 to 112 step 16 {
+          FDRA.kernel {
+            affine.for %arg4 = #map(%arg3) to #map2(%arg3) {
+              affine.for %arg5 = 0 to 112 {
+                %9 = affine.load %alloc_4[%arg1, %arg2, %arg4, %arg5] : memref<1x64x112x112xf32>
+                %10 = arith.truncf %cst : f64 to f32
+                %11 = arith.addf %8, %10 : f32
+                %cst_12 = arith.constant 5.000000e-01 : f32
+                %12 = arith.mulf %11, %cst_12 : f32
+                %13 = arith.bitcast %11 : f32 to i32
+                %c1_i32 = arith.constant 1 : i32
+                %14 = arith.shrui %13, %c1_i32 : i32
+                %c1597463007_i32 = arith.constant 1597463007 : i32
+                %15 = arith.subi %c1597463007_i32, %14 : i32
+                %16 = arith.bitcast %15 : i32 to f32
+                %cst_13 = arith.constant 1.500000e+00 : f32
+                %17 = arith.mulf %16, %16 : f32
+                %18 = arith.mulf %17, %12 : f32
+                %19 = arith.subf %cst_13, %18 : f32
+                %20 = arith.mulf %19, %17 : f32
+                %21 = arith.subf %9, %7 : f32
+                %22 = arith.mulf %21, %20 : f32
+                %23 = arith.mulf %22, %5 : f32
+                %24 = arith.addf %23, %6 : f32
+                affine.store %24, %alloc_5[%arg1, %arg2, %arg4, %arg5] : memref<1x64x112x112xf32>
+              }
             }
+            FDRA.terminator
           }
         }
       }
-      FDRA.terminator
     }
     memref.dealloc %alloc_4 : memref<1x64x112x112xf32>
     %alloc_6 = memref.alloc() {alignment = 64 : i64} : memref<1x64x112x112xf32>
-    FDRA.kernel {
-      affine.for %arg1 = 0 to 1 {
-        affine.for %arg2 = 0 to 64 {
-          affine.for %arg3 = 0 to 112 {
-            affine.for %arg4 = 0 to 112 {
-              %5 = affine.load %alloc_5[0, %arg2, %arg3, %arg4] : memref<1x64x112x112xf32>
-              %6 = arith.cmpf ugt, %5, %cst_1 : f32
-              %7 = arith.select %6, %5, %cst_1 : f32
-              affine.store %7, %alloc_6[%arg1, %arg2, %arg3, %arg4] : memref<1x64x112x112xf32>
+    affine.for %arg1 = 0 to 1 {
+      affine.for %arg2 = 0 to 64 {
+        affine.for %arg3 = 0 to 112 step 16 {
+          FDRA.kernel {
+            affine.for %arg4 = #map(%arg3) to #map2(%arg3) {
+              affine.for %arg5 = 0 to 112 {
+                %5 = affine.load %alloc_5[0, %arg2, %arg4, %arg5] : memref<1x64x112x112xf32>
+                %6 = arith.cmpf ugt, %5, %cst_1 : f32
+                %7 = arith.select %6, %5, %cst_1 : f32
+                affine.store %7, %alloc_6[%arg1, %arg2, %arg4, %arg5] : memref<1x64x112x112xf32>
+              }
             }
+            FDRA.terminator
           }
         }
       }
-      FDRA.terminator
     }
     memref.dealloc %alloc_5 : memref<1x64x112x112xf32>
     memref.dealloc %alloc_6 : memref<1x64x112x112xf32>
     %alloc_7 = memref.alloc() {alignment = 64 : i64} : memref<1x64x114x114xf32>
-    FDRA.kernel {
-      affine.for %arg1 = 0 to 1 {
-        affine.for %arg2 = 0 to 64 {
-          affine.for %arg3 = 0 to 114 {
-            affine.for %arg4 = 0 to 114 {
-              affine.store %cst_0, %alloc_7[%arg1, %arg2, %arg3, %arg4] : memref<1x64x114x114xf32>
+    affine.for %arg1 = 0 to 1 {
+      affine.for %arg2 = 0 to 64 {
+        affine.for %arg3 = 0 to 114 step 6 {
+          FDRA.kernel {
+            affine.for %arg4 = #map(%arg3) to #map4(%arg3) {
+              affine.for %arg5 = 0 to 114 {
+                affine.store %cst_0, %alloc_7[%arg1, %arg2, %arg4, %arg5] : memref<1x64x114x114xf32>
+              }
             }
+            FDRA.terminator
           }
         }
       }
-      FDRA.terminator
     }
     memref.dealloc %alloc_7 : memref<1x64x114x114xf32>
     %alloc_8 = memref.alloc() {alignment = 64 : i64} : memref<1x64x114x114xf32>
@@ -149,41 +168,45 @@ module attributes {torch.debug_module_name = "ResNet"} {
     %subview_9 = memref.subview %alloc_8[0, 0, 1, 1] [1, 64, 112, 112] [1, 1, 1, 1] : memref<1x64x114x114xf32> to memref<1x64x112x112xf32, strided<[831744, 12996, 114, 1], offset: 115>>
     memref.copy %alloc_6, %subview_9 : memref<1x64x112x112xf32> to memref<1x64x112x112xf32, strided<[831744, 12996, 114, 1], offset: 115>>
     %alloc_10 = memref.alloc() {alignment = 64 : i64} : memref<1x64x56x56xf32>
-    FDRA.kernel {
-      affine.for %arg1 = 0 to 1 {
-        affine.for %arg2 = 0 to 64 {
-          affine.for %arg3 = 0 to 56 {
-            affine.for %arg4 = 0 to 56 {
-              affine.store %cst_0, %alloc_10[%arg1, %arg2, %arg3, %arg4] : memref<1x64x56x56xf32>
+    affine.for %arg1 = 0 to 1 {
+      affine.for %arg2 = 0 to 64 {
+        affine.for %arg3 = 0 to 56 step 28 {
+          FDRA.kernel {
+            affine.for %arg4 = #map(%arg3) to #map5(%arg3) {
+              affine.for %arg5 = 0 to 56 {
+                affine.store %cst_0, %alloc_10[%arg1, %arg2, %arg4, %arg5] : memref<1x64x56x56xf32>
+              }
             }
+            FDRA.terminator
           }
         }
       }
-      FDRA.terminator
     }
     %alloc_11 = memref.alloc() {alignment = 64 : i64} : memref<1x64x56x56xf32>
     memref.copy %alloc_10, %alloc_11 : memref<1x64x56x56xf32> to memref<1x64x56x56xf32>
     memref.dealloc %alloc_10 : memref<1x64x56x56xf32>
-    FDRA.kernel {
-      affine.for %arg1 = 0 to 1 {
-        affine.for %arg2 = 0 to 64 {
-          affine.for %arg3 = 0 to 56 {
-            affine.for %arg4 = 0 to 56 {
-              %5 = affine.load %alloc_11[%arg1, %arg2, %arg3, %arg4] : memref<1x64x56x56xf32>
-              %6 = affine.for %arg5 = 0 to 3 iter_args(%arg6 = %5) -> (f32) {
-                %7 = affine.for %arg7 = 0 to 3 iter_args(%arg8 = %arg6) -> (f32) {
-                  %8 = affine.load %alloc_8[%arg1, %arg2, %arg3 * 2 + %arg5, %arg4 * 2 + %arg7] : memref<1x64x114x114xf32>
-                  %9 = arith.maxf %arg8, %8 : f32
-                  affine.yield %9 : f32
+    affine.for %arg1 = 0 to 1 {
+      affine.for %arg2 = 0 to 64 {
+        affine.for %arg3 = 0 to 56 step 4 {
+          FDRA.kernel {
+            affine.for %arg4 = #map(%arg3) to #map6(%arg3) {
+              affine.for %arg5 = 0 to 56 {
+                %5 = affine.load %alloc_11[%arg1, %arg2, %arg4, %arg5] : memref<1x64x56x56xf32>
+                %6 = affine.for %arg6 = 0 to 3 iter_args(%arg7 = %5) -> (f32) {
+                  %7 = affine.for %arg8 = 0 to 3 iter_args(%arg9 = %arg7) -> (f32) {
+                    %8 = affine.load %alloc_8[%arg1, %arg2, %arg4 * 2 + %arg6, %arg5 * 2 + %arg8] : memref<1x64x114x114xf32>
+                    %9 = arith.maxf %arg9, %8 : f32
+                    affine.yield %9 : f32
+                  }
+                  affine.yield %7 : f32
                 }
-                affine.yield %7 : f32
+                affine.store %6, %alloc_11[%arg1, %arg2, %arg4, %arg5] : memref<1x64x56x56xf32>
               }
-              affine.store %6, %alloc_11[%arg1, %arg2, %arg3, %arg4] : memref<1x64x56x56xf32>
             }
+            FDRA.terminator
           }
         }
       }
-      FDRA.terminator
     }
     memref.dealloc %alloc_11 : memref<1x64x56x56xf32>
     return %alloc_11 : memref<1x64x56x56xf32>

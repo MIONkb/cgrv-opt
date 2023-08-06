@@ -26,10 +26,14 @@ rootfolder=$(pwd)
  --mlir-print-ir-after-all 2>&1 | cat > 0_intermediate_before_affine.mlir
 
 
-cgra-opt  --fdra-extract-affine-for-to-kernel  --fdra-hoist-loadstore  0_all_Affine.mlir > 1_kernel.mlir
+cgra-opt  --fdra-extract-affine-for-to-kernel \
+   --fdra-hoist-loadstore \
+   --fdra-approximate-math \
+   --fdra-adjust-kernel-mem-footprint="cachesize=8 singlearraysize=8 access-pattern disable-remainder-block"
+   0_all_Affine.mlir > 1_kernel.mlir
 
 cgra-opt --affine-loop-fusion  --arith-expand --memref-expand -reconcile-unrealized-casts \
  --allow-unregistered-dialect\
- --fdra-extract-kernel-to-function="kernel-gen-dir=$rootfolder kernel-explicit-datablock-trans=false" \
- 1_kernel.mlir -o 2_host.mlir \
+ --fdra-extract-kernel-to-function="kernel-gen-dir=$rootfolder kernel-explicit-datablock-trans=true" \
+ 1_kernel_adjust.mlir -o 2_host.mlir \
   --mlir-print-ir-after-all 2>&1 | cat > 2_intermediate_before_host.mlir

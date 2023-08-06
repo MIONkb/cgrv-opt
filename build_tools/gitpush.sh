@@ -6,7 +6,7 @@ ssh -T git@github.com
 
 # git init
 git add .
-git commit -m "add pass : fdra-approximate-math for math.rsqrt"
+git commit -m "add \"affine-pattern\" and \"disable-remainder-block\" option for pass: adjust-memory-footprint"
 git branch -M new
 git remote add origin git@github.com:segmentKOBE/cgra-opt.git
 git push -u origin new

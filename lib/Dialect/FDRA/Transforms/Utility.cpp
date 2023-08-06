@@ -240,6 +240,8 @@ void mlir::FDRA::eliminateUnusedIndices(Operation *op) {
     storeOp.getOperation()->setAttr(AffineStoreOp::getMapAttrStrName(),AffineMapAttr::get(map)); 
     storeOp.getOperation()->setOperands(newIndexList);  
   }
+
+  // If 
 }
 
 

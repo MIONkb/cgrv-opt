@@ -54,9 +54,10 @@ def AdjustKernelMemoryFootprint : Pass<"fdra-adjust-kernel-mem-footprint", "Modu
            "Set a cachesize(Kib) for kernel to be iterated(default to be 512Kib)">,
     Option<"SingleArray_Size", "singlearraysize", "unsigned", /*default=*/"0",
            "Set a cachesize(Kib) constrain for a single array or tensor in a kernel(default to be the same with Cachesize_Kib)">,
-    Option<"AffineAccessPatern", "access-patern", "bool", /*default=*/"true",
-           "Whether the memory access method is affine patern(default to be true)">,
-  
+    Option<"AffineAccessPattern", "access-pattern", "bool", /*default=*/"false",
+           "Set the memory access method to affine pattern(default: general pattern)">,
+    Option<"DisableRemainderBlock", "disable-remainder-block", "bool", /*default=*/"false",
+           "Disable make remainder during loop strip-mining">,
   ];
 }
 
