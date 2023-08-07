@@ -20,6 +20,10 @@
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Interfaces/ViewLikeInterface.h"
 
+// #include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/Twine.h"
+
 // #include "llvm/ADT/SmallSet.h" /// use std::unordered_set instead of std::list
 #include<set>
 //===----------------------------------------------------------------------===//
@@ -57,9 +61,10 @@ typedef std::set<StringRef> OpTable;
 mlir::Operation* eraseKernel(::mlir::func::FuncOp& TopFunc, FDRA::KernelOp& Kernel);
 LogicalResult SpecifiedAffineFortoKernel(::mlir::affine::AffineForOp& forOp);
 AffineExpr getConstPartofAffineExpr(AffineExpr& expr);
+signed MultiplicatorOfDim(const AffineExpr& expr, const unsigned dim);
 // void removeUnusedRegionArgs(Region &region);
 void eliminateUnusedIndices(Operation *op);
-SmallVector<Value> getOperandInRank(Operation *op, unsigned rank);
+::llvm::SmallDenseMap<mlir::Value, unsigned> getOperandInRank(Operation *op, unsigned rank);
 
 ///// following 4 functions are defined to help extract kernel function
 // bool isSinkingBeneficiary(Operation *op);

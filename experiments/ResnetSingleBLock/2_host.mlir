@@ -18,9 +18,9 @@ module attributes {torch.debug_module_name = "ResNet"} {
     affine.for %arg1 = 0 to 1 {
       affine.for %arg2 = 0 to 3 {
         affine.for %arg3 = 0 to 230 step 5 {
-          %5 = FDRA.BlockLoad %alloc [0, %arg2, %arg3, 0] : memref<1x3x230x230xf32> -> memref<1x1x5x230xf32> {"forward_kernel_0"}
-          FDRA.KernelCall @forward_kernel_0(%5, %arg1) : (memref<1x1x5x230xf32>, index) -> ()
-          FDRA.BlockStore %5,  %alloc [0, %arg2, %arg3, 0] : memref<1x1x5x230xf32> -> memref<1x3x230x230xf32> {"forward_kernel_0"}
+          %5 = FDRA.BlockLoad %alloc [0, %arg2, %arg3, 0] : memref<1x3x230x230xf32> -> memref<1x3x230x230xf32> {"forward_kernel_0"}
+          FDRA.KernelCall @forward_kernel_0(%5) : (memref<1x3x230x230xf32>) -> ()
+          FDRA.BlockStore %5,  %alloc [0, %arg2, %arg3, 0] : memref<1x3x230x230xf32> -> memref<1x3x230x230xf32> {"forward_kernel_0"}
         }
       }
     }
@@ -33,9 +33,9 @@ module attributes {torch.debug_module_name = "ResNet"} {
     affine.for %arg1 = 0 to 1 {
       affine.for %arg2 = 0 to 64 {
         affine.for %arg3 = 0 to 112 step 16 {
-          %5 = FDRA.BlockLoad %alloc_3 [0, %arg2, %arg3, 0] : memref<1x64x112x112xf32> -> memref<1x1x16x112xf32> {"forward_kernel_1"}
-          FDRA.KernelCall @forward_kernel_1(%5, %arg1) : (memref<1x1x16x112xf32>, index) -> ()
-          FDRA.BlockStore %5,  %alloc_3 [0, %arg2, %arg3, 0] : memref<1x1x16x112xf32> -> memref<1x64x112x112xf32> {"forward_kernel_1"}
+          %5 = FDRA.BlockLoad %alloc_3 [0, %arg2, %arg3, 0] : memref<1x64x112x112xf32> -> memref<1x64x112x112xf32> {"forward_kernel_1"}
+          FDRA.KernelCall @forward_kernel_1(%5) : (memref<1x64x112x112xf32>) -> ()
+          FDRA.BlockStore %5,  %alloc_3 [0, %arg2, %arg3, 0] : memref<1x64x112x112xf32> -> memref<1x64x112x112xf32> {"forward_kernel_1"}
         }
       }
     }
@@ -46,12 +46,12 @@ module attributes {torch.debug_module_name = "ResNet"} {
       affine.for %arg2 = 0 to 64 {
         affine.for %arg3 = 0 to 112 {
           affine.for %arg4 = 0 to 112 step 8 {
-            %5 = FDRA.BlockLoad %alloc_4 [0, %arg2, %arg3, %arg4] : memref<1x64x112x112xf32> -> memref<1x1x1x8xf32> {"forward_kernel_2"}
-            %6 = FDRA.BlockLoad %alloc_2 [0, 0, %arg3 * 2, %arg4 * 2] : memref<1x3x230x230xf32> -> memref<1x3x7x21xf32> {"forward_kernel_2"}
-            %7 = FDRA.BlockLoad %0 [%arg2, 0, 0, 0] : memref<64x3x7x7xf32> -> memref<1x3x7x7xf32> {"forward_kernel_2"}
-            %8 = FDRA.BlockLoad %alloc_4 [0, %arg2, %arg3, %arg4] : memref<1x64x112x112xf32> -> memref<1x1x1x8xf32> {"forward_kernel_2"}
-            FDRA.KernelCall @forward_kernel_2(%5, %arg1, %6, %arg3, %7, %8) : (memref<1x1x1x8xf32>, index, memref<1x3x7x21xf32>, index, memref<1x3x7x7xf32>, memref<1x1x1x8xf32>) -> ()
-            FDRA.BlockStore %8,  %alloc_4 [0, %arg2, %arg3, %arg4] : memref<1x1x1x8xf32> -> memref<1x64x112x112xf32> {"forward_kernel_2"}
+            %5 = FDRA.BlockLoad %alloc_4 [0, %arg2, %arg3, %arg4] : memref<1x64x112x112xf32> -> memref<1x64x112x112xf32> {"forward_kernel_2"}
+            %6 = FDRA.BlockLoad %alloc_2 [0, 0, %arg3 * 2, %arg4 * 2] : memref<1x3x230x230xf32> -> memref<1x3x230x230xf32> {"forward_kernel_2"}
+            %7 = FDRA.BlockLoad %0 [%arg2, 0, 0, 0] : memref<64x3x7x7xf32> -> memref<64x3x7x7xf32> {"forward_kernel_2"}
+            %8 = FDRA.BlockLoad %alloc_4 [0, %arg2, %arg3, %arg4] : memref<1x64x112x112xf32> -> memref<1x64x112x112xf32> {"forward_kernel_2"}
+            FDRA.KernelCall @forward_kernel_2(%5, %6, %7, %8) : (memref<1x64x112x112xf32>, memref<1x3x230x230xf32>, memref<64x3x7x7xf32>, memref<1x64x112x112xf32>) -> ()
+            FDRA.BlockStore %8,  %alloc_4 [0, %arg2, %arg3, %arg4] : memref<1x64x112x112xf32> -> memref<1x64x112x112xf32> {"forward_kernel_2"}
           }
         }
       }
@@ -64,10 +64,10 @@ module attributes {torch.debug_module_name = "ResNet"} {
         %7 = affine.load %1[%arg2] : memref<64xf32>
         %8 = affine.load %2[%arg2] : memref<64xf32>
         affine.for %arg3 = 0 to 112 step 16 {
-          %9 = FDRA.BlockLoad %alloc_4 [0, %arg2, %arg3, 0] : memref<1x64x112x112xf32> -> memref<1x1x16x112xf32> {"forward_kernel_3"}
-          %10 = FDRA.BlockLoad %alloc_5 [0, %arg2, %arg3, 0] : memref<1x64x112x112xf32> -> memref<1x1x16x112xf32> {"forward_kernel_3"}
-          FDRA.KernelCall @forward_kernel_3(%9, %arg1, %8, %7, %5, %6, %10) : (memref<1x1x16x112xf32>, index, f32, f32, f32, f32, memref<1x1x16x112xf32>) -> ()
-          FDRA.BlockStore %10,  %alloc_5 [0, %arg2, %arg3, 0] : memref<1x1x16x112xf32> -> memref<1x64x112x112xf32> {"forward_kernel_3"}
+          %9 = FDRA.BlockLoad %alloc_4 [0, %arg2, %arg3, 0] : memref<1x64x112x112xf32> -> memref<1x64x112x112xf32> {"forward_kernel_3"}
+          %10 = FDRA.BlockLoad %alloc_5 [0, %arg2, %arg3, 0] : memref<1x64x112x112xf32> -> memref<1x64x112x112xf32> {"forward_kernel_3"}
+          FDRA.KernelCall @forward_kernel_3(%9, %8, %7, %5, %6, %10) : (memref<1x64x112x112xf32>, f32, f32, f32, f32, memref<1x64x112x112xf32>) -> ()
+          FDRA.BlockStore %10,  %alloc_5 [0, %arg2, %arg3, 0] : memref<1x64x112x112xf32> -> memref<1x64x112x112xf32> {"forward_kernel_3"}
         }
       }
     }
@@ -76,10 +76,10 @@ module attributes {torch.debug_module_name = "ResNet"} {
     affine.for %arg1 = 0 to 1 {
       affine.for %arg2 = 0 to 64 {
         affine.for %arg3 = 0 to 112 step 16 {
-          %5 = FDRA.BlockLoad %alloc_5 [0, %arg2, %arg3, 0] : memref<1x64x112x112xf32> -> memref<1x1x16x112xf32> {"forward_kernel_4"}
-          %6 = FDRA.BlockLoad %alloc_6 [0, %arg2, %arg3, 0] : memref<1x64x112x112xf32> -> memref<1x1x16x112xf32> {"forward_kernel_4"}
-          FDRA.KernelCall @forward_kernel_4(%5, %6, %arg1) : (memref<1x1x16x112xf32>, memref<1x1x16x112xf32>, index) -> ()
-          FDRA.BlockStore %6,  %alloc_6 [0, %arg2, %arg3, 0] : memref<1x1x16x112xf32> -> memref<1x64x112x112xf32> {"forward_kernel_4"}
+          %5 = FDRA.BlockLoad %alloc_5 [0, %arg2, %arg3, 0] : memref<1x64x112x112xf32> -> memref<1x64x112x112xf32> {"forward_kernel_4"}
+          %6 = FDRA.BlockLoad %alloc_6 [0, %arg2, %arg3, 0] : memref<1x64x112x112xf32> -> memref<1x64x112x112xf32> {"forward_kernel_4"}
+          FDRA.KernelCall @forward_kernel_4(%5, %6) : (memref<1x64x112x112xf32>, memref<1x64x112x112xf32>) -> ()
+          FDRA.BlockStore %6,  %alloc_6 [0, %arg2, %arg3, 0] : memref<1x64x112x112xf32> -> memref<1x64x112x112xf32> {"forward_kernel_4"}
         }
       }
     }
@@ -89,9 +89,9 @@ module attributes {torch.debug_module_name = "ResNet"} {
     affine.for %arg1 = 0 to 1 {
       affine.for %arg2 = 0 to 64 {
         affine.for %arg3 = 0 to 114 step 6 {
-          %5 = FDRA.BlockLoad %alloc_7 [0, %arg2, %arg3, 0] : memref<1x64x114x114xf32> -> memref<1x1x6x114xf32> {"forward_kernel_5"}
-          FDRA.KernelCall @forward_kernel_5(%5, %arg1) : (memref<1x1x6x114xf32>, index) -> ()
-          FDRA.BlockStore %5,  %alloc_7 [0, %arg2, %arg3, 0] : memref<1x1x6x114xf32> -> memref<1x64x114x114xf32> {"forward_kernel_5"}
+          %5 = FDRA.BlockLoad %alloc_7 [0, %arg2, %arg3, 0] : memref<1x64x114x114xf32> -> memref<1x64x114x114xf32> {"forward_kernel_5"}
+          FDRA.KernelCall @forward_kernel_5(%5) : (memref<1x64x114x114xf32>) -> ()
+          FDRA.BlockStore %5,  %alloc_7 [0, %arg2, %arg3, 0] : memref<1x64x114x114xf32> -> memref<1x64x114x114xf32> {"forward_kernel_5"}
         }
       }
     }
@@ -104,9 +104,9 @@ module attributes {torch.debug_module_name = "ResNet"} {
     affine.for %arg1 = 0 to 1 {
       affine.for %arg2 = 0 to 64 {
         affine.for %arg3 = 0 to 56 step 28 {
-          %5 = FDRA.BlockLoad %alloc_10 [0, %arg2, %arg3, 0] : memref<1x64x56x56xf32> -> memref<1x1x28x56xf32> {"forward_kernel_6"}
-          FDRA.KernelCall @forward_kernel_6(%5, %arg1) : (memref<1x1x28x56xf32>, index) -> ()
-          FDRA.BlockStore %5,  %alloc_10 [0, %arg2, %arg3, 0] : memref<1x1x28x56xf32> -> memref<1x64x56x56xf32> {"forward_kernel_6"}
+          %5 = FDRA.BlockLoad %alloc_10 [0, %arg2, %arg3, 0] : memref<1x64x56x56xf32> -> memref<1x64x56x56xf32> {"forward_kernel_6"}
+          FDRA.KernelCall @forward_kernel_6(%5) : (memref<1x64x56x56xf32>) -> ()
+          FDRA.BlockStore %5,  %alloc_10 [0, %arg2, %arg3, 0] : memref<1x64x56x56xf32> -> memref<1x64x56x56xf32> {"forward_kernel_6"}
         }
       }
     }
@@ -116,70 +116,70 @@ module attributes {torch.debug_module_name = "ResNet"} {
     affine.for %arg1 = 0 to 1 {
       affine.for %arg2 = 0 to 64 {
         affine.for %arg3 = 0 to 56 step 4 {
-          %5 = FDRA.BlockLoad %alloc_11 [0, %arg2, %arg3, 0] : memref<1x64x56x56xf32> -> memref<1x1x4x56xf32> {"forward_kernel_7"}
-          %6 = FDRA.BlockLoad %alloc_8 [0, %arg2, %arg3 * 2, 0] : memref<1x64x114x114xf32> -> memref<1x1x9x113xf32> {"forward_kernel_7"}
-          %7 = FDRA.BlockLoad %alloc_11 [0, %arg2, %arg3, 0] : memref<1x64x56x56xf32> -> memref<1x1x4x56xf32> {"forward_kernel_7"}
-          FDRA.KernelCall @forward_kernel_7(%5, %arg1, %6, %7) : (memref<1x1x4x56xf32>, index, memref<1x1x9x113xf32>, memref<1x1x4x56xf32>) -> ()
-          FDRA.BlockStore %7,  %alloc_11 [0, %arg2, %arg3, 0] : memref<1x1x4x56xf32> -> memref<1x64x56x56xf32> {"forward_kernel_7"}
+          %5 = FDRA.BlockLoad %alloc_11 [0, %arg2, %arg3, 0] : memref<1x64x56x56xf32> -> memref<1x64x56x56xf32> {"forward_kernel_7"}
+          %6 = FDRA.BlockLoad %alloc_8 [0, %arg2, %arg3 * 2, 0] : memref<1x64x114x114xf32> -> memref<1x64x114x114xf32> {"forward_kernel_7"}
+          %7 = FDRA.BlockLoad %alloc_11 [0, %arg2, %arg3, 0] : memref<1x64x56x56xf32> -> memref<1x64x56x56xf32> {"forward_kernel_7"}
+          FDRA.KernelCall @forward_kernel_7(%5, %6, %7) : (memref<1x64x56x56xf32>, memref<1x64x114x114xf32>, memref<1x64x56x56xf32>) -> ()
+          FDRA.BlockStore %7,  %alloc_11 [0, %arg2, %arg3, 0] : memref<1x64x56x56xf32> -> memref<1x64x56x56xf32> {"forward_kernel_7"}
         }
       }
     }
     memref.dealloc %alloc_11 : memref<1x64x56x56xf32>
     return %alloc_11 : memref<1x64x56x56xf32>
   }
-  func.func @forward_kernel_0(%arg0: memref<1x1x5x230xf32>, %arg1: index) attributes {Kernel, forward_kernel_0} {
+  func.func @forward_kernel_0(%arg0: memref<1x3x230x230xf32>) attributes {Kernel, forward_kernel_0} {
     cf.br ^bb1
   ^bb1:  // pred: ^bb0
     %cst = arith.constant 0.000000e+00 : f32
-    affine.for %arg2 = 0 to 5 {
-      affine.for %arg3 = 0 to 230 {
-        affine.store %cst, %arg0[%arg1, 0, %arg2, %arg3] : memref<1x1x5x230xf32>
+    affine.for %arg1 = 0 to 5 {
+      affine.for %arg2 = 0 to 230 {
+        affine.store %cst, %arg0[0, 0, %arg1, %arg2] : memref<1x3x230x230xf32>
       }
     }
     return
   }
-  func.func @forward_kernel_1(%arg0: memref<1x1x16x112xf32>, %arg1: index) attributes {Kernel, forward_kernel_1} {
+  func.func @forward_kernel_1(%arg0: memref<1x64x112x112xf32>) attributes {Kernel, forward_kernel_1} {
     cf.br ^bb1
   ^bb1:  // pred: ^bb0
     %cst = arith.constant 0.000000e+00 : f32
-    affine.for %arg2 = 0 to 16 {
-      affine.for %arg3 = 0 to 112 {
-        affine.store %cst, %arg0[%arg1, 0, %arg2, %arg3] : memref<1x1x16x112xf32>
+    affine.for %arg1 = 0 to 16 {
+      affine.for %arg2 = 0 to 112 {
+        affine.store %cst, %arg0[0, 0, %arg1, %arg2] : memref<1x64x112x112xf32>
       }
     }
     return
   }
-  func.func @forward_kernel_2(%arg0: memref<1x1x1x8xf32>, %arg1: index, %arg2: memref<1x3x7x21xf32>, %arg3: index, %arg4: memref<1x3x7x7xf32>, %arg5: memref<1x1x1x8xf32>) attributes {Kernel, forward_kernel_2} {
+  func.func @forward_kernel_2(%arg0: memref<1x64x112x112xf32>, %arg1: memref<1x3x230x230xf32>, %arg2: memref<64x3x7x7xf32>, %arg3: memref<1x64x112x112xf32>) attributes {Kernel, forward_kernel_2} {
     cf.br ^bb1
   ^bb1:  // pred: ^bb0
-    affine.for %arg6 = 0 to 8 {
-      %0 = affine.load %arg0[%arg1, 0, 0, %arg6] : memref<1x1x1x8xf32>
-      %1 = affine.for %arg7 = 0 to 3 iter_args(%arg8 = %0) -> (f32) {
-        %2 = affine.for %arg9 = 0 to 7 iter_args(%arg10 = %arg8) -> (f32) {
-          %3 = affine.for %arg11 = 0 to 7 iter_args(%arg12 = %arg10) -> (f32) {
-            %4 = affine.load %arg2[%arg1, %arg7, %arg3 * 2 + %arg9, %arg6 * 2 + %arg11] : memref<1x3x7x21xf32>
-            %5 = affine.load %arg4[0, %arg7, %arg9, %arg11] : memref<1x3x7x7xf32>
+    affine.for %arg4 = 0 to 8 {
+      %0 = affine.load %arg0[0, 0, 0, %arg4] : memref<1x64x112x112xf32>
+      %1 = affine.for %arg5 = 0 to 3 iter_args(%arg6 = %0) -> (f32) {
+        %2 = affine.for %arg7 = 0 to 7 iter_args(%arg8 = %arg6) -> (f32) {
+          %3 = affine.for %arg9 = 0 to 7 iter_args(%arg10 = %arg8) -> (f32) {
+            %4 = affine.load %arg1[0, %arg5, %arg7, %arg4 * 2 + %arg9] : memref<1x3x230x230xf32>
+            %5 = affine.load %arg2[0, %arg5, %arg7, %arg9] : memref<64x3x7x7xf32>
             %6 = arith.mulf %4, %5 : f32
-            %7 = arith.addf %arg12, %6 : f32
+            %7 = arith.addf %arg10, %6 : f32
             affine.yield %7 : f32
           }
           affine.yield %3 : f32
         }
         affine.yield %2 : f32
       }
-      affine.store %1, %arg5[%arg1, 0, 0, %arg6] : memref<1x1x1x8xf32>
+      affine.store %1, %arg3[0, 0, 0, %arg4] : memref<1x64x112x112xf32>
     }
     return
   }
-  func.func @forward_kernel_3(%arg0: memref<1x1x16x112xf32>, %arg1: index, %arg2: f32, %arg3: f32, %arg4: f32, %arg5: f32, %arg6: memref<1x1x16x112xf32>) attributes {Kernel, forward_kernel_3} {
+  func.func @forward_kernel_3(%arg0: memref<1x64x112x112xf32>, %arg1: f32, %arg2: f32, %arg3: f32, %arg4: f32, %arg5: memref<1x64x112x112xf32>) attributes {Kernel, forward_kernel_3} {
     cf.br ^bb1
   ^bb1:  // pred: ^bb0
     %cst = arith.constant 1.000000e-05 : f64
-    affine.for %arg7 = 0 to 16 {
-      affine.for %arg8 = 0 to 112 {
-        %0 = affine.load %arg0[%arg1, 0, %arg7, %arg8] : memref<1x1x16x112xf32>
+    affine.for %arg6 = 0 to 16 {
+      affine.for %arg7 = 0 to 112 {
+        %0 = affine.load %arg0[0, 0, %arg6, %arg7] : memref<1x64x112x112xf32>
         %1 = arith.truncf %cst : f64 to f32
-        %2 = arith.addf %arg2, %1 : f32
+        %2 = arith.addf %arg1, %1 : f32
         %cst_0 = arith.constant 5.000000e-01 : f32
         %3 = arith.mulf %2, %cst_0 : f32
         %4 = arith.bitcast %2 : f32 to i32
@@ -193,69 +193,69 @@ module attributes {torch.debug_module_name = "ResNet"} {
         %9 = arith.mulf %8, %3 : f32
         %10 = arith.subf %cst_1, %9 : f32
         %11 = arith.mulf %10, %8 : f32
-        %12 = arith.subf %0, %arg3 : f32
+        %12 = arith.subf %0, %arg2 : f32
         %13 = arith.mulf %12, %11 : f32
-        %14 = arith.mulf %13, %arg4 : f32
-        %15 = arith.addf %14, %arg5 : f32
-        affine.store %15, %arg6[%arg1, 0, %arg7, %arg8] : memref<1x1x16x112xf32>
+        %14 = arith.mulf %13, %arg3 : f32
+        %15 = arith.addf %14, %arg4 : f32
+        affine.store %15, %arg5[0, 0, %arg6, %arg7] : memref<1x64x112x112xf32>
       }
     }
     return
   }
-  func.func @forward_kernel_4(%arg0: memref<1x1x16x112xf32>, %arg1: memref<1x1x16x112xf32>, %arg2: index) attributes {Kernel, forward_kernel_4} {
+  func.func @forward_kernel_4(%arg0: memref<1x64x112x112xf32>, %arg1: memref<1x64x112x112xf32>) attributes {Kernel, forward_kernel_4} {
     cf.br ^bb1
   ^bb1:  // pred: ^bb0
     %cst = arith.constant 0.000000e+00 : f32
-    affine.for %arg3 = 0 to 16 {
-      affine.for %arg4 = 0 to 112 {
-        %0 = affine.load %arg0[0, 0, %arg3, %arg4] : memref<1x1x16x112xf32>
+    affine.for %arg2 = 0 to 16 {
+      affine.for %arg3 = 0 to 112 {
+        %0 = affine.load %arg0[0, 0, %arg2, %arg3] : memref<1x64x112x112xf32>
         %1 = arith.cmpf ugt, %0, %cst : f32
         %2 = arith.select %1, %0, %cst : f32
-        affine.store %2, %arg1[%arg2, 0, %arg3, %arg4] : memref<1x1x16x112xf32>
+        affine.store %2, %arg1[0, 0, %arg2, %arg3] : memref<1x64x112x112xf32>
       }
     }
     return
   }
-  func.func @forward_kernel_5(%arg0: memref<1x1x6x114xf32>, %arg1: index) attributes {Kernel, forward_kernel_5} {
+  func.func @forward_kernel_5(%arg0: memref<1x64x114x114xf32>) attributes {Kernel, forward_kernel_5} {
     cf.br ^bb1
   ^bb1:  // pred: ^bb0
     %cst = arith.constant 0xFF800000 : f32
-    affine.for %arg2 = 0 to 6 {
-      affine.for %arg3 = 0 to 114 {
-        affine.store %cst, %arg0[%arg1, 0, %arg2, %arg3] : memref<1x1x6x114xf32>
+    affine.for %arg1 = 0 to 6 {
+      affine.for %arg2 = 0 to 114 {
+        affine.store %cst, %arg0[0, 0, %arg1, %arg2] : memref<1x64x114x114xf32>
       }
     }
     return
   }
-  func.func @forward_kernel_6(%arg0: memref<1x1x28x56xf32>, %arg1: index) attributes {Kernel, forward_kernel_6} {
+  func.func @forward_kernel_6(%arg0: memref<1x64x56x56xf32>) attributes {Kernel, forward_kernel_6} {
     cf.br ^bb1
   ^bb1:  // pred: ^bb0
     %cst = arith.constant 0xFF800000 : f32
-    affine.for %arg2 = 0 to 28 {
-      affine.for %arg3 = 0 to 56 {
-        affine.store %cst, %arg0[%arg1, 0, %arg2, %arg3] : memref<1x1x28x56xf32>
+    affine.for %arg1 = 0 to 28 {
+      affine.for %arg2 = 0 to 56 {
+        affine.store %cst, %arg0[0, 0, %arg1, %arg2] : memref<1x64x56x56xf32>
       }
     }
     return
   }
-  func.func @forward_kernel_7(%arg0: memref<1x1x4x56xf32>, %arg1: index, %arg2: memref<1x1x9x113xf32>, %arg3: memref<1x1x4x56xf32>) attributes {Kernel, forward_kernel_7} {
+  func.func @forward_kernel_7(%arg0: memref<1x64x56x56xf32>, %arg1: memref<1x64x114x114xf32>, %arg2: memref<1x64x56x56xf32>) attributes {Kernel, forward_kernel_7} {
     cf.br ^bb1
   ^bb1:  // pred: ^bb0
-    affine.for %arg4 = 0 to 4 {
-      affine.for %arg5 = 0 to 56 {
-        %0 = affine.load %arg0[%arg1, 0, %arg4, %arg5] : memref<1x1x4x56xf32>
-        %1 = affine.for %arg6 = 0 to 3 iter_args(%arg7 = %0) -> (f32) {
-          %2 = affine.for %arg8 = 0 to 3 iter_args(%arg9 = %arg7) -> (f32) {
-            %3 = affine.load %arg2[%arg1, 0, %arg4 * 2 + %arg6, %arg5 * 2 + %arg8] : memref<1x1x9x113xf32>
-            %4 = arith.cmpf ugt, %arg9, %3 : f32
-            %5 = arith.select %4, %arg9, %3 : f32
+    affine.for %arg3 = 0 to 4 {
+      affine.for %arg4 = 0 to 56 {
+        %0 = affine.load %arg0[0, 0, %arg3, %arg4] : memref<1x64x56x56xf32>
+        %1 = affine.for %arg5 = 0 to 3 iter_args(%arg6 = %0) -> (f32) {
+          %2 = affine.for %arg7 = 0 to 3 iter_args(%arg8 = %arg6) -> (f32) {
+            %3 = affine.load %arg1[0, 0, %arg3 * 2 + %arg5, %arg4 * 2 + %arg7] : memref<1x64x114x114xf32>
+            %4 = arith.cmpf ugt, %arg8, %3 : f32
+            %5 = arith.select %4, %arg8, %3 : f32
             %6 = arith.cmpf uno, %3, %3 : f32
             %7 = arith.select %6, %3, %5 : f32
             affine.yield %7 : f32
           }
           affine.yield %2 : f32
         }
-        affine.store %1, %arg3[%arg1, 0, %arg4, %arg5] : memref<1x1x4x56xf32>
+        affine.store %1, %arg2[0, 0, %arg3, %arg4] : memref<1x64x56x56xf32>
       }
     }
     return

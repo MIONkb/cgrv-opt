@@ -35,6 +35,7 @@
 #include "./PassDetail.h"
 
 using namespace llvm; // for llvm.errs()
+using namespace llvm::detail;
 using namespace mlir;
 using namespace mlir::affine;
 using namespace mlir::FDRA;
@@ -95,7 +96,7 @@ void KernelToFuncPass::ExplicitKernelDataBLockLoadStore(FDRA::KernelOp Kernel)
   //////////
   Kernel.walk([&](AffineLoadOp loadop)
   {
-    llvm::errs() << "[debug] loadop: ";loadop.dump();
+    // llvm::errs() << "[debug] loadop: ";loadop.dump();
     if(succeeded(memrefRegion.compute(loadop, 
                 /*loopDepth=*/getNestingDepth(Kernel.getOperation())))){ /// Bind loadop and memrefRegion through compute()
       memref = memrefRegion.memref; /// original memref Op of this loadOP
@@ -172,8 +173,10 @@ void KernelToFuncPass::ExplicitKernelDataBLockLoadStore(FDRA::KernelOp Kernel)
       /////////
       AffineMap memIVmap = AffineMap::get(IVs.size(), /*symbolCount=*/0, memExprs, builder.getContext());   /// stores corresponding AffineMap of above memIVs
       MemRefType newMemRef = MemRefType::get( (ArrayRef<int64_t>)newMemRefShape, memRefType.getElementType());
+      // FDRA::DataBlockLoadOp BlockLoad = builder.create<FDRA::DataBlockLoadOp>\
+      //           (Kernel.getLoc(), memref, memIVmap, IVs, newMemRef);
       FDRA::DataBlockLoadOp BlockLoad = builder.create<FDRA::DataBlockLoadOp>\
-                (Kernel.getLoc(), memref, memIVmap, IVs, newMemRef);
+                (Kernel.getLoc(), memref, memIVmap, IVs, memRefType);
       Kernel.getOperation()->getBlock()->push_back(BlockLoad);
       BlockLoad.getOperation()->moveBefore(Kernel);
       BlockLoad.setKernelName(Kernel.getKernelName());
@@ -185,8 +188,8 @@ void KernelToFuncPass::ExplicitKernelDataBLockLoadStore(FDRA::KernelOp Kernel)
       /// Step 4 : Change index of loadop according to the new BlockLoadOp
       /////////
       
-      llvm::errs() << "[debug] memIVmap: " << memIVmap << "\n";
-      llvm::errs() << "[debug] BlockLoad: " << BlockLoad << "\n";
+      // llvm::errs() << "[debug] memIVmap: " << memIVmap << "\n";
+      // llvm::errs() << "[debug] BlockLoad: " << BlockLoad << "\n";
       
       /** 
        * Complete a conversion for load op's index, here is an example:
@@ -215,10 +218,10 @@ void KernelToFuncPass::ExplicitKernelDataBLockLoadStore(FDRA::KernelOp Kernel)
       AffineMap LoadMap = loadop.getAffineMapAttr().getValue();
       for (unsigned r = 0; r < rank; r++) {
         AffineExpr LoadExpr = LoadMap.getResult(r);
-        llvm::errs() << "[debug] before remove LoadExpr: " << LoadExpr << "\n";
+        // llvm::errs() << "[debug] before remove LoadExpr: " << LoadExpr << "\n";
         // operand_range LoadOperands = loadop.getMapOperands();
         AffineExpr BlockLoadExpr = memExprs[r];
-        llvm::errs() << "[debug] BlockLoadExpr: " << BlockLoadExpr << "\n";       
+        // llvm::errs() << "[debug] BlockLoadExpr: " << BlockLoadExpr << "\n";       
         // llvm::errs() << "[debug] BlockLoadExpr.getKind(): " << BlockLoadExpr.getKind() << "\n";    
         assert((BlockLoadExpr.getKind() == AffineExprKind::DimId ||     // like: d0
                 BlockLoadExpr.getKind() == AffineExprKind::Add   ||     // like: d0 + 32
@@ -234,27 +237,43 @@ void KernelToFuncPass::ExplicitKernelDataBLockLoadStore(FDRA::KernelOp Kernel)
           /// index contains a reference of "%arg9" first. If so, LoadExpr = LoadExpr - BlockLoadExpr
           // check(LoadExpr )
 
-          SmallVector<Value, 1> BlkLoadOperands = getOperandInRank(BlockLoad, r);
-          SmallVector<Value, 4> LoadOperands = getOperandInRank(loadop, r);
+          SmallDenseMap<mlir::Value, unsigned> BlkLoadOperands = getOperandInRank(BlockLoad, r);
+          SmallDenseMap<mlir::Value, unsigned> LoadOperands = getOperandInRank(loadop, r);
           assert(BlkLoadOperands.size() == 1 && "BlockLoadExpr could only contain one dim.");
-          Value BlkLoadOperand = BlkLoadOperands[0];
+          DenseMapPair<mlir::Value, unsigned> BlkLoadOperand = *(BlkLoadOperands.begin());
 
           /// check whether the block Load Operand is contained by Load Operands
-          unsigned input;
-          for(input = 0; input < LoadOperands.size(); input++){
-            if(LoadOperands[input] == BlkLoadOperand)
+          // unsigned input;
+          // llvm::errs() << "[debug] before simplified LoadExpr: " << LoadExpr << "\n";
+          for(DenseMapPair<mlir::Value, unsigned> LoadOperand : LoadOperands){
+            if(LoadOperand.first == BlkLoadOperand.first){
+              assert(MultiplicatorOfDim(LoadExpr, LoadOperand.second) == 
+                      MultiplicatorOfDim(BlockLoadExpr, BlkLoadOperand.second) &&
+                      "Only if the multiplicator equals the dim can be eliminated.");
+              AffineExpr ConstantExpr = getAffineConstantExpr(
+                      MultiplicatorOfDim(LoadExpr, LoadOperand.second), LoadExpr.getContext());
+              LoadExpr = LoadExpr -
+                getAffineDimExpr(LoadOperand.second, LoadExpr.getContext()) * ConstantExpr;
               break;
-          }
-
-          /// Tofix: maybe in different dim
-          if(input != LoadOperands.size()){ /// find the block Load Operand in operand of loadOp
-            for(unsigned dim = 0; dim < BlockLoad.getMapOperands().size(); dim++){
-              if(BlockLoadExpr.isFunctionOfDim(dim) 
-                &&LoadExpr.isFunctionOfDim(dim) ){
-                LoadExpr = LoadExpr - BlockLoadExpr;
-              }
             }
           }
+          LoadExpr = simplifyAffineExpr(LoadExpr, LoadMap.getNumDims(), LoadMap.getNumSymbols());
+          // llvm::errs() << "[debug] after simplified LoadExpr: " << LoadExpr << "\n";
+          /// fixed: maybe in different dim 
+          // if(input != LoadOperands.size()){ /// find the block Load Operand in operand of loadOp
+          //   for(unsigned dim = 0; dim < BlockLoad.getMapOperands().size(); dim++){
+          //     if(BlockLoadExpr.isFunctionOfDim(dim) 
+          //       &&LoadExpr.isFunctionOfDim(dim) ){
+          //       LoadExpr = LoadExpr - BlockLoadExpr;
+          //     }
+          //   }
+          //   // for(auto operand : LoadOperands){
+          //   //   auto operand = LoadOperands[i];
+          //   //   if(operand == BlkLoadOperand){
+                
+          //   //   }
+          //   // }
+          // }
         }
         LoadExprs.push_back(LoadExpr);
         llvm::errs() << "[debug] after remove LoadExpr: " << LoadExpr << "\n";
@@ -373,8 +392,10 @@ void KernelToFuncPass::ExplicitKernelDataBLockLoadStore(FDRA::KernelOp Kernel)
     MemRefType newMemRef = MemRefType::get( (ArrayRef<int64_t>)newMemRefShape, memRefType.getElementType());
 
     /// DataBlockLoadOp which is coupled with following DataBlockStoreOp
+    // FDRA::DataBlockLoadOp BlockLoad = builder.create<FDRA::DataBlockLoadOp>\
+    //             (Kernel.getLoc(), memref, memIVmap, IVs, newMemRef);
     FDRA::DataBlockLoadOp BlockLoad = builder.create<FDRA::DataBlockLoadOp>\
-                (Kernel.getLoc(), memref, memIVmap, IVs, newMemRef);
+                (Kernel.getLoc(), memref, memIVmap, IVs, memRefType);
     Kernel.getOperation()->getBlock()->push_back(BlockLoad);
     BlockLoad.getOperation()->moveBefore(Kernel);
     BlockLoad.setKernelName(Kernel.getKernelName());
@@ -428,28 +449,27 @@ void KernelToFuncPass::ExplicitKernelDataBLockLoadStore(FDRA::KernelOp Kernel)
             /// If BlockLoadExpr is : "%arg9" or "%arg9 + 32", we need to judge whether loadOp's 
             /// index contains a reference of "%arg9" first. If so, StoreExpr = StoreExpr - BlockLoadExpr;
             // check(LoadExpr )
-
-            SmallVector<Value, 1> BlkLoadOperands = getOperandInRank(BlockLoad, r);
-            SmallVector<Value, 4> StoreOperands = getOperandInRank(storeop, r);
+        
+            SmallDenseMap<mlir::Value, unsigned> BlkLoadOperands = getOperandInRank(BlockLoad, r);
+            SmallDenseMap<mlir::Value, unsigned> StoreOperands = getOperandInRank(storeop, r);
             assert(BlkLoadOperands.size() == 1 && "BlockLoadExpr could only contain one dim.");
-            Value BlkLoadOperand = BlkLoadOperands[0];
+            DenseMapPair<mlir::Value, unsigned> BlkLoadOperand = *(BlkLoadOperands.begin());
 
             /// check whether the block Load Operand is contained by Load Operands
             unsigned input;
-            for(input = 0; input < StoreOperands.size(); input++){
-              if(StoreOperands[input] == BlkLoadOperand)
+            for(DenseMapPair<mlir::Value, unsigned> StoreOperand : StoreOperands){
+              if(StoreOperand.first == BlkLoadOperand.first){
+                assert(MultiplicatorOfDim(StoreExpr, StoreOperand.second) == 
+                      MultiplicatorOfDim(BlockLoadExpr, BlkLoadOperand.second) &&
+                      "Only if the multiplicator equals the dim can be eliminated.");
+                AffineExpr ConstantExpr = getAffineConstantExpr(
+                      MultiplicatorOfDim(StoreExpr, StoreOperand.second), StoreExpr.getContext());
+                StoreExpr = StoreExpr -
+                    getAffineDimExpr(StoreOperand.second, StoreExpr.getContext()) * ConstantExpr;
                 break;
-            }
-
-            /// Tofix: maybe in different dim
-            if(input != StoreOperands.size()){ /// find the block Load Operand in operand of loadOp
-              for( unsigned dim = 0; dim < BlockLoad.getMapOperands().size(); dim++){
-                if(BlockLoadExpr.isFunctionOfDim(dim) 
-                  &&StoreExpr.isFunctionOfDim(dim) ){
-                  StoreExpr = StoreExpr - BlockLoadExpr;
-                }
               }
             }
+            StoreExpr = simplifyAffineExpr(StoreExpr, StoreMap.getNumDims(),StoreMap.getNumSymbols());
           }
           StoreExprs.push_back(StoreExpr);
         }
@@ -474,7 +494,7 @@ void KernelToFuncPass::EliminateOuterLoopAffineTrans(FDRA::KernelOp Kernel)
 
   /// Step 1:
   /// Check: whether the affine transformation of most-out loop can be eliminated.
-  /// Get the IV which is out of kernel and is used in Kernel
+  /// Get the IV which is out of kernel and is used in kernel
   Kernel.walk([&](Operation *op)
   { 
     if((op->getName().getStringRef()== AffineLoadOp::getOperationName()  ||
@@ -581,15 +601,15 @@ void KernelToFuncPass::runOnOperation()
       ///////////////
       if(ExplicitDataTrans==true){
         /// generate explicit data movement around Kernel{...}
-        // llvm::errs() << "[dubug] Before ExplicitKernelDataBLockLoadStore: \n";topFunc.dump();
+        llvm::errs() << "[dubug] Before ExplicitKernelDataBLockLoadStore: \n";Kernel.dump();
         ExplicitKernelDataBLockLoadStore(Kernel);
-        // llvm::errs() << "[dubug] After ExplicitKernelDataBLockLoadStore: \n";topFunc.dump();
+        llvm::errs() << "[dubug] After ExplicitKernelDataBLockLoadStore: \n";Kernel.dump();
         
         /// Eliminate the affine transformation of the upper/lower bound 
         /// of most-out loop in Kernel{...}
         EliminateOuterLoopAffineTrans(Kernel);
 
-        // llvm::errs() << "[dubug] After ExplicitKernelDataBLockLoadStore, Kernel: \n";Kernel.dump();
+        llvm::errs() << "[dubug] After ExplicitKernelDataBLockLoadStore, Kernel: \n";Kernel.dump();
         /// Remove unused arguments of Kernel's region
         // Kernel.walk([&](Region *region){ removeUnusedRegionArgs(*region); });
       }

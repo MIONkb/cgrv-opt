@@ -143,6 +143,49 @@ AffineExpr mlir::FDRA::getConstPartofAffineExpr(AffineExpr& expr){
 
 
 //===----------------------------------------------------------------------===//
+// MultiplicatorOfDim
+//===----------------------------------------------------------------------===//
+
+signed mlir::FDRA::MultiplicatorOfDim(const AffineExpr& expr, const unsigned dim){
+  if(!expr.isFunctionOfDim(dim))
+    return 0;
+
+  llvm::outs() << "expr: " << expr << "\n";
+  signed Multiplicator = 0;
+  expr.walk([&](AffineExpr subExpr){
+    llvm::outs() << "Sub-expression: " << subExpr << "\n";
+    if(subExpr.isFunctionOfDim(dim)){
+      switch (subExpr.getKind())
+      {
+      case AffineExprKind::DimId : // d1
+        if(Multiplicator==0)
+          Multiplicator = 1;
+        break;
+
+      case AffineExprKind::Mul : // d1 * 2 or 2 * d1
+        if(subExpr.dyn_cast<AffineBinaryOpExpr>().getLHS()==getAffineDimExpr(dim, expr.getContext()) 
+        && subExpr.dyn_cast<AffineBinaryOpExpr>().getRHS().getKind() == AffineExprKind::Constant)
+        {/// if LHS of this subexpr is d1, then the multiplicattor is LHS
+          
+          Multiplicator = subExpr.dyn_cast<AffineBinaryOpExpr>().getRHS()
+                            .dyn_cast<AffineConstantExpr>().getValue();
+        }
+        // constantpart = expr.dyn_cast<AffineBinaryOpExpr>().getRHS();
+        // llvm::errs() << "[debug] const:"<< constantpart <<"\n"; 
+        break;
+  
+      default:
+        // assert(0 && "We just support 2 kinds of expr: DimId, ADD right now!");
+        break;
+      }
+      llvm::outs() << "Multiplicator of dim "<< dim << " :"  << Multiplicator << "\n";
+    }
+    return WalkResult::advance(); // 返回 true，继续遍历子表达式
+  });
+
+  return Multiplicator;
+}
+//===----------------------------------------------------------------------===//
 // removeUnusedRegionArgs
 //===----------------------------------------------------------------------===//
 // void mlir::FDRA::removeUnusedRegionArgs(Region &region){
@@ -176,21 +219,46 @@ void mlir::FDRA::eliminateUnusedIndices(Operation *op) {
   // Get the affine map for the operation.
   AffineMap map;
   ValueRange mapOperands;
+  ::llvm::ArrayRef<int64_t> memrefShape;
   if (auto loadOp = dyn_cast<AffineLoadOp>(op)){
     map = loadOp.getAffineMap();
     mapOperands = loadOp.getIndices();
+    memrefShape = loadOp.getMemref().getType().getShape();
   }
   else if (auto storeOp = dyn_cast<AffineStoreOp>(op)){
     map = storeOp.getAffineMap();
     mapOperands = storeOp.getIndices();
+    memrefShape = storeOp.getMemref().getType().getShape();
   }
   else
     assert("Operation to eliminate unused indices should be AffineStoreOp or AffineLoadOp.");
-  // Get the operands for the operation.
+  llvm::errs() << "[debug] op:" << *op <<"\n";
+  // assert(memrefShape.size() == mapOperands.size());
 
+  // llvm::errs() << "[debug] map:" << map <<"\n";
+  // llvm::errs() << "[debug] map.getNumInputs():" << map.getNumInputs() <<"\n";
+  // llvm::errs() << "[debug] mapOperands.size():" << mapOperands.size() <<"\n";
+  // If one dim of the shape is 1, then set the index of this dim to be constant index 0]
+  SmallVector<AffineExpr, 4> dimReplacements(memrefShape.size());
+  unsigned j = 0;
+  for (unsigned dim = 0; dim < memrefShape.size(); dim++) {
+    if(memrefShape[dim] == 1){
+      dimReplacements[dim] = getAffineConstantExpr(0, map.getContext());
+    }
+    else{
+      dimReplacements[dim] = getAffineDimExpr(dim, map.getContext());
+    }
+    llvm::errs() << "[debug] dimReplacements:" << dimReplacements[dim] <<"\n";
+  }
+  // auto newMap = AffineMap::get(newIndexList.size(), map.getNumSymbols(), map.getResults(), op->getContext());
+  map = map.replaceDimsAndSymbols(dimReplacements, {}, map.getNumDims(), map.getNumSymbols());
+
+  // Get the operands for the operation.
   // Find which indices are used by checking which dimensions appear in the affine map.
   SmallVector<bool, 8> usedIndices(mapOperands.size(), false);
   // llvm::errs() << "[debug] map:" << map <<"\n";
+  // llvm::errs() << "[debug] map.getNumInputs():" << map.getNumInputs() <<"\n";
+  // llvm::errs() << "[debug] mapOperands.size():" << mapOperands.size() <<"\n";
   
   assert(map.getNumInputs() == mapOperands.size() && "map.getNumInputs() should be equal to operands.size().");
   for (unsigned input = 0; input < map.getNumInputs(); ++input) {
@@ -211,22 +279,24 @@ void mlir::FDRA::eliminateUnusedIndices(Operation *op) {
   }
 
   SmallVector<Value, 4> newIndexList;
-  SmallVector<AffineExpr, 4> dimReplacements(map.getNumDims());
-  unsigned j = 0;
+  SmallVector<AffineExpr, 4> dimReplacements2(map.getNumDims());
+  j = 0;
   for (unsigned i = 0; i < mapOperands.size(); ++i) {
     if (usedIndices[i]){
       newIndexList.push_back(mapOperands[i]);
-      dimReplacements[i] = getAffineDimExpr(j++, map.getContext());
+      dimReplacements2[i] = getAffineDimExpr(j++, map.getContext());
     }
     else{
-      dimReplacements[i] = getAffineConstantExpr(0, map.getContext());
+      dimReplacements2[i] = getAffineConstantExpr(0, map.getContext());
     }
   }
 
   // auto newMap = AffineMap::get(newIndexList.size(), map.getNumSymbols(), map.getResults(), op->getContext());
-  map = map.replaceDimsAndSymbols(dimReplacements, {}, j, map.getNumSymbols());
+  map = map.replaceDimsAndSymbols(dimReplacements2, {}, j, map.getNumSymbols());
   // llvm::errs() << "[debug] map after replace:" << map <<"\n";
-
+  // llvm::errs() << "[debug] map:" << map <<"\n";
+  // llvm::errs() << "[debug] map.getNumInputs():" << map.getNumInputs() <<"\n";
+  // llvm::errs() << "[debug] mapOperands.size():" << mapOperands.size() <<"\n";
   // Set the new affine map and index list for the operation.
   if (auto loadOp = dyn_cast<AffineLoadOp>(op)){
     newIndexList.insert(newIndexList.begin(),loadOp.getMemref());
@@ -240,8 +310,6 @@ void mlir::FDRA::eliminateUnusedIndices(Operation *op) {
     storeOp.getOperation()->setAttr(AffineStoreOp::getMapAttrStrName(),AffineMapAttr::get(map)); 
     storeOp.getOperation()->setOperands(newIndexList);  
   }
-
-  // If 
 }
 
 
@@ -253,12 +321,12 @@ void mlir::FDRA::eliminateUnusedIndices(Operation *op) {
 /// @brief return the AffineMap operand used in the rank 
 /// @param op AffineLoadOp or AffineStoreOp or FDRA.BlockLoadOp
 /// @param rank the result rank of the affine map 
-/// @return ValueRange
-SmallVector<Value> mlir::FDRA::getOperandInRank(Operation* op, unsigned rank){
+/// @return SmallDenseMap<mlir::Value, unsigned> : < implemented arguments of dim, dim>
+SmallDenseMap<mlir::Value, unsigned> mlir::FDRA::getOperandInRank(Operation* op, unsigned rank){
   // Get the affine map for the operation.
   AffineMap map;
   ValueRange mapOperands;
-  SmallVector<Value> usedOperands;
+  SmallDenseMap<mlir::Value, unsigned> usedOperands;
   if (auto loadOp = dyn_cast<AffineLoadOp>(op)){
     map = loadOp.getAffineMap();
     mapOperands = loadOp.getIndices();
@@ -276,19 +344,21 @@ SmallVector<Value> mlir::FDRA::getOperandInRank(Operation* op, unsigned rank){
 
   // Find which indices are used by checking which dimensions appear in the affine map.
   SmallVector<bool, 8> usedIndices(mapOperands.size(), false);
-  // llvm::errs() << "[debug] map:" << map <<"\n";
+  llvm::errs() << "[debug] map:" << map <<"\n";
   
   assert(map.getNumInputs() == mapOperands.size() && "map.getNumInputs() should be equal to operands.size().");
   auto result = map.getResult(rank);
+  llvm::errs() << "[debug] result:" << result <<"\n";
   for (unsigned input = 0; input < map.getNumInputs(); ++input) {
     if(result.isFunctionOfDim(input)){
-      usedOperands.push_back(std::move(mapOperands[input]));
+      // usedOperands.push_back(std::move(mapOperands[input]));
+      usedOperands[std::move(mapOperands[input])] = input;
+      llvm::errs() << "[debug] mapOperands[input]:" << mapOperands[input] << ",input:" << input <<"\n";
     }
   }
 
   return usedOperands;
 }
-
 
 //===----------------------------------------------------------------------===//
 // Class FDRA::ForNode
