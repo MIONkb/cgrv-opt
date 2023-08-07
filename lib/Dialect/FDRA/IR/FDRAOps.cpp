@@ -239,8 +239,8 @@ verifyMemoryOpIndexing(Operation *op, AffineMapAttr mapAttr,
   for (auto idx : mapOperands) {
     if (!idx.getType().isIndex())
       return op->emitOpError("index to load must have 'index' type");
-    if (!isValidAffineIndexOperand(idx, scope))
-      return op->emitOpError("index must be a dimension or symbol identifier");
+    // if (!isValidAffineIndexOperand(idx, scope))
+    //   return op->emitOpError("index must be a dimension or symbol identifier");
   }
 
   return success();

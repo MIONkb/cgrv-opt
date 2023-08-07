@@ -1,0 +1,179 @@
+OVERVIEW: SODA optimizer driver
+
+Available Dialects: FDRA, affine, arith, bufferization, builtin, cf, dlti, func, linalg, llvm, math, memref, ml_program, scf, tensor, vector
+USAGE: cgra-opt [options] <input file>
+
+OPTIONS:
+
+Color Options:
+
+  --color                                              - Use colors in output (default=autodetect)
+
+General options:
+
+  --allow-unregistered-dialect                         - Allow operation with no registered dialects
+  --disable-i2p-p2i-opt                                - Disables inttoptr/ptrtoint roundtrip optimization
+  --dump-pass-pipeline                                 - Print the pipeline that will be run
+  --emit-bytecode                                      - Emit bytecode when generating output
+  --emit-bytecode-version=<value>                      - Use specified bytecode when generating output
+  Compiler passes to run
+    Passes:
+      --affine-data-copy-generate                      -   Generate explicit copying for affine memory operations
+        --fast-mem-capacity=<ulong>                    - Set fast memory space capacity in KiB (default: unlimited)
+        --fast-mem-space=<uint>                        - Fast memory space identifier for copy generation (default: 1)
+        --generate-dma                                 - Generate DMA instead of point-wise copy
+        --min-dma-transfer=<int>                       - Minimum DMA transfer size supported by the target in bytes
+        --skip-non-unit-stride-loops                   - Testing purposes: avoid non-unit stride loop choice depths for copy placement
+        --slow-mem-space=<uint>                        - Slow memory space identifier for copy generation (default: 0)
+        --tag-mem-space=<uint>                         - Tag memory space identifier for copy generation (default: 0)
+      --affine-loop-fusion                             -   Fuse affine loop nests
+        --fusion-compute-tolerance=<number>            - Fractional increase in additional computation tolerated while fusing
+        --fusion-fast-mem-space=<uint>                 - Faster memory space number to promote fusion buffers to
+        --fusion-local-buf-threshold=<ulong>           - Threshold size (KiB) for promoting local buffers to fast memory space
+        --fusion-maximal                               - Enables maximal loop fusion
+        --mode=<value>                                 - fusion mode to attempt
+    =greedy                                      -   Perform greedy (both producer-consumer and sibling)  fusion
+    =producer                                    -   Perform only producer-consumer fusion
+    =sibling                                     -   Perform only sibling fusion
+      --affine-loop-invariant-code-motion              -   Hoist loop invariant instructions outside of affine loops
+      --affine-loop-normalize                          -   Apply normalization transformations to affine loop-like ops
+        --promote-single-iter                          - Promote single iteration loops
+      --affine-loop-tile                               -   Tile affine loop nests
+        --cache-size=<ulong>                           - Set size of cache to tile for in KiB (default: 512)
+        --separate                                     - Separate full and partial tiles (default: false)
+        --tile-size=<uint>                             - Use this tile size for all loops
+        --tile-sizes=<uint>                            - List of tile sizes for each perfect nest (overridden by -tile-size)
+      --affine-loop-unroll                             -   Unroll affine loops
+        --cleanup-unroll                               - Fully unroll the cleanup loop when possible.
+        --unroll-factor=<uint>                         - Use this unroll factor for all loops being unrolled
+        --unroll-full                                  - Fully unroll loops
+        --unroll-full-threshold=<uint>                 - Unroll all loops with trip count less than or equal to this
+        --unroll-num-reps=<uint>                       - Unroll innermost loops repeatedly this many times
+        --unroll-up-to-factor                          - Allow unrolling up to the factor specified
+      --affine-loop-unroll-jam                         -   Unroll and jam affine loops
+        --unroll-jam-factor=<uint>                     - Use this unroll jam factor for all loops (default 4)
+      --affine-scalrep                                 -   Replace affine memref accesses by scalars by forwarding stores to loads and eliminating redundant loads
+      --affine-simplify-structures                     -   Simplify affine expressions in maps/sets and normalize memrefs
+      --arith-expand                                   -   Legalize Arith ops to be convertible to LLVM.
+        --include-bf16                                 - Enable the BF16 expansion patterns
+      --canonicalize                                   -   Canonicalize operations
+        --disable-patterns=<string>                    - Labels of patterns that should be filtered out during application
+        --enable-patterns=<string>                     - Labels of patterns that should be used during application, all other patterns are filtered out
+        --max-iterations=<long>                        - Max. iterations between applying patterns / simplifying regions
+        --max-num-rewrites=<long>                      - Max. number of pattern rewrites within an iteration
+        --region-simplify                              - Perform control flow optimizations to the region tree
+        --test-convergence                             - Test only: Fail pass on non-convergence to detect cyclic pattern
+        --top-down                                     - Seed the worklist in general top-down order
+      --convert-arith-to-llvm                          -   Convert Arith dialect to LLVM dialect
+        --index-bitwidth=<uint>                        - Bitwidth of the index type, 0 to use size of machine word
+      --convert-elementwise-to-linalg                  -   Convert ElementwiseMappable ops to linalg
+      --convert-func-to-llvm                           -   Convert from the Func dialect to the LLVM dialect
+        --data-layout=<string>                         - String description (LLVM format) of the data layout that is expected on the produced module
+        --index-bitwidth=<uint>                        - Bitwidth of the index type, 0 to use size of machine word
+        --use-bare-ptr-memref-call-conv                - Replace FuncOp's MemRef arguments with bare pointers to the MemRef element types
+        --use-opaque-pointers                          - Generate LLVM IR using opaque pointers instead of typed pointers
+      --convert-linalg-to-affine-loops                 -   Lower the operations from the linalg dialect into affine loops
+      --convert-linalg-to-loops                        -   Lower the operations from the linalg dialect into loops
+      --convert-linalg-to-parallel-loops               -   Lower the operations from the linalg dialect into parallel loops
+      --convert-linalg-to-std                          -   Convert the operations from the linalg dialect into the Standard dialect
+      --convert-math-to-libm                           -   Convert Math dialect to libm calls
+      --convert-math-to-llvm                           -   Convert Math dialect to LLVM dialect
+        --approximate-log1p                            - Enable approximation of Log1p.
+      --convert-scf-to-cf                              -   Convert SCF dialect to ControlFlow dialect, replacing structured control flow with a CFG
+      --cse                                            -   Eliminate common sub-expressions
+      --fdra-adjust-kernel-mem-footprint               -   Adjust(partition) kernels' memory footprint to apply to customized cachesize
+        --access-pattern                               - Set the memory access method to affine pattern(default: general pattern)
+        --cachesize=<uint>                             - Set a cachesize(Kib) for kernel to be iterated(default to be 512Kib)
+        --disable-remainder-block                      - Disable make remainder during loop strip-mining
+        --singlearraysize=<uint>                       - Set a cachesize(Kib) constrain for a single array or tensor in a kernel(default to be the same with Cachesize_Kib)
+      --fdra-approximate-math                          -   Approximate math op with a combination of arith ops
+      --fdra-auto-dse                                  -   design space explore for application frontend optimization
+        --cdfg-pass-so=<string>                        - File path: the llvm shared library(.so) of DFG generator(app-compiler)
+        --cgra-adg=<string>                            - File path: target cgra backend ADG(Architecture Description Graph)
+      --fdra-convert-kernelcall-to-llvm                -   lower fdra's kernelcall op to LLVM dialect
+      --fdra-convert-loadstore-to-scf                  -   lower fdra's blockload/store op to SCF dialect
+      --fdra-extract-affine-for-to-kernel              -   Extract all AffineFor in a FuncOp to a FDRA.KernelOp
+      --fdra-extract-kernel-to-function                -   Extract all FDRA.KernelOp and its region to a single func with explicit arguments
+        --kernel-explicit-datablock-trans              - This Option (Default:Ture) will generate explict data block loads/stores ,and interface of Kernel Func won't contain affine-transformed loop Index arguments.
+        --kernel-gen-dir=<string>                      - Kernels will not be generated unless the dir path is set
+      --fdra-hoist-loadstore                           -   Hoist inner affine.load/store operations to outer level to decrease memmory accesses
+      --fdra-loop-dfg-gen                              -   Generate cdfg of FDRA from a for-loop
+      --fdra-test-print-nesting                        -   Print op nesting information
+        --option-name=<ulong>                          - Description of the option
+      --finalize-memref-to-llvm                        -   Finalize MemRef dialect to LLVM dialect conversion
+        --index-bitwidth=<uint>                        - Bitwidth of the index type, 0 to use size of machine word
+        --use-aligned-alloc                            - Use aligned_alloc in place of malloc for heap allocations
+        --use-generic-functions                        - Use generic allocation and deallocation functions instead of the classic 'malloc', 'aligned_alloc' and 'free' functions
+        --use-opaque-pointers                          - Generate LLVM IR using opaque pointers instead of typed pointers
+      --inline                                         -   Inline function calls
+        --default-pipeline=<string>                    - The default optimizer pipeline used for callables
+        --max-iterations=<uint>                        - Maximum number of iterations when inlining within an SCC
+        --op-pipelines=<pass-manager>                  - Callable operation specific optimizer pipelines (in the form of `dialect.op(pipeline)`)
+      --linalg-bufferize                               -   Bufferize the linalg dialect
+      --linalg-detensorize                             -   Detensorize linalg ops
+        --aggressive-mode                              - Detensorize all ops that qualify for detensoring along with branch operands and basic-block arguments.
+      --linalg-fold-unit-extent-dims                   -   Remove unit-extent dimension in Linalg ops on tensors
+        --use-rank-reducing-slices                     - Generate rank-reducing slices instead of reassociative reshapes
+      --linalg-fuse-elementwise-ops                    -   Fuse elementwise operations on tensors
+      --linalg-generalize-named-ops                    -   Convert named ops into generic ops
+      --linalg-inline-scalar-operands                  -   Inline scalar operands into linalg generic ops
+      --linalg-named-op-conversion                     -   Convert from one named linalg op to another.
+      --lower-affine                                   -   Lower Affine operations to a combination of Standard and SCF operations
+      --memref-expand                                  -   Legalize memref operations to be convertible to LLVM.
+      --normalize-memrefs                              -   Normalize memrefs
+      --promote-buffers-to-stack                       -   Promotes heap-based allocations to automatically managed stack-based allocations
+        --max-alloc-size-in-bytes=<uint>               - Maximal size in bytes to promote allocations to stack.
+        --max-rank-of-allocated-memref=<uint>          - Maximal memref rank to promote dynamic buffers.
+      --reconcile-unrealized-casts                     -   Simplify and eliminate unrealized conversion casts
+      --scf-for-loop-canonicalization                  -   Canonicalize operations within scf.for loop bodies
+      --test-loop-permutation                          -   Tests affine loop permutation utility
+        --permutation-map=<uint>                       - Specify the loop permutation
+  --irdl-file=<filename>                               - IRDL file to register before processing the input
+  --load-dialect-plugin=<string>                       - Load dialects from plugin library
+  --load-pass-plugin=<string>                          - Load passes from plugin library
+  --log-actions-to=<string>                            - Log action execution to a file, or stderr if  '-' is passed
+  --log-mlir-actions-filter=<string>                   - Comma separated list of locations to filter actions from logging
+  --mlir-debug-counter=<string>                        - Comma separated list of debug counter skip and count arguments
+  --mlir-disable-threading                             - Disable multi-threading within MLIR, overrides any further call to MLIRContext::enableMultiThreading()
+  --mlir-elide-elementsattrs-if-larger=<uint>          - Elide ElementsAttrs with "..." that have more elements than the given upper limit
+  --mlir-enable-debugger-hook                          - Enable Debugger hook for debugging MLIR Actions
+  --mlir-pass-pipeline-crash-reproducer=<string>       - Generate a .mlir reproducer file at the given output path if the pass manager crashes or fails
+  --mlir-pass-pipeline-local-reproducer                - When generating a crash reproducer, attempt to generated a reproducer with the smallest pipeline.
+  --mlir-pass-statistics                               - Display the statistics of each pass
+  --mlir-pass-statistics-display=<value>               - Display method for pass statistics
+    =list                                              -   display the results in a merged list sorted by pass name
+    =pipeline                                          -   display the results with a nested pipeline view
+  --mlir-pretty-debuginfo                              - Print pretty debug info in MLIR output
+  --mlir-print-debug-counter                           - Print out debug counter information after all counters have been accumulated
+  --mlir-print-debuginfo                               - Print debug info in MLIR output
+  --mlir-print-elementsattrs-with-hex-if-larger=<long> - Print DenseElementsAttrs with a hex string that have more elements than the given upper limit (use -1 to disable)
+  --mlir-print-ir-after=<pass-arg>                     - Print IR after specified passes
+  --mlir-print-ir-after-all                            - Print IR after each pass
+  --mlir-print-ir-after-change                         - When printing the IR after a pass, only print if the IR changed
+  --mlir-print-ir-after-failure                        - When printing the IR after a pass, only print if the pass failed
+  --mlir-print-ir-before=<pass-arg>                    - Print IR before specified passes
+  --mlir-print-ir-before-all                           - Print IR before each pass
+  --mlir-print-ir-module-scope                         - When printing IR for print-ir-[before|after]{-all} always print the top-level operation
+  --mlir-print-local-scope                             - Print with local scope and inline information (eliding aliases for attributes, types, and locations
+  --mlir-print-op-on-diagnostic                        - When a diagnostic is emitted on an operation, also print the operation as an attached note
+  --mlir-print-stacktrace-on-diagnostic                - When a diagnostic is emitted, also print the stack trace as an attached note
+  --mlir-print-value-users                             - Print users of operation results and block arguments as a comment
+  --mlir-timing                                        - Display execution times
+  --mlir-timing-display=<value>                        - Display method for timing data
+    =list                                              -   display the results in a list sorted by total time
+    =tree                                              -   display the results ina with a nested tree view
+  --no-implicit-module                                 - Disable implicit addition of a top-level module op during parsing
+  -o <filename>                                        - Output filename
+  --pass-pipeline=<string>                             - Textual description of the pass pipeline to run
+  --run-reproducer                                     - Run the pipeline stored in the reproducer
+  --show-dialects                                      - Print the list of registered dialects and exit
+  --split-input-file                                   - Split the input file into pieces and process each chunk independently
+  --verify-diagnostics                                 - Check that emitted diagnostics match expected-* lines on the corresponding line
+  --verify-each                                        - Run the verifier after each transformation pass
+  --verify-roundtrip                                   - Round-trip the IR after parsing and ensure it succeeds
+
+Generic Options:
+
+  --help                                               - Display available options (--help-hidden for more)
+  --help-list                                          - Display list of available options (--help-list-hidden for more)
+  --version                                            - Display the version of this program

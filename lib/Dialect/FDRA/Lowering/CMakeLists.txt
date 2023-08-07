@@ -1,6 +1,7 @@
 add_mlir_conversion_library(MLIRFDRALowerings
   KernelCallToLLVM.cpp
   ApproximateMathWithArith.cpp
+  FDRAToSCF.cpp
 
   ADDITIONAL_HEADER_DIRS
   ${PROJ_INCLUDE_DIR}/RAAA/Dialect/FDRA/Lowering

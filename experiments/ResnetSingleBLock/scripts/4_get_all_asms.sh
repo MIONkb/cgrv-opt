@@ -117,7 +117,7 @@ cgra-opt -promote-buffers-to-stack --arith-expand --memref-expand  \
  --convert-arith-to-llvm \
  --fdra-convert-kernelcall-to-llvm \
  -convert-func-to-llvm=use-bare-ptr-memref-call-conv \
- -convert-memref-to-llvm \
+ -finalize-memref-to-llvm \
  --reconcile-unrealized-casts \
  $rootfolder/2_host.mlir -o $rootfolder/"3_${func_name}_llvm.mlir" \
  --mlir-print-ir-after-all 2>&1 | cat > "3_intermediate_${func_name}_llvm.mlir"

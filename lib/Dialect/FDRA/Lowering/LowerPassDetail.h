@@ -8,6 +8,7 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "RAAA/Dialect/FDRA/IR/FDRA.h"
+#include "mlir/Dialect/SCF/IR/SCF.h"
 
 namespace mlir {
 // namespace FDRA {

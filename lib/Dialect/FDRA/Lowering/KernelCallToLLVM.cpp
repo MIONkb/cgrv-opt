@@ -1,15 +1,4 @@
-//===- FuncToLLVM.cpp - Func to LLVM dialect conversion -------------------===//
-//
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-//
-//===----------------------------------------------------------------------===//
-//
-// This file implements a pass to convert MLIR Func and builtin dialects
-// into the LLVM IR dialect.
-//
-//===----------------------------------------------------------------------===//
+//===- FDRAKernelCallToLLVM.cpp - FDRA to LLVM dialect conversion -------------------===//
 
 
 #include "mlir/Analysis/DataLayoutAnalysis.h"
@@ -24,6 +13,9 @@
 #include "mlir/Dialect/LLVMIR/FunctionCallUtils.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/Utils/StaticValueUtils.h"
+#include "mlir/Dialect/Affine/IR/AffineOps.h"
+#include "mlir/Dialect/MemRef/IR/MemRef.h"
+#include "mlir/Dialect/Affine/Utils.h"
 #include "mlir/IR/Attributes.h"
 // #include "mlir/IR/BlockAndValueMapping.h"
 #include "mlir/IR/Builders.h"
@@ -85,212 +77,6 @@ static void filterFuncAttributes(func::FuncOp func, bool filterArgAndResAttrs,
     result.push_back(attr);
   }
 }
-
-/// Helper function for wrapping all attributes into a single DictionaryAttr
-// static auto wrapAsStructAttrs(OpBuilder &b, ArrayAttr attrs) {
-//   return DictionaryAttr::get(
-//       b.getContext(),
-//       b.getNamedAttr(LLVM::LLVMDialect::getStructAttrsAttrName(), attrs));
-// }
-
-// /// Combines all result attributes into a single DictionaryAttr
-// /// and prepends to argument attrs.
-// /// This is intended to be used to format the attributes for a C wrapper
-// /// function when the result(s) is converted to the first function argument
-// /// (in the multiple return case, all returns get wrapped into a single
-// /// argument). The total number of argument attributes should be equal to
-// /// (number of function arguments) + 1.
-// static void
-// prependResAttrsToArgAttrs(OpBuilder &builder,
-//                           SmallVectorImpl<NamedAttribute> &attributes,
-//                           size_t numArguments) {
-//   auto allAttrs = SmallVector<mlir::Attribute>(
-//       numArguments + 1, DictionaryAttr::get(builder.getContext()));
-//   NamedAttribute *argAttrs = nullptr;
-//   for (auto *it = attributes.begin(); it != attributes.end();) {
-//     if (it->getName() == FunctionOpInterface::getArgDictAttrName()) {
-//       auto arrayAttrs = it->getValue().cast<ArrayAttr>();
-//       assert(arrayAttrs.size() == numArguments &&
-//              "Number of arg attrs and args should match");
-//       std::copy(arrayAttrs.begin(), arrayAttrs.end(), allAttrs.begin() + 1);
-//       argAttrs = it;
-//     } else if (it->getName() == FunctionOpInterface::getResultDictAttrName()) {
-//       auto arrayAttrs = it->getValue().cast<ArrayAttr>();
-//       assert(!arrayAttrs.empty() && "expected array to be non-empty");
-//       allAttrs[0] = (arrayAttrs.size() == 1)
-//                         ? arrayAttrs[0]
-//                         : wrapAsStructAttrs(builder, arrayAttrs);
-//       it = attributes.erase(it);
-//       continue;
-//     }
-//     it++;
-//   }
-
-//   auto newArgAttrs =
-//       builder.getNamedAttr(FunctionOpInterface::getArgDictAttrName(),
-//                            builder.getArrayAttr(allAttrs));
-//   if (!argAttrs) {
-//     attributes.emplace_back(newArgAttrs);
-//     return;
-//   }
-//   *argAttrs = newArgAttrs;
-// }
-
-// /// Creates an auxiliary function with pointer-to-memref-descriptor-struct
-// /// arguments instead of unpacked arguments. This function can be called from C
-// /// by passing a pointer to a C struct corresponding to a memref descriptor.
-// /// Similarly, returned memrefs are passed via pointers to a C struct that is
-// /// passed as additional argument.
-// /// Internally, the auxiliary function unpacks the descriptor into individual
-// /// components and forwards them to `newFuncOp` and forwards the results to
-// /// the extra arguments.
-// static void wrapForExternalCallers(OpBuilder &rewriter, Location loc,
-//                                    LLVMTypeConverter &typeConverter,
-//                                    func::FuncOp funcOp,
-//                                    LLVM::LLVMFuncOp newFuncOp) {
-//   auto type = funcOp.getFunctionType();
-//   SmallVector<NamedAttribute, 4> attributes;
-//   filterFuncAttributes(funcOp->getAttrs(), /*filterArgAndResAttrs=*/false,
-//                        attributes);
-//   auto [wrapperFuncType, resultIsNowArg] =
-//       typeConverter.convertFunctionTypeCWrapper(type);
-//   if (resultIsNowArg)
-//     prependResAttrsToArgAttrs(rewriter, attributes, funcOp.getNumArguments());
-//   auto wrapperFuncOp = rewriter.create<LLVM::LLVMFuncOp>(
-//       loc, llvm::formatv("_mlir_ciface_{0}", funcOp.getName()).str(),
-//       wrapperFuncType, LLVM::Linkage::External, /*dsoLocal*/ false,
-//       /*cconv*/ LLVM::CConv::C, attributes);
-
-//   OpBuilder::InsertionGuard guard(rewriter);
-//   rewriter.setInsertionPointToStart(wrapperFuncOp.addEntryBlock());
-
-//   SmallVector<mlir::Value, 8> args;
-//   size_t argOffset = resultIsNowArg ? 1 : 0;
-//   for (auto &en : llvm::enumerate(type.getInputs())) {
-//     mlir::Value arg = wrapperFuncOp.getArgument(en.index() + argOffset);
-//     if (auto memrefType = en.value().dyn_cast<MemRefType>()) {
-//       mlir::Value loaded = rewriter.create<LLVM::LoadOp>(loc, arg);
-//       MemRefDescriptor::unpack(rewriter, loc, loaded, memrefType, args);
-//       continue;
-//     }
-//     if (en.value().isa<UnrankedMemRefType>()) {
-//       mlir::Value loaded = rewriter.create<LLVM::LoadOp>(loc, arg);
-//       UnrankedMemRefDescriptor::unpack(rewriter, loc, loaded, args);
-//       continue;
-//     }
-
-//     args.push_back(arg);
-//   }
-
-//   auto call = rewriter.create<LLVM::CallOp>(loc, newFuncOp, args);
-
-//   if (resultIsNowArg) {
-//     rewriter.create<LLVM::StoreOp>(loc, call.getResult(),
-//                                    wrapperFuncOp.getArgument(0));
-//     rewriter.create<LLVM::ReturnOp>(loc, ValueRange{});
-//   } else {
-//     rewriter.create<LLVM::ReturnOp>(loc, call.getResults());
-//   }
-// }
-
-// /// Creates an auxiliary function with pointer-to-memref-descriptor-struct
-// /// arguments instead of unpacked arguments. Creates a body for the (external)
-// /// `newFuncOp` that allocates a memref descriptor on stack, packs the
-// /// individual arguments into this descriptor and passes a pointer to it into
-// /// the auxiliary function. If the result of the function cannot be directly
-// /// returned, we write it to a special first argument that provides a pointer
-// /// to a corresponding struct. This auxiliary external function is now
-// /// compatible with functions defined in C using pointers to C structs
-// /// corresponding to a memref descriptor.
-// static void wrapExternalFunction(OpBuilder &builder, Location loc,
-//                                  LLVMTypeConverter &typeConverter,
-//                                  func::FuncOp funcOp,
-//                                  LLVM::LLVMFuncOp newFuncOp) {
-//   OpBuilder::InsertionGuard guard(builder);
-
-//   auto [wrapperType, resultIsNowArg] =
-//       typeConverter.convertFunctionTypeCWrapper(funcOp.getFunctionType());
-//   // This conversion can only fail if it could not convert one of the argument
-//   // types. But since it has been applied to a non-wrapper function before, it
-//   // should have failed earlier and not reach this point at all.
-//   assert(wrapperType && "unexpected type conversion failure");
-
-//   SmallVector<NamedAttribute, 4> attributes;
-//   filterFuncAttributes(funcOp->getAttrs(), /*filterArgAndResAttrs=*/false,
-//                        attributes);
-
-//   if (resultIsNowArg)
-//     prependResAttrsToArgAttrs(builder, attributes, funcOp.getNumArguments());
-//   // Create the auxiliary function.
-//   auto wrapperFunc = builder.create<LLVM::LLVMFuncOp>(
-//       loc, llvm::formatv("_mlir_ciface_{0}", funcOp.getName()).str(),
-//       wrapperType, LLVM::Linkage::External, /*dsoLocal*/ false,
-//       /*cconv*/ LLVM::CConv::C, attributes);
-
-//   builder.setInsertionPointToStart(newFuncOp.addEntryBlock());
-
-//   // Get a ValueRange containing arguments.
-//   mlir::FunctionType type = funcOp.getFunctionType();
-//   SmallVector<mlir::Value, 8> args;
-//   args.reserve(type.getNumInputs());
-//   ValueRange wrapperArgsRange(newFuncOp.getArguments());
-
-//   if (resultIsNowArg) {
-//     // Allocate the struct on the stack and pass the pointer.
-//     Type resultType =
-//         wrapperType.cast<LLVM::LLVMFunctionType>().getParamType(0);
-//     mlir::Value one = builder.create<LLVM::ConstantOp>(
-//         loc, typeConverter.convertType(builder.getIndexType()),
-//         builder.getIntegerAttr(builder.getIndexType(), 1));
-//     mlir::Value result = builder.create<LLVM::AllocaOp>(loc, resultType, one);
-//     args.push_back(result);
-//   }
-
-//   // Iterate over the inputs of the original function and pack values into
-//   // memref descriptors if the original type is a memref.
-//   for (auto &en : llvm::enumerate(type.getInputs())) {
-//     mlir::Value arg;
-//     int numToDrop = 1;
-//     auto memRefType = en.value().dyn_cast<MemRefType>();
-//     auto unrankedMemRefType = en.value().dyn_cast<UnrankedMemRefType>();
-//     if (memRefType || unrankedMemRefType) {
-//       numToDrop = memRefType
-//                       ? MemRefDescriptor::getNumUnpackedValues(memRefType)
-//                       : UnrankedMemRefDescriptor::getNumUnpackedValues();
-//       mlir::Value packed =
-//           memRefType
-//               ? MemRefDescriptor::pack(builder, loc, typeConverter, memRefType,
-//                                        wrapperArgsRange.take_front(numToDrop))
-//               : UnrankedMemRefDescriptor::pack(
-//                     builder, loc, typeConverter, unrankedMemRefType,
-//                     wrapperArgsRange.take_front(numToDrop));
-
-//       auto ptrTy = LLVM::LLVMPointerType::get(packed.getType());
-//       mlir::Value one = builder.create<LLVM::ConstantOp>(
-//           loc, typeConverter.convertType(builder.getIndexType()),
-//           builder.getIntegerAttr(builder.getIndexType(), 1));
-//       mlir::Value allocated =
-//           builder.create<LLVM::AllocaOp>(loc, ptrTy, one, /*alignment=*/0);
-//       builder.create<LLVM::StoreOp>(loc, packed, allocated);
-//       arg = allocated;
-//     } else {
-//       arg = wrapperArgsRange[0];
-//     }
-
-//     args.push_back(arg);
-//     wrapperArgsRange = wrapperArgsRange.drop_front(numToDrop);
-//   }
-//   assert(wrapperArgsRange.empty() && "did not map some of the arguments");
-
-//   auto call = builder.create<LLVM::CallOp>(loc, wrapperFunc, args);
-
-//   if (resultIsNowArg) {
-//     mlir::Value result = builder.create<LLVM::LoadOp>(loc, args.front());
-//     builder.create<LLVM::ReturnOp>(loc, result);
-//   } else {
-//     builder.create<LLVM::ReturnOp>(loc, call.getResults());
-//   }
-// }
 
 namespace {
 
@@ -426,39 +212,6 @@ protected:
     return newFuncOp;
   }
 };
-
-/// FuncOp legalization pattern that converts MemRef arguments to pointers to
-/// MemRef descriptors (LLVM struct data types) containing all the MemRef type
-/// information.
-// static struct FuncOpConversion : public FuncOpConversionBase {
-//   FuncOpConversion(LLVMTypeConverter &converter)
-//       : FuncOpConversionBase(converter) {}
-
-//   LogicalResult
-//   matchAndRewrite(func::FuncOp funcOp, OpAdaptor adaptor,
-//                   ConversionPatternRewriter &rewriter) const override {
-//     auto newFuncOp = convertFuncOpToLLVMFuncOp(funcOp, rewriter);
-//     if (!newFuncOp)
-//       return failure();
-
-//     if (funcOp->getAttrOfType<UnitAttr>(
-//             LLVM::LLVMDialect::getEmitCWrapperAttrName())) {
-//       if (newFuncOp.isVarArg())
-//         return funcOp->emitError("C interface for variadic functions is not "
-//                                  "supported yet.");
-
-//       // if (newFuncOp.isExternal())
-//       //   wrapExternalFunction(rewriter, funcOp.getLoc(), *getTypeConverter(),
-//       //                        funcOp, newFuncOp);
-//       // else
-//       //   wrapForExternalCallers(rewriter, funcOp.getLoc(), *getTypeConverter(),
-//       //                          funcOp, newFuncOp);
-//     }
-
-//     rewriter.eraseOp(funcOp);
-//     return success();
-//   }
-// };
 
 /// FuncOp legalization pattern that converts MemRef arguments to bare pointers
 /// to the MemRef element type. This will impact the calling convention and ABI.
@@ -714,28 +467,42 @@ struct ReturnOpLowering : public ConvertOpToLLVMPattern<func::ReturnOp> {
     return success();
   }
 };
+
+/// Apply the affine map from an 'affine.load' operation to its operands, and
+/// feed the results to a newly created 'memref.load' operation (which replaces
+/// the original 'affine.load').
+struct BlockLoadOpLowering : public ConvertOpToLLVMPattern<FDRA::DataBlockLoadOp> {
+public:
+  using ConvertOpToLLVMPattern<FDRA::DataBlockLoadOp>::ConvertOpToLLVMPattern;
+
+  LogicalResult matchAndRewrite(FDRA::DataBlockLoadOp op, OpAdaptor adaptor,
+                                ConversionPatternRewriter &rewriter) const override {
+    // Expand affine map from 'affineLoadOp'.
+    // SmallVector<Value> indices(op.getMapOperands());
+    auto resultOperands =
+        ::mlir::affine::expandAffineMap(rewriter, op.getLoc(), op.getAffineMap(), op.getMapOperands());
+    llvm::errs() << "[debug] op: " << op << "\n";
+    for(auto oper : *resultOperands){
+      llvm::errs() << "[debug] oper: " << oper << "\n";
+    }
+    if (!resultOperands)
+      return failure();
+    auto type = op.getMemRefType();
+
+    /// Follow the process of lowering memref loadop to llvm
+    memref::LoadOp loadop = rewriter.create<memref::LoadOp>(op.getLoc(), op.getOriginalMemref(), *resultOperands);
+    Value dataPtr =
+        getStridedElementPtr(loadop.getLoc(), type, loadop.getMemref(),
+                             loadop.getIndices(), rewriter);
+    llvm::errs() << "[debug] dataPtr: " << dataPtr << "\n";
+
+
+
+    return success();
+  }
+};
+
 } // namespace
-
-// void mlir::populateFuncToLLVMFuncOpConversionPattern(
-//     LLVMTypeConverter &converter, RewritePatternSet &patterns) {
-//   if (converter.getOptions().useBarePtrCallConv)
-//     patterns.add<BarePtrFuncOpConversion>(converter);
-//   else
-//     patterns.add<FuncOpConversion>(converter);
-// }
-
-// void mlir::populateFuncToLLVMConversionPatterns(LLVMTypeConverter &converter,
-//                                                 RewritePatternSet &patterns) {
-//   populateFuncToLLVMFuncOpConversionPattern(converter, patterns);
-//   // clang-format off
-//   patterns.add<KernelCallOpLowering>(converter);
-//       // KernelCallOpInterfaceLowering
-//       // ConstantOpLowering,
-//       // ReturnOpLowering
-
-//   // clang-format on
-// }
-
 
 
 namespace {
@@ -866,6 +633,7 @@ struct ConvertKernelCallToLLVMPass
     patterns.add<KernelCallOpLowering>(typeConverter);
     patterns.add<KernelFuncOpConversion>(typeConverter);
     patterns.add<ReturnOpLowering>(typeConverter);
+    patterns.add<BlockLoadOpLowering>(typeConverter);
     // populateFuncToLLVMFuncOpConversionPattern(typeConverter, patterns);
     // populateFuncToLLVMConversionPatterns(typeConverter, patterns);
 

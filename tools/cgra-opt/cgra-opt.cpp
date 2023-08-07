@@ -149,6 +149,7 @@ int main(int argc, char **argv) {
   mlir::FDRA::registerHoistLoadStoreInLoopNestPass();
 
   mlir::FDRA::registerConvertKernelCallToLLVMPass();
+  mlir::FDRA::registerConvertFDRAToSCFPass();
   mlir::FDRA::registerApproximateMathWithArith();
 
   mlir::registerSCFForLoopCanonicalizationPass();

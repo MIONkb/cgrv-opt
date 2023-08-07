@@ -30,10 +30,10 @@ for file in "$srcfolder"/*.mlir; do
         # 运行指令，替换下面的 command with your command
       cgra-opt\
         --arith-expand --memref-expand\
+        --affine-simplify-structures\
         -lower-affine --scf-for-loop-canonicalization  -convert-scf-to-cf\
         --finalize-memref-to-llvm=use-opaque-pointers  --convert-math-to-llvm --convert-math-to-libm\
         --convert-arith-to-llvm\
-        --affine-simplify-structures\
         -convert-func-to-llvm=use-bare-ptr-memref-call-conv\
         -reconcile-unrealized-casts \
         $file -o "$tarfolder"/"$filename"_llvm.mlir 

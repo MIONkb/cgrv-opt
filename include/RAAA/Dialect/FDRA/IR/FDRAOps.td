@@ -184,7 +184,9 @@ def FDRA_DataBlockLoadOp: FDRA_Op<"BlockLoad", []>{
     MemRefType getResultType() {
       return getResult().getType().cast<MemRefType>();
     }
-
+    MemRefType getMemRefType() {
+      return getOriginalMemrefType();
+    }
     operand_range getMapOperands() {
       return {operand_begin() + 1, operand_end()};
     }
@@ -262,7 +264,9 @@ def FDRA_DataBlockStoreOp: FDRA_Op<"BlockStore", []>{
     MemRefType getTargetMemrefType() {
       return getTargetMemref().getType().cast<MemRefType>();
     }
-
+    MemRefType getMemRefType() {
+      return getSourceMemrefType();
+    }
     operand_range getMapOperands() {
       return {operand_begin() + 2, operand_end()}; // + 2 or + 1?
     }
@@ -346,211 +350,5 @@ def KernelCallOp : FDRA_Op<"KernelCall",
     $callee `(` $operands `)` attr-dict `:` functional-type($operands, results)
   }];
 }
-//===----------------------------------------------------------------------===//
-// Outlined Func Operations for offload HW code
-//===----------------------------------------------------------------------===//
-
-// def FDRA_FDRAFuncOp : FDRA_Op<"func", [//HasParent<"SODAModuleOp">,
-//                                     AutomaticAllocationScope, FunctionOpInterface,
-//                                     IsolatedFromAbove, Symbol]> {
-//   let summary = "Function to outline a FDRA.Kernel";
-
-//   let description = [{
-//     Defines a function to be outlined from a FDRA.Kernel
-
-//     // SODA functions are either kernels (as indicated by the `kernel` attribute) or
-//     // regular functions. The former can be launched from the host side, while the
-//     // latter are device side only.
-
-//     // The memory attribution defines SSA values that correspond to memory buffers
-//     // allocated in the memory hierarchy of the SODA (see below).
-
-//     // The operation has one attached region that corresponds to the body of the
-//     // function. The region arguments consist of the function arguments without
-//     // modification, followed by buffers defined in memory annotations.
-//     // Declarations of SODA functions, i.e. not having the
-//     // body region, are not supported.
-
-//     Syntax:
-
-//     ```
-//     op ::= `soda.func` symbol-ref-id `(` argument-list `)` (`->`
-//     function-result-list)?
-//            memory-attribution `kernel`? function-attributes? region
-
-//     memory-attribution ::= (`workgroup` `(` ssa-id-and-type-list `)`)?
-//                            (`private` `(` ssa-id-and-type-list `)`)?
-//     ```
-
-//     Example:
-
-//     ```mlir
-//     soda.func @foo(%arg0: index)
-//         workgroup(%workgroup: memref<32xf32, 3>)
-//         private(%private: memref<1xf32, 5>)
-//         kernel
-//         attributes {qux: "quux"} {
-//       soda.return
-//     }
-//     ```
-
-//     The generic form illustrates the concept
-
-//     ```mlir
-//     "soda.func"(%arg: index) {sym_name: "foo", kernel, qux: "quux"} ({
-//     ^bb0(%arg0: index, %workgroup: memref<32xf32, 3>,
-//          %private: memref<1xf32, 5>):
-//       "soda.return"() : () -> ()
-//     }) : (index) -> ()
-//     ```
-
-//     Note the non-default memory spaces used in memref types in memory
-//     attribution.
-//   }];
-
-//   let arguments = (ins TypeAttrOf<FunctionType>:$function_type);
-//   let regions = (region AnyRegion:$body);
-
-//   let skipDefaultBuilders = 1;
-
-//   let builders = [
-//     OpBuilder<(ins "StringRef":$name, "FunctionType":$type,
-//       CArg<"TypeRange", "{}">:$workgroupAttributions,
-//       CArg<"TypeRange", "{}">:$privateAttributions,
-//       CArg<"ArrayRef<NamedAttribute>", "{}">:$attrs)>
-//   ];
-
-//   let extraClassDeclaration = [{
-//     /// Returns `true` if the SODA function defined by this Op is a kernel, i.e.
-//     /// it is intended to be launched from host.
-//     bool isKernel() {
-//       return (*this)->getAttrOfType<UnitAttr>(SODADialect::getKernelFuncAttrName()) !=
-//              nullptr;
-//     }
-
-//     /// Change the type of this function in place. This is an extremely
-//     /// dangerous operation and it is up to the caller to ensure that this is
-//     /// legal for this function, and to restore invariants:
-//     ///  - the entry block args must be updated to match the function params.
-//     ///  - the argument/result attributes may need an update: if the new type
-//     ///  has less parameters we drop the extra attributes, if there are more
-//     ///  parameters they won't have any attributes.
-//     // TODO: consider removing this function thanks to rewrite patterns.
-//     void setType(FunctionType newType);
-
-//     /// Returns the number of buffers located in the workgroup memory.
-//     unsigned getNumWorkgroupAttributions() {
-//       return (*this)->getAttrOfType<IntegerAttr>(getNumWorkgroupAttributionsAttrName())
-//           .getInt();
-//     }
-
-//     /// Returns a list of block arguments that correspond to buffers located in
-//     /// the workgroup memory
-//     ArrayRef<BlockArgument> getWorkgroupAttributions() {
-//       auto begin =
-//           std::next(getBody().args_begin(), getFunctionType().getNumInputs());
-//       auto end = std::next(begin, getNumWorkgroupAttributions());
-//       return {begin, end};
-//     }
-
-//     /// Adds a new block argument that corresponds to buffers located in
-//     /// workgroup memory.
-//     BlockArgument addWorkgroupAttribution(Type type, Location loc);
-
-//     /// Returns the number of buffers located in the private memory.
-//     unsigned getNumPrivateAttributions() {
-//       return getBody().getNumArguments() - getFunctionType().getNumInputs() -
-//           getNumWorkgroupAttributions();
-//     }
-
-//     /// Returns a list of block arguments that correspond to buffers located in
-//     /// the private memory.
-//     ArrayRef<BlockArgument> getPrivateAttributions() {
-//       // Buffers on the private memory always come after buffers on the workgroup
-//       // memory.
-//       auto begin =
-//           std::next(getBody().args_begin(),
-//                     getFunctionType().getNumInputs() + getNumWorkgroupAttributions());
-//       return {begin, getBody().args_end()};
-//     }
-
-//     /// Adds a new block argument that corresponds to buffers located in
-//     /// private memory.
-//     BlockArgument addPrivateAttribution(Type type, Location loc);
-
-//     /// Returns the name of the attribute containing the number of buffers
-//     /// located in the workgroup memory.
-//     static StringRef getNumWorkgroupAttributionsAttrName() {
-//       return "workgroup_attributions";
-//     }
-
-//     /// Returns the type of this function.
-//     /// FIXME: We should drive this via the ODS `type` param.
-//     FunctionType getFunctionType() { return function_type(); }
-
-//     /// Returns the argument types of this function.
-//     ArrayRef<Type> getArgumentTypes() { return getFunctionType().getInputs(); }
-
-//     /// Returns the result types of this function.
-//     ArrayRef<Type> getResultTypes() { return getFunctionType().getResults(); }
-
-//     // /// Hooks for the input/output type enumeration in FunctionLike .
-//     // unsigned getNumFuncArguments() { return getFunctionType().getNumInputs(); }
-//     // unsigned getNumFuncResults() { return getFunctionType().getNumResults(); }
-
-//     /// Returns the keywords used in the custom syntax for this Op.
-//     static StringRef getWorkgroupKeyword() { return "workgroup"; }
-//     static StringRef getPrivateKeyword() { return "private"; }
-//     static StringRef getKernelKeyword() { return "kernel"; }
-
-//     /// Hook for FunctionOpInterface verifier.
-//     LogicalResult verifyType();
-
-//     /// Verifies the body of the function.
-//     LogicalResult verifyBody();
-//   }];
-
-//   let hasCustomAssemblyFormat = 1;
-// }
-
-
-
-
-// // We define a toy operation by inheriting from our base 'Toy_Op' class above.
-// // Here we provide the mnemonic and a list of traits for the operation. The
-// // constant operation is marked as 'NoSideEffect' as it is a pure operation
-// // and may be removed if dead.
-// def MulAccum : MyTestOP<"MulAccum", [NoSideEffect]> {
-//   // Provide a summary and description for this operation. This can be used to
-//   // auto-generate documentation of the operations within our dialect.
-//   let summary = "Multiply and Accumulate";
-//   let description = [{"
-//     MulAccum(MAC) operation is a combination of Multiply and accumulate which
-//     are common in Digital-Signal-Processing. MulAccum takes in two multipilers
-//     and one sum-up number, and output a MAC result.
-//     For example:
-
-//     ```mlir
-//       %4 = MyTest.MulAccum %1 MulF %2 AddF %0: f32
-//     ```
-//     "
-//   }];
-
-//   // The MulAccum operation takes 3 attribute as the only input.
-//   let arguments = (ins F32:$MUL1, F32:$MUL2,  F32:$ADDEND);
-
-//   // The MulAccum operation returns a single value of TensorType.
-//   let results = (outs F32:$Result);
-
-//   // Indicate that the operation has a custom parser and printer method.
-// //   let hasCustomAssemblyFormat = 1;
-//   let assemblyFormat = [{$MUL1` ``MulF` ` `$MUL2` ` `AddF` ` `$ADDEND` ``:`` `type($Result) attr-dict}] ;
-//   // Allow building an MulAccum with from the 3 input operands.
-//   // let builders = [ ];
-
-//   // Indicate that additional verification for this operation is necessary.
-//   let hasCanonicalizer = 1;
-//   let hasVerifier = 0;
-// }
 
 #endif // FDRA_OPS

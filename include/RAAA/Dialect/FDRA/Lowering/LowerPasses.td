@@ -10,7 +10,7 @@ include "RAAA/Dialect/FDRA/IR/FDRABase.td"
 include "mlir/Pass/PassBase.td"
 
 def ConvertKernelCallToLLVM : Pass<"fdra-convert-kernelcall-to-llvm", "ModuleOp"> {
-  let summary = "lower fdra's op to LLVM dialect";
+  let summary = "lower fdra's kernelcall op to LLVM dialect";
   let description = [{
     Convert Func dialect operations into the LLVM IR dialect operations.
 
@@ -35,6 +35,16 @@ def ConvertKernelCallToLLVM : Pass<"fdra-convert-kernelcall-to-llvm", "ModuleOp"
   }];
   let constructor = "createConvertKernelCallToLLVMPass()";
   let dependentDialects = ["LLVM::LLVMDialect","::mlir::FDRA::FDRADialect"];
+}
+
+def ConvertFDRAToSCF : Pass<"fdra-convert-loadstore-to-scf", "ModuleOp"> {
+  let summary = "lower fdra's blockload/store op to SCF dialect";
+  let description = [{
+    Convert FDRA dialect operations into the scf dialect operations.
+
+  }];
+  let constructor = "createConvertFDRAToSCFPass()";
+  let dependentDialects = ["scf::SCFDialect","::mlir::FDRA::FDRADialect"];
 }
 
 def ApproximateMathWithArith : Pass<"fdra-approximate-math", "ModuleOp"> {
