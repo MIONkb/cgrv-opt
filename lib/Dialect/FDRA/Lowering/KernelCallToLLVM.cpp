@@ -42,6 +42,8 @@
 #include "RAAA/Dialect/FDRA/Lowering/LowerPasses.h"
 #include "RAAA/Dialect/FDRA/IR/FDRA.h"
 
+#define DEBUG_TYPE "fdra_lowering"
+
 // using namespace llvm; // for llvm.errs()
 using namespace mlir;
 using namespace mlir::FDRA;
@@ -203,8 +205,16 @@ protected:
     // If the memory attribute was created, add it to the function.
     if (memoryAttr)
       newFuncOp.setMemoryAttr(memoryAttr);
-    rewriter.inlineRegionBefore(funcOp.getBody(), newFuncOp.getBody(),
-                                newFuncOp.end());
+      
+    // This function is not a kernel
+    if(!funcOp.getOperation()->hasAttr("Kernel")){
+        // llvm::errs() << "[debug] not a kernel func\n";
+        rewriter.inlineRegionBefore(funcOp.getBody(), newFuncOp.getBody(),
+                            newFuncOp.end());
+    }      
+    // rewriter.inlineRegionBefore(funcOp.getBody(), newFuncOp.getBody(),
+    //                             newFuncOp.end());
+
     if (failed(rewriter.convertRegionTypes(&newFuncOp.getBody(), *typeConverter,
                                            &result)))
       return nullptr;
@@ -289,14 +299,30 @@ struct KernelFuncOpConversion : public FDRAFuncOpConversionBase {
 
       Value desc = MemRefDescriptor::fromStaticShape(
           rewriter, loc, *getTypeConverter(), memrefTy, arg);
+      // llvm::errs() << "[debug] desc:" << desc <<"\n";
       rewriter.replaceOp(placeholder, {desc});
     }
     // replaceOpWithIf
+    // llvm::errs() << "[debug] newFuncOp:" << newFuncOp <<"\n";
+
     rewriter.eraseOp(funcOp);
+    
     return success();
   }
 };
 
+bool isAllUnrealizedConversionCastOp (const mlir::ValueRange& operands){
+  for(const mlir::Value oper : operands){
+    auto op = oper.getDefiningOp();
+    if(llvm::isa<mlir::UnrealizedConversionCastOp>(op)){
+      continue;
+    }
+    else{
+      return false;
+    }
+  }
+  return true;
+}
 
 // A CallOp automatically promotes MemRefType to a sequence of alloca/store and
 // passes the pointer to the MemRef across function boundaries.
@@ -306,9 +332,18 @@ struct KernelCallOpInterfaceLowering : public ConvertOpToLLVMPattern<CallOpType>
   using Super = KernelCallOpInterfaceLowering<CallOpType>;
   using Base = ConvertOpToLLVMPattern<CallOpType>;
 
+
+
   LogicalResult
   matchAndRewrite(CallOpType callOp, typename CallOpType::Adaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
+    llvm::errs() << "[debug] callOp: " << callOp << "\n";
+    for(auto oper : callOp->getOperands()){
+      llvm::errs() << "[debug] callOp->getOperands(): " << oper << "\n";
+    }
+    for(auto oper : adaptor.getOperands()){
+      llvm::errs() << "[debug] adaptor.getOperands(): " << oper << "\n";
+    }   
     // Pack the result types into a struct.
     Type packedResult = nullptr;
     unsigned numResults = callOp.getNumResults();
@@ -320,12 +355,35 @@ struct KernelCallOpInterfaceLowering : public ConvertOpToLLVMPattern<CallOpType>
         return failure();
     }
 
-    auto promoted = this->getTypeConverter()->promoteOperands(
+    // assert(adaptor.getOperands().size()==1);
+    LLVM::CallOp newOp;
+    SmallVector<Value, 4> promoted;
+    const mlir::ValueRange operands = adaptor.getOperands();
+    if(isAllUnrealizedConversionCastOp(operands)){
+      for(auto oper : adaptor.getOperands()){
+        auto cast = llvm::dyn_cast<mlir::UnrealizedConversionCastOp>(oper.getDefiningOp());
+        auto llvmOperand = cast.getInputs()[0];
+        llvm::errs() << "[debug] llvmOperand: " << llvmOperand << "\n";
+        promoted.push_back(llvmOperand);
+      }
+    }
+    else{
+      promoted = this->getTypeConverter()->promoteOperands(
         callOp.getLoc(), /*opOperands=*/callOp->getOperands(),
-        adaptor.getOperands(), rewriter);
-    auto newOp = rewriter.create<LLVM::CallOp>(
+        adaptor.getOperands(), rewriter, /*useBarePtrCallConv=*/ false);
+      
+      // assert(promoted.size() == 1);
+    }
+          
+    newOp = rewriter.create<LLVM::CallOp>(
         callOp.getLoc(), packedResult ? TypeRange(packedResult) : TypeRange(),
         promoted, callOp->getAttrs());
+
+    for(auto oper : promoted){
+      llvm::errs() << "[debug] promoted: " << oper << "\n";
+    }
+
+
 
     SmallVector<mlir::Value, 4> results;
     if (numResults < 2) {
@@ -410,7 +468,7 @@ struct ReturnOpLowering : public ConvertOpToLLVMPattern<func::ReturnOp> {
   using ConvertOpToLLVMPattern<func::ReturnOp>::ConvertOpToLLVMPattern;
 
   LogicalResult
-  matchAndRewrite(func::ReturnOp op, OpAdaptor adaptor,
+  matchAndRewrite(func::ReturnOp op, OpAdaptor adaptor, 
                   ConversionPatternRewriter &rewriter) const override {
     Location loc = op.getLoc();
     unsigned numArguments = op.getNumOperands();
@@ -468,9 +526,17 @@ struct ReturnOpLowering : public ConvertOpToLLVMPattern<func::ReturnOp> {
   }
 };
 
-/// Apply the affine map from an 'affine.load' operation to its operands, and
-/// feed the results to a newly created 'memref.load' operation (which replaces
-/// the original 'affine.load').
+
+// BlockLoadOpLowering: Custom pattern for lowering FDRA::DataBlockLoadOp to LLVM IR.
+// Inherits from ConvertOpToLLVMPattern for conversion within MLIR dialects.
+// matchAndRewrite: Tries to match and lower FDRA::DataBlockLoadOp instances.
+// Extracts relevant operands and invokes getOffsetedElementPtr for element pointer calculation.
+// getOffsetedElementPtr: Calculates the element pointer with necessary offsets and strides.
+// Iterates through indices and strides, creating LLVM IR instructions.
+// Computes the final element pointer and returns it.
+
+// This pattern assists in converting high-level MLIR operations to LLVM IR,
+// contributing to the translation of MLIR for LLVM-based backends.
 struct BlockLoadOpLowering : public ConvertOpToLLVMPattern<FDRA::DataBlockLoadOp> {
 public:
   using ConvertOpToLLVMPattern<FDRA::DataBlockLoadOp>::ConvertOpToLLVMPattern;
@@ -485,7 +551,8 @@ public:
           // rewriter,loc, *getTypeConverter(), type, input);
     MemRefDescriptor memRefDescriptor = MemRefDescriptor(input);
     // MemRefDescriptor memRefDescriptor = input.getDefiningOp<MemRefDescriptor>();
-    llvm::errs() << "[debug] memRefDescriptor: " << memRefDescriptor << "\n";
+    // llvm::DebugFlag = true;
+    LLVM_DEBUG(llvm::errs() << "[debug] memRefDescriptor: " << memRefDescriptor << "\n");
     // Use a canonical representation of the start address so that later
     // optimizations have a longer sequence of instructions to CSE.
     // If we don't do that we would sprinkle the memref.offset in various
@@ -493,7 +560,7 @@ public:
     Value base =
       memRefDescriptor.bufferPtr(rewriter, loc, *getTypeConverter(), type);
 
-    llvm::errs() << "[debug] base: " << base << "\n";
+    LLVM_DEBUG(llvm::errs() << "[debug] base: " << base << "\n");
 
     Value index;
     for (int i = 0, e = indices.size(); i < e; ++i) {
@@ -502,20 +569,20 @@ public:
       if(increment.getType() == rewriter.getIndexType()){
         cast = rewriter.create<UnrealizedConversionCastOp>(increment.getLoc(),
             rewriter.getI64Type(), increment);
-        llvm::errs() << "[debug] cast: " << cast << "\n";
+        LLVM_DEBUG(llvm::errs() << "[debug] cast: " << cast << "\n");
         increment = cast.getOutputs()[0];
       }
       assert(increment.getType() == rewriter.getI64Type());
 
-      llvm::errs() << "[debug]  increment: " << increment <<
-        ", type:" << increment.getType() << "\n";
+      LLVM_DEBUG(llvm::errs() << "[debug]  increment: " << increment <<
+        ", type:" << increment.getType() << "\n");
       if (strides[i] != 1) { // Skip if stride is 1.
         Value stride = ShapedType::isDynamic(strides[i])
                          ? memRefDescriptor.stride(rewriter, loc, i)
                          : createIndexConstant(rewriter, loc, strides[i]);
-        llvm::errs() << "[debug]  stride: " << stride << "\n";
+        LLVM_DEBUG(llvm::errs() << "[debug]  stride: " << stride << "\n");
         increment = rewriter.create<LLVM::MulOp>(loc, increment, stride);
-        llvm::errs() << "[debug]  MulOp: " << increment << "\n";
+        LLVM_DEBUG(llvm::errs() << "[debug]  MulOp: " << increment << "\n");
       }
       index =
           index ? rewriter.create<LLVM::AddOp>(loc, index, increment) : increment;
@@ -535,10 +602,10 @@ public:
     // SmallVector<Value> indices(op.getMapOperands());
     auto resultOperands =
         ::mlir::affine::expandAffineMap(rewriter, op.getLoc(), op.getAffineMap(), op.getMapOperands());
-    llvm::errs() << "[debug] op: " << op << "\n";
-    for(auto oper : *resultOperands){
-      llvm::errs() << "[debug] oper: " << oper << "\n";
-    }
+    LLVM_DEBUG(llvm::errs() << "[debug] op: " << op << "\n");
+    // for(auto oper : *resultOperands){
+    //   llvm::errs() << "[debug] oper: " << oper << "\n";
+    // }
     if (!resultOperands)
       return failure();
     auto type = op.getMemRefType();
@@ -546,22 +613,35 @@ public:
     /// Follow the process of lowering memref loadop to llvm
     // memref::LoadOp loadop = rewriter.create<memref::LoadOp>(op.getLoc(), op.getOriginalMemref(), *resultOperands);
     // llvm::errs() << "[debug] loadop: " << loadop << "\n";  
-    llvm::errs() << "[debug] getMemref: " << op.getOriginalMemref() 
-      << " type:" << op.getOriginalMemref().getType() << "\n";  
+    LLVM_DEBUG(llvm::errs() << "[debug] getMemref: " << op.getOriginalMemref() 
+      << " type:" << op.getOriginalMemref().getType() << "\n");  
     mlir::UnrealizedConversionCastOp memref_cast = 
               op.getOriginalMemref().getDefiningOp<mlir::UnrealizedConversionCastOp>();
     Value input = memref_cast.getInputs()[0];
-    llvm::errs() << "[debug] input: " << input << "\n";  
+    LLVM_DEBUG(llvm::errs() << "[debug] input: " << input << "\n");  
 
     Value dataPtr =
         getOffsetedElementPtr(op.getLoc(), type, input, resultOperands.value(), rewriter);
 
-    llvm::errs() << "[debug] dataPtr: " << dataPtr ;
+    LLVM_DEBUG(llvm::errs() << "[debug] dataPtr: " << dataPtr );
 
     rewriter.replaceOp(op, dataPtr);
 
     // getOperation().dump();
 
+    return success();
+  }
+};
+
+struct BlockStoreOpLowering : public ConvertOpToLLVMPattern<FDRA::DataBlockStoreOp> {
+public:
+  using ConvertOpToLLVMPattern<FDRA::DataBlockStoreOp>::ConvertOpToLLVMPattern;
+
+  LogicalResult matchAndRewrite(FDRA::DataBlockStoreOp op, OpAdaptor adaptor,
+                                ConversionPatternRewriter &rewriter) const override {
+    /// DataBlockStoreOp can be erased directly because the mapping result contains 
+    /// data write back.
+    rewriter.eraseOp(op);
     return success();
   }
 };
@@ -576,92 +656,6 @@ struct ConvertKernelCallToLLVMPass
   ConvertKernelCallToLLVMPass() = default;
   
   SmallVector<::llvm::StringRef, 8> KernelNameVec;
-
-  // LLVM::LLVMFuncOp
-  // convertFuncOpToLLVMFuncAndEraseBody(func::FuncOp funcOp) const {
-  //   // Convert the original function arguments. They are converted using the
-  //   // LLVMTypeConverter provided to this legalization pattern.
-  //   auto varargsAttr = funcOp->getAttrOfType<BoolAttr>("func.varargs");
-  //   TypeConverter::SignatureConversion result(funcOp.getNumArguments());
-  //   OpBuilder builder(funcOp);
-  //   // auto llvmType = getTypeConverter()->convertFunctionSignature(
-  //   //     funcOp.getFunctionType(), varargsAttr && varargsAttr.getValue(),
-  //   //     result);
-  //   // if (!llvmType)
-  //   //   return nullptr;
-
-  //   // Propagate argument/result attributes to all converted arguments/result
-  //   // obtained after converting a given original argument/result.
-  //   // SmallVector<NamedAttribute, 4> attributes;
-  //   // filterFuncAttributes(funcOp->getAttrs(), /*filterArgAndResAttrs=*/true,
-  //   //                      attributes);
-  //   // if (ArrayAttr resAttrDicts = funcOp.getAllResultAttrs()) {
-  //   //   assert(!resAttrDicts.empty() && "expected array to be non-empty");
-  //   //   auto newResAttrDicts =
-  //   //       (funcOp.getNumResults() == 1)
-  //   //           ? resAttrDicts
-  //   //           : builder.getArrayAttr(
-  //   //                 {wrapAsStructAttrs(builder, resAttrDicts)});
-  //   //   attributes.push_back(builder.getNamedAttr(
-  //   //       FunctionOpInterface::getResultDictAttrName(), newResAttrDicts));
-  //   // }
-  //   // if (ArrayAttr argAttrDicts = funcOp.getAllArgAttrs()) {
-  //   //   SmallVector<Attribute, 4> newArgAttrs(
-  //   //       llvmType.cast<LLVM::LLVMFunctionType>().getNumParams());
-  //   //   for (unsigned i = 0, e = funcOp.getNumArguments(); i < e; ++i) {
-  //   //     auto mapping = result.getInputMapping(i);
-  //   //     assert(mapping && "unexpected deletion of function argument");
-  //   //     for (size_t j = 0; j < mapping->size; ++j) 
-  //   //       newArgAttrs[mapping->inputNo + j] = argAttrDicts[i];
-  //   //   }
-  //   //   attributes.push_back(
-  //   //       builder.getNamedAttr(FunctionOpInterface::getArgDictAttrName(),
-  //   //                             builder.getArrayAttr(newArgAttrs)));
-  //   // }
-  //   // for (const auto &pair : llvm::enumerate(attributes)) {
-  //   //   if (pair.value().getName() == "llvm.linkage") {
-  //   //     attributes.erase(attributes.begin() + pair.index());
-  //   //     break;
-  //   //   }
-  //   // }
-
-  //   // // Create an LLVM function, use external linkage by default until MLIR
-  //   // // functions have linkage.
-  //   LLVM::Linkage linkage = LLVM::Linkage::External;
-  //   if (funcOp->hasAttr("llvm.linkage")) {
-  //     auto attr =
-  //         funcOp->getAttr("llvm.linkage").dyn_cast<mlir::LLVM::LinkageAttr>();
-  //     if (!attr) {
-  //       funcOp->emitError()
-  //           << "Contains llvm.linkage attribute not of type LLVM::LinkageAttr";
-  //       return nullptr;
-  //     }
-  //     linkage = attr.getLinkage();
-  //   }
-
-  //   // auto newFuncOp = builder.create<LLVM::LLVMFuncOp>(
-  //   //     funcOp.getLoc(), funcOp.getName(), 
-  //   //     LLVM::LLVMFunctionType::get(LLVM::LLVMVoidType::get(builder.getContext()),
-  //   //     ArrayRef<Type>()));
-    
-  //   auto newFuncOp = builder.create<LLVM::LLVMFuncOp>(
-  //       funcOp.getLoc(), funcOp.getName(), 
-  //       /*llvmType*/LLVM::LLVMFunctionType::get(LLVM::LLVMVoidType::get(builder.getContext()),ArrayRef<Type>()), 
-  //       linkage,
-  //       /*dsoLocal*/ false, /*cconv*/ LLVM::CConv::C);
-    
-  //   llvm::errs() << "[debug] newFuncOp2:\n";
-  //   newFuncOp.dump();
-  //   builder.convertRegionTypes(&newFuncOp.getBody(), *typeConverter, &result);
-  //   // builder.inlineRegionBefore(funcOp.getBody(), newFuncOp.getBody(),
-  //   //                             newFuncOp.end());
-  //   // if (failed(builder.convertRegionTypes(&newFuncOp.getBody(), *typeConverter,
-  //   //                                        &result)))
-  //   //   return nullptr;
-
-  //   return newFuncOp;
-  // }  
-
 
   void runOnOperation() override {
 
@@ -698,6 +692,8 @@ struct ConvertKernelCallToLLVMPass
     patterns.add<KernelFuncOpConversion>(typeConverter);
     patterns.add<ReturnOpLowering>(typeConverter);
     patterns.add<BlockLoadOpLowering>(typeConverter);
+    patterns.add<BlockStoreOpLowering>(typeConverter);
+    patterns.add<UnrealizedConversionCastOpLowering>(typeConverter);
     // populateFuncToLLVMFuncOpConversionPattern(typeConverter, patterns);
     // populateFuncToLLVMConversionPatterns(typeConverter, patterns);
 
@@ -707,30 +703,10 @@ struct ConvertKernelCallToLLVMPass
 
     LLVMConversionTarget target(getContext());
 
-    // m.walk([this, &m](func::FuncOp funcop) {
-    //   ::llvm::StringRef NameToFind = funcop.getSymName();
-    //   // llvm::errs() <<"\nfuncop :" << NameToFind;
-    //   auto it = std::find(KernelNameVec.begin(), KernelNameVec.end(), NameToFind);
-    //   if (it != KernelNameVec.end()) { // FuncOp is a kernel
-    //     llvm::errs() << "[debug] found a kernel func:\n";
-    //     funcop.dump();
-
-    //     LLVM::LLVMFuncOp newFuncOp = convertFuncOpToLLVMFuncAndEraseBody(funcop);
-    //     llvm::errs() << "[debug] newFuncOp:\n";
-    //     newFuncOp.dump();
-
-    //     funcop.erase();
-
-    //     llvm::errs() << "[debug] whole module:\n";
-    //     m.dump();
-    //   } 
-    // });
-
     if (failed(applyPartialConversion(m, target, std::move(patterns)))){
-      m.dump();
       signalPassFailure();
     }
-    m.dump();
+    LLVM_DEBUG(m.dump());
     // m->setAttr(LLVM::LLVMDialect::getDataLayoutAttrName(),
     //            StringAttr::get(m.getContext(), this->dataLayout));
   }

@@ -8,14 +8,36 @@ cgra-opt -promote-buffers-to-stack --arith-expand --memref-expand  \
  --finalize-memref-to-llvm \
  --fdra-convert-kernelcall-to-llvm \
  -convert-func-to-llvm=use-bare-ptr-memref-call-conv \
- --cse --canonicalize\
+  --finalize-memref-to-llvm \
+ --cse --canonicalize \
  2_host.mlir -o "3_forward_llvm.mlir" \
  --mlir-print-ir-after-all 2>&1 | cat > "3_intermediate_forward_llvm.mlir"
 
- --reconcile-unrealized-casts \
 
-cgra-opt --fdra-convert-kernelcall-to-llvm 2_before_kernel_lower.mlir -o 2_after_kernel_lower.mlir
+ 
+
+cgra-opt --fdra-convert-kernelcall-to-llvm 2_before_kernel_lower_test.mlir -o 2_after_kernel_lower.mlir
 
 mlir-translate  --mlir-to-llvmir \
- $rootfolder/"3_${func_name}_llvm.mlir" \
- -o "$rootfolder/$func_name.ll"
+ "3_forward_llvm.mlir" \
+ -o "forward.ll"
+
+
+cgra-opt -promote-buffers-to-stack \
+--arith-expand --memref-expand   \
+-normalize-memrefs --expand-strided-metadata  \
+-lower-affine --scf-for-loop-canonicalization \
+-convert-scf-to-cf --convert-math-to-llvm \
+--convert-math-to-libm --convert-arith-to-llvm \
+--finalize-memref-to-llvm \
+ --fdra-convert-kernelcall-to-llvm \
+  -convert-func-to-llvm=use-bare-ptr-memref-call-conv   \
+  --finalize-memref-to-llvm  --cse --canonicalize \
+   --reconcile-unrealized-casts \
+   2_after_kernel_lower.mlir -o "3_forward_llvm_test.mlir"  \
+   --mlir-print-ir-after-all 2>&1 | cat > "3_intermediate_forward_llvm_test.mlir"
+
+mlir-translate  --mlir-to-llvmir \
+ "3_forward_llvm_test.mlir" \
+ -o "forward.ll"
+

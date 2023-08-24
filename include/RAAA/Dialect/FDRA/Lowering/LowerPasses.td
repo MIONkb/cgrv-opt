@@ -13,6 +13,20 @@ def ConvertKernelCallToLLVM : Pass<"fdra-convert-kernelcall-to-llvm", "ModuleOp"
   let summary = "lower fdra's kernelcall op to LLVM dialect";
   let description = [{
     Convert Func dialect operations into the LLVM IR dialect operations.
+    Note: This pass must be used after "--finalize-memref-to-llvm". 
+    Also, we recommend use "--cse --canonicalize" to simplify mlir after use this pass.
+    So a recommended pass pipeline is:
+    """
+    --arith-expand --memref-expand  \
+    -normalize-memrefs --expand-strided-metadata  --affine-simplify-structures \
+    -lower-affine --scf-for-loop-canonicalization  -convert-scf-to-cf\
+    --convert-math-to-llvm --convert-math-to-libm\
+    --convert-arith-to-llvm \
+    --finalize-memref-to-llvm \
+    --fdra-convert-kernelcall-to-llvm \
+    -convert-func-to-llvm=use-bare-ptr-memref-call-conv \
+    --cse --canonicalize
+    """
 
     #### Input invariant
 

@@ -111,15 +111,15 @@ cnt=0
 ###
 # lowering only host to llvm
 cgra-opt -promote-buffers-to-stack --arith-expand --memref-expand  \
- -normalize-memrefs --expand-strided-metadata  --affine-simplify-structures \
- -lower-affine --scf-for-loop-canonicalization  -convert-scf-to-cf\
- --convert-math-to-llvm --convert-math-to-libm\
- --convert-arith-to-llvm \
+ -normalize-memrefs --expand-strided-metadata  -lower-affine \
+ --scf-for-loop-canonicalization -convert-scf-to-cf \
+ --convert-math-to-llvm --convert-math-to-libm \
+ --convert-arith-to-llvm --finalize-memref-to-llvm \
  --fdra-convert-kernelcall-to-llvm \
  -convert-func-to-llvm=use-bare-ptr-memref-call-conv \
- -finalize-memref-to-llvm \
-  --reconcile-unrealized-casts \
- $rootfolder/2_host_implicit.mlir -o $rootfolder/"3_${func_name}_llvm.mlir" \
+ --finalize-memref-to-llvm  --cse --canonicalize \
+ --reconcile-unrealized-casts \
+ $rootfolder/2_host.mlir -o $rootfolder/"3_${func_name}_llvm.mlir" \
  --mlir-print-ir-after-all 2>&1 | cat > "3_intermediate_${func_name}_llvm.mlir"
 
 mlir-translate  --mlir-to-llvmir $rootfolder/"3_${func_name}_llvm.mlir" > "$rootfolder/$func_name.ll"
