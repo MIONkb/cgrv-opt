@@ -6,7 +6,7 @@ ssh -T git@github.com
 
 # git init
 git add .
-git commit -m "keep writing lowering process for blockloadop"
+git commit -m "lower blockloadop successfully"
 git branch -M new
 git remote add origin git@github.com:segmentKOBE/cgra-opt.git
 git push -u origin new

@@ -32,7 +32,7 @@
             // "/home/tianyi/MLIRCGRA/CGRA-Flow/mlir-cgra/experiments/LJHtest/LinearModel/2_half_host.mlir",
             // "/home/tianyi/fdra/app-compiler/cgra-opt/experiments/ResnetSingleBLock/0_all_Affine.mlir",
             // "/home/tianyi/fdra/app-compiler/cgra-opt/experiments/ResnetSingleBLock/1_kernel.mlir",
-            "/home/tianyi/fdra/app-compiler/cgra-opt/experiments/ResnetSingleBLock/2_host.mlir",
+            "/home/tianyi/fdra/app-compiler/cgra-opt/experiments/ResnetSingleBLock/2_before_kernel_lower.mlir",
         ],
         "stopAtEntry": false,
         "cwd": "/home/tianyi/fdra/app-compiler/cgra-opt/experiments/FloatKernel/kernels",

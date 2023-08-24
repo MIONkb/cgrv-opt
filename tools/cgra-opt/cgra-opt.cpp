@@ -95,15 +95,20 @@ int main(int argc, char **argv) {
   // mlir::registerConvertLinalgToLLVMPass(); // This pass maps linalg to blas
   mlir::registerLinalgLowerToAffineLoopsPass();
   mlir::registerConvertFuncToLLVMPass();
+
   mlir::registerFinalizeMemRefToLLVMConversionPass();
+  // mlir::registerExpandStridedMetadata();
+  // mlir::memref::registerExpandOpsPass();
+  // mlir::memref::registerNormalizeMemRefsPass();
+  mlir::memref::registerMemRefPasses();
+
   mlir::registerSCFToControlFlowPass();
   mlir::registerConvertAffineToStandardPass();
   mlir::registerConvertMathToLLVMPass();
   mlir::registerConvertMathToLibmPass();
   mlir::registerArithToLLVMConversionPass();
   mlir::arith::registerArithExpandOpsPass();
-  mlir::memref::registerExpandOpsPass();
-  mlir::memref::registerNormalizeMemRefsPass();
+
   mlir::registerReconcileUnrealizedCastsPass();
 
   // Add the following to selectively include the necessary dialects. You only

@@ -81,6 +81,7 @@ General options:
         --approximate-log1p                            - Enable approximation of Log1p.
       --convert-scf-to-cf                              -   Convert SCF dialect to ControlFlow dialect, replacing structured control flow with a CFG
       --cse                                            -   Eliminate common sub-expressions
+      --expand-strided-metadata                        -   Expand memref operations into easier to analyze constructs
       --fdra-adjust-kernel-mem-footprint               -   Adjust(partition) kernels' memory footprint to apply to customized cachesize
         --access-pattern                               - Set the memory access method to affine pattern(default: general pattern)
         --cachesize=<uint>                             - Set a cachesize(Kib) for kernel to be iterated(default to be 512Kib)
@@ -100,11 +101,7 @@ General options:
       --fdra-loop-dfg-gen                              -   Generate cdfg of FDRA from a for-loop
       --fdra-test-print-nesting                        -   Print op nesting information
         --option-name=<ulong>                          - Description of the option
-      --finalize-memref-to-llvm                        -   Finalize MemRef dialect to LLVM dialect conversion
-        --index-bitwidth=<uint>                        - Bitwidth of the index type, 0 to use size of machine word
-        --use-aligned-alloc                            - Use aligned_alloc in place of malloc for heap allocations
-        --use-generic-functions                        - Use generic allocation and deallocation functions instead of the classic 'malloc', 'aligned_alloc' and 'free' functions
-        --use-opaque-pointers                          - Generate LLVM IR using opaque pointers instead of typed pointers
+      --fold-memref-alias-ops                          -   Fold memref alias ops into consumer load/store ops
       --inline                                         -   Inline function calls
         --default-pipeline=<string>                    - The default optimizer pipeline used for callables
         --max-iterations=<uint>                        - Maximum number of iterations when inlining within an SCC
@@ -119,12 +116,16 @@ General options:
       --linalg-inline-scalar-operands                  -   Inline scalar operands into linalg generic ops
       --linalg-named-op-conversion                     -   Convert from one named linalg op to another.
       --lower-affine                                   -   Lower Affine operations to a combination of Standard and SCF operations
+      --memref-emulate-wide-int                        -   Emulate 2*N-bit integer operations using N-bit operations
+        --widest-int-supported=<uint>                  - Widest integer type supported by the target
       --memref-expand                                  -   Legalize memref operations to be convertible to LLVM.
       --normalize-memrefs                              -   Normalize memrefs
       --promote-buffers-to-stack                       -   Promotes heap-based allocations to automatically managed stack-based allocations
         --max-alloc-size-in-bytes=<uint>               - Maximal size in bytes to promote allocations to stack.
         --max-rank-of-allocated-memref=<uint>          - Maximal memref rank to promote dynamic buffers.
       --reconcile-unrealized-casts                     -   Simplify and eliminate unrealized conversion casts
+      --resolve-ranked-shaped-type-result-dims         -   Resolve memref.dim of result values of ranked shape type
+      --resolve-shaped-type-result-dims                -   Resolve memref.dim of result values
       --scf-for-loop-canonicalization                  -   Canonicalize operations within scf.for loop bodies
       --test-loop-permutation                          -   Tests affine loop permutation utility
         --permutation-map=<uint>                       - Specify the loop permutation

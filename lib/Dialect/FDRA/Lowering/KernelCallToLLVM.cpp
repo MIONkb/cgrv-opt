@@ -475,6 +475,60 @@ struct BlockLoadOpLowering : public ConvertOpToLLVMPattern<FDRA::DataBlockLoadOp
 public:
   using ConvertOpToLLVMPattern<FDRA::DataBlockLoadOp>::ConvertOpToLLVMPattern;
 
+  Value getOffsetedElementPtr(
+    Location loc, MemRefType type, Value input, SmallVector<Value, 8> indices,
+    ConversionPatternRewriter &rewriter) const {
+
+    auto [strides, offset] = getStridesAndOffset(type);
+
+    // MemRefDescriptor memRefDescriptor = MemRefDescriptor::fromStaticShape(
+          // rewriter,loc, *getTypeConverter(), type, input);
+    MemRefDescriptor memRefDescriptor = MemRefDescriptor(input);
+    // MemRefDescriptor memRefDescriptor = input.getDefiningOp<MemRefDescriptor>();
+    llvm::errs() << "[debug] memRefDescriptor: " << memRefDescriptor << "\n";
+    // Use a canonical representation of the start address so that later
+    // optimizations have a longer sequence of instructions to CSE.
+    // If we don't do that we would sprinkle the memref.offset in various
+    // position of the different address computations.
+    Value base =
+      memRefDescriptor.bufferPtr(rewriter, loc, *getTypeConverter(), type);
+
+    llvm::errs() << "[debug] base: " << base << "\n";
+
+    Value index;
+    for (int i = 0, e = indices.size(); i < e; ++i) {
+      mlir::Value increment = indices[i];
+      mlir::UnrealizedConversionCastOp cast;
+      if(increment.getType() == rewriter.getIndexType()){
+        cast = rewriter.create<UnrealizedConversionCastOp>(increment.getLoc(),
+            rewriter.getI64Type(), increment);
+        llvm::errs() << "[debug] cast: " << cast << "\n";
+        increment = cast.getOutputs()[0];
+      }
+      assert(increment.getType() == rewriter.getI64Type());
+
+      llvm::errs() << "[debug]  increment: " << increment <<
+        ", type:" << increment.getType() << "\n";
+      if (strides[i] != 1) { // Skip if stride is 1.
+        Value stride = ShapedType::isDynamic(strides[i])
+                         ? memRefDescriptor.stride(rewriter, loc, i)
+                         : createIndexConstant(rewriter, loc, strides[i]);
+        llvm::errs() << "[debug]  stride: " << stride << "\n";
+        increment = rewriter.create<LLVM::MulOp>(loc, increment, stride);
+        llvm::errs() << "[debug]  MulOp: " << increment << "\n";
+      }
+      index =
+          index ? rewriter.create<LLVM::AddOp>(loc, index, increment) : increment;
+    }
+
+    Type elementPtrType = memRefDescriptor.getElementPtrType();
+    return index ? rewriter.create<LLVM::GEPOp>(
+                     loc, elementPtrType,
+                     getTypeConverter()->convertType(type.getElementType()),
+                     base, index)
+               : base;
+  }
+
   LogicalResult matchAndRewrite(FDRA::DataBlockLoadOp op, OpAdaptor adaptor,
                                 ConversionPatternRewriter &rewriter) const override {
     // Expand affine map from 'affineLoadOp'.
@@ -490,13 +544,23 @@ public:
     auto type = op.getMemRefType();
 
     /// Follow the process of lowering memref loadop to llvm
-    memref::LoadOp loadop = rewriter.create<memref::LoadOp>(op.getLoc(), op.getOriginalMemref(), *resultOperands);
+    // memref::LoadOp loadop = rewriter.create<memref::LoadOp>(op.getLoc(), op.getOriginalMemref(), *resultOperands);
+    // llvm::errs() << "[debug] loadop: " << loadop << "\n";  
+    llvm::errs() << "[debug] getMemref: " << op.getOriginalMemref() 
+      << " type:" << op.getOriginalMemref().getType() << "\n";  
+    mlir::UnrealizedConversionCastOp memref_cast = 
+              op.getOriginalMemref().getDefiningOp<mlir::UnrealizedConversionCastOp>();
+    Value input = memref_cast.getInputs()[0];
+    llvm::errs() << "[debug] input: " << input << "\n";  
+
     Value dataPtr =
-        getStridedElementPtr(loadop.getLoc(), type, loadop.getMemref(),
-                             loadop.getIndices(), rewriter);
-    llvm::errs() << "[debug] dataPtr: " << dataPtr << "\n";
+        getOffsetedElementPtr(op.getLoc(), type, input, resultOperands.value(), rewriter);
 
+    llvm::errs() << "[debug] dataPtr: " << dataPtr ;
 
+    rewriter.replaceOp(op, dataPtr);
+
+    // getOperation().dump();
 
     return success();
   }
@@ -662,9 +726,11 @@ struct ConvertKernelCallToLLVMPass
     //   } 
     // });
 
-    if (failed(applyPartialConversion(m, target, std::move(patterns))))
+    if (failed(applyPartialConversion(m, target, std::move(patterns)))){
+      m.dump();
       signalPassFailure();
-
+    }
+    m.dump();
     // m->setAttr(LLVM::LLVMDialect::getDataLayoutAttrName(),
     //            StringAttr::get(m.getContext(), this->dataLayout));
   }
