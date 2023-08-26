@@ -1,4 +1,9 @@
-
+cgra-opt --affine-loop-fusion \
+ --fdra-approximate-math \
+ --fdra-hoist-loadstore \
+ --fdra-extract-affine-for-to-kernel \
+ --fdra-adjust-kernel-mem-footprint="cachesize=8 singlearraysize=8 access-pattern disable-remainder-block" \
+ 0_all_Affine.mlir -o 1_kernel.mlir
 
 cgra-opt -promote-buffers-to-stack --arith-expand --memref-expand  \
  -normalize-memrefs --expand-strided-metadata  --affine-simplify-structures \
@@ -41,3 +46,150 @@ mlir-translate  --mlir-to-llvmir \
  "3_forward_llvm_test.mlir" \
  -o "forward.ll"
 
+
+
+/home/tianyi/MLIRCGRA/llvm-project/build/bin/opt -O1  --disable-loop-unrolling \
+         forward_kernel_0_1_7_1_1_1_1_1_1.ll -S -o forward_kernel_0_1_7_1_1_1_1_1_1_opt.ll
+      # --loop-rotate 
+
+/home/tianyi/MLIRCGRA/llvm-project/build/bin/opt  -gvn -mem2reg --scalarizer \
+ -memdep -memcpyopt -lcssa -loop-simplify \
+         -licm -loop-deletion -indvars -simplifycfg\
+         -mergereturn -indvars -instnamer \
+         forward_kernel_0_1_7_1_1_1_1_1_1_opt.ll \
+         -S -o forward_kernel_0_1_7_1_1_1_1_1_1_gvn.ll
+
+/home/tianyi/MLIRCGRA/llvm-project/build/bin/opt \
+ -load /home/tianyi/new_fdra/fdra/app-compiler/build/llvm-pass/libCDFGPass.so\
+ "-mapping-all=true" --cdfg forward_kernel_0_1_7_1_1_1_1_1_1_gvn.ll -S \
+ -o forward_kernel_0_1_7_1_1_1_1_1_1_gvn_cdfg.ll \
+ -enable-new-pm=0
+
+
+/home/tianyi/MLIRCGRA/llvm-project/build/bin/opt \
+ --dot-cfg forward_kernel_0_1_7_1_1_1_1_1_1_gvn.ll -S -o forward_kernel_0_1_7_1_1_1_1_1_1_cdfg.ll -enable-new-pm=0
+      
+   mv ./.forward_kernel_0.dot ./forward_kernel_0_init_cdfg.dot
+
+
+dot /home/tianyi/fdra/app-compiler/cgra-opt/experiments/ResnetSingleBLock/3_dfgs/forward_kernel_3.dot\
+ -Tdot_json \
+ -o /home/tianyi/fdra/app-compiler/cgra-opt/experiments/ResnetSingleBLock/tempfiles/forward_kernel_3.json
+
+/home/tianyi/chipyard/generators/fdra/cgra-compiler/build/cgra-compiler SPDLOG_LEVEL=off \
+	      -c true -m true -o true -e true -t 3600000 -i 2000 \
+	      -p "/home/tianyi/chipyard/generators/fdra/cgra-mg/src/main/resources/operations.json" \
+	      -a "/home/tianyi/chipyard/generators/fdra/cgra-mg/src/main/resources/cgra_adg.json" \
+	      -d "/home/tianyi/fdra/app-compiler/cgra-opt/experiments/ResnetSingleBLock/tempfiles/forward_kernel_3.json"
+
+
+
+
+
+
+opt -tbaa -scoped-noalias-aa \
+ -annotation2metadata -forceattrs \
+ -inferattrs -ipsccp -called-value-propagation -globalopt -domtree \
+ -mem2reg -deadargelim -domtree -basic-aa -aa -loops  \
+   -instcombine -simplifycfg  \
+ -globals-aa  -inline -openmp-opt-cgscc -function-attrs -domtree -sroa \
+ -basic-aa -aa -memoryssa -early-cse-memssa -speculative-execution \
+ -aa  -jump-threading -correlated-propagation \
+ -simplifycfg -domtree -basic-aa -aa -loops  \
+   -instcombine -libcalls-shrinkwrap \
+ -basic-aa -aa -loops    \
+ -tailcallelim -simplifycfg -reassociate -domtree -basic-aa -aa -memoryssa\
+  -loops -loop-simplify  -lcssa -scalar-evolution \
+  -loop-instsimplify -loop-simplifycfg   \
+  -licm -loop-rotate -licm -simple-loop-unswitch -simplifycfg -domtree \
+  -basic-aa -aa -loops    \
+  -instcombine -loop-simplify  -lcssa -scalar-evolution \
+  -loop-idiom -indvars -loop-deletion -loop-unroll -sroa -aa -mldst-motion\
+ -phi-values -aa -memdep   \
+  -gvn -sccp -demanded-bits -bdce -basic-aa \
+ -aa -loops    \
+ -instcombine  -jump-threading -correlated-propagation \
+ -postdomtree -adce -basic-aa -aa -memoryssa -memcpyopt -loops -dse \
+ -loop-simplify  -lcssa -aa -scalar-evolution \
+   -licm -simplifycfg -domtree \
+ -basic-aa -aa -loops   \
+  -instcombine -elim-avail-extern \
+  -rpo-function-attrs -globalopt -globaldce \
+  -globals-aa -domtree -float2int \
+ -lower-constant-intrinsics -loops -loop-simplify \
+  -lcssa -basic-aa -aa -scalar-evolution \
+ -loop-rotate    \
+  -loop-distribute -postdomtree \
+ -branch-prob  -scalar-evolution -basic-aa \
+ -aa  -demanded-bits  \
+   -inject-tli-mappings \
+ -loop-vectorize -loop-simplify \
+ -scalar-evolution -aa  \
+   -loop-load-elim \
+ -basic-aa -aa   \
+  -instcombine -simplifycfg -domtree \
+ -loops -scalar-evolution -basic-aa -aa -demanded-bits \
+ -inject-tli-mappings -slp-vectorizer -vector-combine  \
+ -instcombine -loop-simplify  -lcssa -scalar-evolution \
+ -loop-unroll    \
+ -transform-warning -alignment-from-assumptions -strip-dead-prototypes\
+  -globaldce -constmerge -domtree -loops -postdomtree -branch-prob \
+   -loop-simplify  -lcssa -basic-aa \
+  -aa -scalar-evolution -memoryssa  -loop-sink  \
+    -instsimplify -div-rem-pairs -simplifycfg \
+  -annotation-remarks -verify forward_kernel_0_1_7_1_1_1_1_1_1.ll -S -o try.ll
+
+
+opt -tbaa -scoped-noalias-aa \
+ -annotation2metadata -forceattrs \
+ -inferattrs -ipsccp -called-value-propagation -globalopt -domtree \
+ -mem2reg -deadargelim -domtree -basic-aa -aa -loops  \
+   -simplifycfg  \
+ -globals-aa  -inline -openmp-opt-cgscc -function-attrs -domtree -sroa \
+ -basic-aa -aa -memoryssa -early-cse-memssa -speculative-execution \
+ -aa  -jump-threading -correlated-propagation \
+ -simplifycfg -domtree -basic-aa -aa -loops  \
+  -libcalls-shrinkwrap \
+ -basic-aa -aa -loops    \
+ -tailcallelim -simplifycfg -reassociate -domtree -basic-aa -aa -memoryssa\
+  -loops -loop-simplify  -lcssa -scalar-evolution \
+  -loop-instsimplify -loop-simplifycfg   \
+  -licm -loop-rotate -licm -simple-loop-unswitch -simplifycfg -domtree \
+  -basic-aa -aa -loops    \
+  -loop-simplify  -lcssa -scalar-evolution \
+  -loop-idiom -indvars -loop-deletion -loop-unroll -sroa -aa -mldst-motion\
+ -phi-values -aa -memdep   \
+  -gvn -sccp -demanded-bits -bdce -basic-aa \
+ -aa -loops    \
+  -jump-threading -correlated-propagation \
+ -postdomtree -adce -basic-aa -aa -memoryssa -memcpyopt -loops -dse \
+ -loop-simplify  -lcssa -aa -scalar-evolution \
+   -licm -simplifycfg -domtree \
+ -basic-aa -aa -loops   \
+  -instcombine -elim-avail-extern \
+  -rpo-function-attrs -globalopt -globaldce \
+  -globals-aa -domtree -float2int \
+ -lower-constant-intrinsics -loops -loop-simplify \
+  -lcssa -basic-aa -aa -scalar-evolution \
+ -loop-rotate    \
+  -loop-distribute -postdomtree \
+ -branch-prob  -scalar-evolution -basic-aa \
+ -aa  -demanded-bits  \
+   -inject-tli-mappings \
+ -loop-vectorize -loop-simplify \
+ -scalar-evolution -aa  \
+   -loop-load-elim \
+ -basic-aa -aa   \
+  -instcombine -simplifycfg -domtree \
+ -loops -scalar-evolution -basic-aa -aa -demanded-bits \
+ -inject-tli-mappings -slp-vectorizer   \
+ -instcombine -loop-simplify  -lcssa -scalar-evolution \
+ -loop-unroll    \
+ -transform-warning -alignment-from-assumptions -strip-dead-prototypes\
+  -globaldce -constmerge -domtree -loops -postdomtree -branch-prob \
+   -loop-simplify  -lcssa -basic-aa \
+  -aa -scalar-evolution -memoryssa  -loop-sink  \
+    -instsimplify -div-rem-pairs -simplifycfg \
+  -annotation-remarks -verify forward_kernel_0_1_7_1_1_1_1_1_1.ll -S -o try.ll
+
+  -vector-combine

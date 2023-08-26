@@ -38,16 +38,16 @@ for file in "$srcfolder"/*.ll; do
     echo "$filename"
     if [[ -f "$file" ]]; then
         # 运行指令，替换下面的 command with your command
-      opt -O2  --disable-loop-unrolling \
+      /home/tianyi/MLIRCGRA/llvm-project/build/bin/opt -O2  --disable-loop-unrolling \
          $file -S -o "$tempfolder"/"$filename"_Opt.ll
       # --loop-rotate 
-      opt  -gvn -mem2reg -memdep -memcpyopt -lcssa -loop-simplify \
+      /home/tianyi/MLIRCGRA/llvm-project/build/bin/opt  -gvn -mem2reg -memdep -memcpyopt -lcssa -loop-simplify \
          -licm -loop-deletion -indvars -simplifycfg\
          -mergereturn -indvars -instnamer \
          "$tempfolder"/"$filename"_Opt.ll \
          -S -o "$tempfolder"/"$filename"_gvn.ll
 
-      opt  --dot-cfg "$tempfolder"/"$filename"_gvn.ll -S -o "$tempfolder"/"$filename"_cdfg.ll -enable-new-pm=0
+      /home/tianyi/MLIRCGRA/llvm-project/build/bin/opt  --dot-cfg "$tempfolder"/"$filename"_gvn.ll -S -o "$tempfolder"/"$filename"_cdfg.ll -enable-new-pm=0
       
       mv ./."$filename".dot ./"$filename"_init_cdfg.dot
 
@@ -75,11 +75,11 @@ for file in "${gvn_ll_list[@]}"; do
     ((cnt++))
     if [[ -f "$file" ]]; then
         # 运行指令，替换下面的 command with your command
-        echo opt -load /home/tianyi/new_fdra/fdra/app-compiler/build/llvm-pass/libCDFGPass.so\
+        echo /home/tianyi/MLIRCGRA/llvm-project/build/bin/opt -load /home/tianyi/new_fdra/fdra/app-compiler/build/llvm-pass/libCDFGPass.so\
          "-mapping-all=true" --cdfg $file -S -o $tempfolder/"$filename"_cdfg.ll \
          -enable-new-pm=0
 
-        opt -load /home/tianyi/new_fdra/fdra/app-compiler/build/llvm-pass/libCDFGPass.so\
+        /home/tianyi/MLIRCGRA/llvm-project/build/bin/opt -load /home/tianyi/new_fdra/fdra/app-compiler/build/llvm-pass/libCDFGPass.so\
          "-mapping-all=true" --cdfg $file -S -o $tempfolder/"$filename"_cdfg.ll \
          -enable-new-pm=0
 

@@ -19,6 +19,7 @@ std::unique_ptr<OperationPass<>> createFDRALoopCdfgGenPass();
 std::unique_ptr<OperationPass<func::FuncOp>> createExtractAffineForToKernelPass();
 std::unique_ptr<OperationPass<ModuleOp>> createAdjustKernelMemoryFootprintPass();
 std::unique_ptr<OperationPass<ModuleOp>> createExtractKernelToFuncPass();
+std::unique_ptr<OperationPass<ModuleOp>> createFDRAAffineLoopUnrollPass();
 std::unique_ptr<OperationPass<ModuleOp>> createAutoDesignSpaceExplorePass();
 std::unique_ptr<OperationPass<func::FuncOp>> createHoistLoadStoreInLoopNestPass();
 

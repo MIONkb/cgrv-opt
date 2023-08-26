@@ -71,14 +71,24 @@ namespace
 bool HoistLoadStoreInLoopNestPass::
       LoadStoreSameMemAddr(AffineLoadOp loadop, AffineStoreOp storeop)
 {
+
+
     Value loadMemref = loadop.getMemref();
     AffineMapAttr loadMapAttr = loadop.getAffineMapAttr();
     Operation::operand_range loadIndices = loadop.getIndices();
     
     Value storeMemref = storeop.getMemref();
     AffineMapAttr storeMapAttr = storeop.getAffineMapAttr(); 
-    Operation::operand_range storeIndices = storeop.getIndices();    
+    Operation::operand_range storeIndices = storeop.getIndices();  
 
+    // llvm::errs() << "[info] loadop: " << loadop << "\n";   
+    // llvm::errs() << "[info] loadMemref: " << loadMemref << "\n";   
+    // llvm::errs() << "[info] loadMapAttr: " << loadMapAttr << "\n";   
+
+    // llvm::errs() << "[info] storeop: " << storeop << "\n"; 
+    // llvm::errs() << "[info] storeMemref: " << storeMemref << "\n"; 
+    // llvm::errs() << "[info] storeMapAttr: " << storeMapAttr << "\n"; 
+   
     if(loadMemref == storeMemref && loadMapAttr == storeMapAttr
               && loadIndices.size() == storeIndices.size())
     {
@@ -216,6 +226,8 @@ void HoistLoadStoreInLoopNestPass::runOnOperation()
       /// If so, this load-store pair 
       /// should be hoisted while construct a loop-carried variable.
       for(AffineStoreOp storeop : ToHoistStores_copy){
+        // llvm::errs() << "[info] loadop: " << loadop << "\n";   
+        // llvm::errs() << "[info] storeop: " << storeop << "\n";    
         if(LoadStoreSameMemAddr(loadop, storeop)){
           AffineLoadOp* it_ld;
           AffineStoreOp* it_st;   

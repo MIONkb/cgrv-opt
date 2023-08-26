@@ -337,13 +337,13 @@ struct KernelCallOpInterfaceLowering : public ConvertOpToLLVMPattern<CallOpType>
   LogicalResult
   matchAndRewrite(CallOpType callOp, typename CallOpType::Adaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
-    llvm::errs() << "[debug] callOp: " << callOp << "\n";
-    for(auto oper : callOp->getOperands()){
-      llvm::errs() << "[debug] callOp->getOperands(): " << oper << "\n";
-    }
-    for(auto oper : adaptor.getOperands()){
-      llvm::errs() << "[debug] adaptor.getOperands(): " << oper << "\n";
-    }   
+    // llvm::errs() << "[debug] callOp: " << callOp << "\n";
+    // for(auto oper : callOp->getOperands()){
+    //   llvm::errs() << "[debug] callOp->getOperands(): " << oper << "\n";
+    // }
+    // for(auto oper : adaptor.getOperands()){
+    //   llvm::errs() << "[debug] adaptor.getOperands(): " << oper << "\n";
+    // }   
     // Pack the result types into a struct.
     Type packedResult = nullptr;
     unsigned numResults = callOp.getNumResults();
@@ -363,7 +363,7 @@ struct KernelCallOpInterfaceLowering : public ConvertOpToLLVMPattern<CallOpType>
       for(auto oper : adaptor.getOperands()){
         auto cast = llvm::dyn_cast<mlir::UnrealizedConversionCastOp>(oper.getDefiningOp());
         auto llvmOperand = cast.getInputs()[0];
-        llvm::errs() << "[debug] llvmOperand: " << llvmOperand << "\n";
+        // llvm::errs() << "[debug] llvmOperand: " << llvmOperand << "\n";
         promoted.push_back(llvmOperand);
       }
     }
@@ -378,12 +378,6 @@ struct KernelCallOpInterfaceLowering : public ConvertOpToLLVMPattern<CallOpType>
     newOp = rewriter.create<LLVM::CallOp>(
         callOp.getLoc(), packedResult ? TypeRange(packedResult) : TypeRange(),
         promoted, callOp->getAttrs());
-
-    for(auto oper : promoted){
-      llvm::errs() << "[debug] promoted: " << oper << "\n";
-    }
-
-
 
     SmallVector<mlir::Value, 4> results;
     if (numResults < 2) {

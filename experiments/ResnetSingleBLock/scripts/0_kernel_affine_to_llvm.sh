@@ -5,6 +5,7 @@
 rootfolder=$(pwd)
 srcfolder="$rootfolder/kernels"
 tarfolder="$rootfolder/1_kernels_llvmmlir"
+tempfolder="$rootfolder/tempfiles"
 echo "current path:$rootfolder"
 
 if [ ! -d "$tarfolder" ]; then
@@ -36,8 +37,10 @@ for file in "$srcfolder"/*.mlir; do
         --convert-arith-to-llvm\
         -convert-func-to-llvm=use-bare-ptr-memref-call-conv\
         -reconcile-unrealized-casts \
-        $file -o "$tarfolder"/"$filename"_llvm.mlir 
-        # -mlir-print-ir-after-all 2>&1 | cat > "$tarfolder"/1_intermediate_main_kernel_"$cnt".mlir
+        --canonicalize \
+        $file -o "$tarfolder"/"$filename"_llvm.mlir \
+        -mlir-print-ir-after-all 2>&1 | cat > "$tempfolder"/intermediate_"$filename".mlir
+
       ((cnt++))
       echo $cnt
     fi

@@ -111,6 +111,35 @@ public:
   }
 };
 
+// Similar but different with ArithExpand pass
+template <typename OpTy, arith::CmpFPredicate pred>
+struct MaxMinFOpConverter : public OpRewritePattern<OpTy> {
+public:
+  using OpRewritePattern<OpTy>::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(OpTy op,
+                                PatternRewriter &rewriter) const final {
+    Value lhs = op.getLhs();
+    Value rhs = op.getRhs();
+
+    Location loc = op.getLoc();
+    // If any operand is NaN, 'cmp' will be true (and 'select' returns 'lhs').
+    static_assert(pred == arith::CmpFPredicate::UGT ||
+                      pred == arith::CmpFPredicate::ULT,
+                  "pred must be either UGT or ULT");
+    Value cmp = rewriter.create<arith::CmpFOp>(loc, pred, lhs, rhs);
+    // Value select = rewriter.create<arith::SelectOp>(loc, cmp, lhs, rhs);
+    rewriter.replaceOpWithNewOp<arith::SelectOp>(op, cmp, lhs, rhs);
+
+    // Different with ArithExpand pass
+    // Do not handle the case where rhs is NaN: 'isNaN(rhs) ? rhs : select'.
+    // Value isNaN = rewriter.create<arith::CmpFOp>(loc, arith::CmpFPredicate::UNO,
+    //                                              rhs, rhs);
+    // rewriter.replaceOpWithNewOp<arith::SelectOp>(op, isNaN, rhs, select);
+    return success();
+  }
+};
+
 /// A pass to lower math operations 
 struct ApproximateMathWithArithPass
     : public ApproximateMathWithArithBase<ApproximateMathWithArithPass> {
@@ -122,7 +151,17 @@ struct ApproximateMathWithArithPass
     ConversionTarget target(getContext());
     // target.addIllegalOp<tosa::ConstOp>();
     target.addLegalDialect<arith::ArithDialect>();
+    target.addIllegalOp<
+      arith::MaxFOp,
+      arith::MinFOp
+    >();
+
     patterns.add<RsqrtConverter>(patterns.getContext());
+
+    patterns.add<
+      MaxMinFOpConverter<arith::MaxFOp, arith::CmpFPredicate::UGT>,
+      MaxMinFOpConverter<arith::MinFOp, arith::CmpFPredicate::ULT>
+    >(patterns.getContext());
 
     if (failed(applyPartialConversion(getOperation(), target,
                                       std::move(patterns))))

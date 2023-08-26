@@ -62,9 +62,10 @@ def ConvertFDRAToSCF : Pass<"fdra-convert-loadstore-to-scf", "ModuleOp"> {
 }
 
 def ApproximateMathWithArith : Pass<"fdra-approximate-math", "ModuleOp"> {
-  let summary = "Approximate math op with a combination of arith ops";
+  let summary = "Approximate math op with a combination of simple arith ops";
   let description = [{
   Approximate/Lower math op with a combination of arith ops.
+  Note: Please use this pass before "-arith-expand" pass.
 
   math.rsqrt:
   """
@@ -88,6 +89,9 @@ def ApproximateMathWithArith : Pass<"fdra-approximate-math", "ModuleOp"> {
   %f3 = arith.subf %cst_3_2, %f2 : f32
   %y = arith.mulf %f3, %f1: f32
   """
+
+  arith.max/arith.min
+
   }];
   let constructor = "createApproximateMathWithArithPass()";
   let dependentDialects = ["math::MathDialect","arith::ArithDialect"];

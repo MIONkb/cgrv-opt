@@ -74,6 +74,18 @@ LogicalResult sinkOperationsIntoKernelOp(FDRA::KernelOp kernelOp);
 func::FuncOp GenKernelFunc(FDRA::KernelOp KernelOp, llvm::SetVector<Value> &operands);
 
 //===----------------------------------------------------------------------===//
+// For DFG
+//===----------------------------------------------------------------------===//
+/* Class define */
+class DFGInfo { 
+  public: int Num_ALU = 0 , Num_LSU = 0;
+};
+std::string GenDFGfromAffinewithCMD
+    (std::string KernelsDir, std::string kernelFnName, std::string llvmCDFGPass);
+DFGInfo GetDFGinfo(std::string DFGPath);
+
+
+//===----------------------------------------------------------------------===//
 // A templated find func for smallvector
 //===----------------------------------------------------------------------===//
 template <typename T, unsigned N>

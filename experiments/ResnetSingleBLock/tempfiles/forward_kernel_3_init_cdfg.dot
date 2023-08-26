@@ -1,0 +1,25 @@
+digraph "CFG for 'forward_kernel_3' function" {
+	label="CFG for 'forward_kernel_3' function";
+
+	Node0x562763e2d930 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#6687ed70",label="{bb:\l  br label %.preheader2, !dbg !7\l}"];
+	Node0x562763e2d930 -> Node0x562763e2d9e0;
+	Node0x562763e2d9e0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#aec9fc70",label="{.preheader2:                                      \l  %i = phi i64 [ 0, %bb ], [ %i33, %bb32 ]\l  %i3 = mul nuw nsw i64 %i, 56\l  %i4 = shl nuw nsw i64 %i, 1\l  br label %bb5, !dbg !9\l}"];
+	Node0x562763e2d9e0 -> Node0x562763e2e540;
+	Node0x562763e2e540 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#ecd3c570",label="{bb5:                                              \l  %i6 = phi i64 [ 0, %.preheader2 ], [ %i30, %bb28 ]\l  %i7 = add nuw nsw i64 %i6, %i3, !dbg !10\l  %i8 = getelementptr float, ptr %arg, i64 %i7, !dbg !11\l  %i9 = load float, ptr %i8, align 4, !dbg !12\l  %i10 = shl nuw nsw i64 %i6, 1\l  br label %.preheader, !dbg !13\l}"];
+	Node0x562763e2e540 -> Node0x562763e2f200;
+	Node0x562763e2f200 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#f2907270",label="{.preheader:                                       \l  %i11 = phi float [ %i9, %bb5 ], [ %.lcssa, %bb25 ]\l  %i12 = phi i64 [ 0, %bb5 ], [ %i26, %bb25 ]\l  %i13 = add nuw nsw i64 %i12, %i4\l  %i14 = mul nuw nsw i64 %i13, 114\l  %i15 = add nuw nsw i64 %i14, %i10\l  br label %bb16, !dbg !14\l}"];
+	Node0x562763e2f200 -> Node0x562763e2fa50;
+	Node0x562763e2fa50 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870",label="{bb16:                                             \l  %i17 = phi float [ %i11, %.preheader ], [ %i22, %bb16 ]\l  %i18 = phi i64 [ 0, %.preheader ], [ %i23, %bb16 ]\l  %i19 = add nuw nsw i64 %i15, %i18, !dbg !15\l  %i20 = getelementptr float, ptr %arg1, i64 %i19, !dbg !16\l  %i21 = load float, ptr %i20, align 4, !dbg !17\l  %.inv = fcmp ole float %i17, %i21, !dbg !18\l  %i22 = select i1 %.inv, float %i21, float %i17, !dbg !18\l  %i23 = add nuw nsw i64 %i18, 1, !dbg !19\l  %i24 = icmp ult i64 %i18, 2, !dbg !20\l  br i1 %i24, label %bb16, label %bb25, !dbg !14\l|{<s0>T|<s1>F}}"];
+	Node0x562763e2fa50:s0 -> Node0x562763e2fa50;
+	Node0x562763e2fa50:s1 -> Node0x562763e2f4f0;
+	Node0x562763e2f4f0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#f2907270",label="{bb25:                                             \l  %.lcssa = phi float [ %i22, %bb16 ], !dbg !18\l  %i26 = add nuw nsw i64 %i12, 1, !dbg !21\l  %i27 = icmp ult i64 %i12, 2, !dbg !22\l  br i1 %i27, label %.preheader, label %bb28, !dbg !13\l|{<s0>T|<s1>F}}"];
+	Node0x562763e2f4f0:s0 -> Node0x562763e2f200;
+	Node0x562763e2f4f0:s1 -> Node0x562763e2e820;
+	Node0x562763e2e820 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#ecd3c570",label="{bb28:                                             \l  %.lcssa.lcssa = phi float [ %.lcssa, %bb25 ], !dbg !18\l  %i29 = getelementptr float, ptr %arg2, i64 %i7, !dbg !23\l  store float %.lcssa.lcssa, ptr %i29, align 4, !dbg !24\l  %i30 = add nuw nsw i64 %i6, 1, !dbg !25\l  %i31 = icmp ult i64 %i6, 55, !dbg !26\l  br i1 %i31, label %bb5, label %bb32, !dbg !9\l|{<s0>T|<s1>F}}"];
+	Node0x562763e2e820:s0 -> Node0x562763e2e540;
+	Node0x562763e2e820:s1 -> Node0x562763e2e1e0;
+	Node0x562763e2e1e0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#aec9fc70",label="{bb32:                                             \l  %i33 = add nuw nsw i64 %i, 1, !dbg !27\l  %i34 = icmp ult i64 %i, 3, !dbg !28\l  br i1 %i34, label %.preheader2, label %bb35, !dbg !7\l|{<s0>T|<s1>F}}"];
+	Node0x562763e2e1e0:s0 -> Node0x562763e2d9e0;
+	Node0x562763e2e1e0:s1 -> Node0x562763e339a0;
+	Node0x562763e339a0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#6687ed70",label="{bb35:                                             \l  ret void, !dbg !29\l}"];
+}

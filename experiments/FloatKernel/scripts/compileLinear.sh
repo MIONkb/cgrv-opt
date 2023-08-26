@@ -38,4 +38,4 @@ cgra-opt --affine-loop-fusion  --arith-expand --memref-expand -reconcile-unreali
   --mlir-print-ir-after-all 2>&1 | cat > 2_intermediate_before_host.mlir
 
 
---fdra-hoist-loadstore 
+# --fdra-hoist-loadstore 

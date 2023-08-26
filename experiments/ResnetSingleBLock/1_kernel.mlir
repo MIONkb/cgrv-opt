@@ -25,17 +25,17 @@ module attributes {torch.debug_module_name = "ResNet"} {
     affine.for %arg1 = 0 to 1 {
       affine.for %arg2 = 0 to 3 {
         affine.for %arg3 = 0 to 230 step 5 {
-          FDRA.kernel {
+
             affine.for %arg4 = #map(%arg3) to #map1(%arg3) {
               affine.for %arg5 = 0 to 230 {
                 affine.store %cst_1, %alloc[%arg1, %arg2, %arg4, %arg5] : memref<1x3x230x230xf32>
               }
             }
-            FDRA.terminator
-          }
+
         }
       }
     }
+    memref.dealloc %alloc : memref<1x3x230x230xf32>
     %alloc_2 = memref.alloc() {alignment = 64 : i64} : memref<1x3x230x230xf32>
     memref.copy %alloc, %alloc_2 : memref<1x3x230x230xf32> to memref<1x3x230x230xf32>
     %subview = memref.subview %alloc_2[0, 0, 3, 3] [1, 3, 224, 224] [1, 1, 1, 1] : memref<1x3x230x230xf32> to memref<1x3x224x224xf32, strided<[158700, 52900, 230, 1], offset: 693>>
@@ -44,37 +44,40 @@ module attributes {torch.debug_module_name = "ResNet"} {
     affine.for %arg1 = 0 to 1 {
       affine.for %arg2 = 0 to 64 {
         affine.for %arg3 = 0 to 112 step 16 {
-          FDRA.kernel {
+
             affine.for %arg4 = #map(%arg3) to #map2(%arg3) {
               affine.for %arg5 = 0 to 112 {
                 affine.store %cst_1, %alloc_3[%arg1, %arg2, %arg4, %arg5] : memref<1x64x112x112xf32>
               }
             }
-            FDRA.terminator
-          }
+
         }
       }
     }
     %alloc_4 = memref.alloc() {alignment = 64 : i64} : memref<1x64x112x112xf32>
     memref.copy %alloc_3, %alloc_4 : memref<1x64x112x112xf32> to memref<1x64x112x112xf32>
+    memref.dealloc %alloc_3 : memref<1x64x112x112xf32>
     affine.for %arg1 = 0 to 1 {
       affine.for %arg2 = 0 to 64 {
         affine.for %arg3 = 0 to 112 {
           affine.for %arg4 = 0 to 112 step 8 {
             FDRA.kernel {
               affine.for %arg5 = #map(%arg4) to #map3(%arg4) {
-                affine.for %arg6 = 0 to 3 {
-                  affine.for %arg7 = 0 to 7 {
-                    affine.for %arg8 = 0 to 7 {
-                      %5 = affine.load %alloc_2[%arg1, %arg6, %arg3 * 2 + %arg7, %arg5 * 2 + %arg8] : memref<1x3x230x230xf32>
-                      %6 = affine.load %0[%arg2, %arg6, %arg7, %arg8] : memref<64x3x7x7xf32>
-                      %7 = affine.load %alloc_4[%arg1, %arg2, %arg3, %arg5] : memref<1x64x112x112xf32>
-                      %8 = arith.mulf %5, %6 : f32
-                      %9 = arith.addf %7, %8 : f32
-                      affine.store %9, %alloc_4[%arg1, %arg2, %arg3, %arg5] : memref<1x64x112x112xf32>
+                %5 = affine.load %alloc_4[%arg1, %arg2, %arg3, %arg5] : memref<1x64x112x112xf32>
+                %6 = affine.for %arg6 = 0 to 3 iter_args(%arg7 = %5) -> (f32) {
+                  %7 = affine.for %arg8 = 0 to 7 iter_args(%arg9 = %arg7) -> (f32) {
+                    %8 = affine.for %arg10 = 0 to 7 iter_args(%arg11 = %arg9) -> (f32) {
+                      %9 = affine.load %alloc_2[%arg1, %arg6, %arg3 * 2 + %arg8, %arg5 * 2 + %arg10] : memref<1x3x230x230xf32>
+                      %10 = affine.load %0[%arg2, %arg6, %arg8, %arg10] : memref<64x3x7x7xf32>
+                      %11 = arith.mulf %9, %10 : f32
+                      %12 = arith.addf %arg11, %11 : f32
+                      affine.yield %12 : f32
                     }
+                    affine.yield %8 : f32
                   }
+                  affine.yield %7 : f32
                 }
+                affine.store %6, %alloc_4[%arg1, %arg2, %arg3, %arg5] : memref<1x64x112x112xf32>
               }
               FDRA.terminator
             }
@@ -88,14 +91,14 @@ module attributes {torch.debug_module_name = "ResNet"} {
         affine.for %arg3 = 0 to 112 step 16 {
           FDRA.kernel {
             affine.for %arg4 = #map(%arg3) to #map2(%arg3) {
+                      %5 = affine.load %3[%arg2] : memref<64xf32>
+        %6 = affine.load %4[%arg2] : memref<64xf32>
+        %7 = affine.load %1[%arg2] : memref<64xf32>
+        %8 = affine.load %2[%arg2] : memref<64xf32>
               affine.for %arg5 = 0 to 112 {
-                %5 = affine.load %alloc_4[%arg1, %arg2, %arg4, %arg5] : memref<1x64x112x112xf32>
-                %6 = affine.load %3[%arg2] : memref<64xf32>
-                %7 = affine.load %4[%arg2] : memref<64xf32>
-                %8 = affine.load %1[%arg2] : memref<64xf32>
-                %9 = affine.load %2[%arg2] : memref<64xf32>
+                %9 = affine.load %alloc_4[%arg1, %arg2, %arg4, %arg5] : memref<1x64x112x112xf32>
                 %10 = arith.truncf %cst : f64 to f32
-                %11 = arith.addf %9, %10 : f32
+                %11 = arith.addf %8, %10 : f32
                 %cst_12 = arith.constant 5.000000e-01 : f32
                 %12 = arith.mulf %11, %cst_12 : f32
                 %13 = arith.bitcast %11 : f32 to i32
@@ -109,10 +112,10 @@ module attributes {torch.debug_module_name = "ResNet"} {
                 %18 = arith.mulf %17, %12 : f32
                 %19 = arith.subf %cst_13, %18 : f32
                 %20 = arith.mulf %19, %17 : f32
-                %21 = arith.subf %5, %8 : f32
+                %21 = arith.subf %9, %7 : f32
                 %22 = arith.mulf %21, %20 : f32
-                %23 = arith.mulf %22, %6 : f32
-                %24 = arith.addf %23, %7 : f32
+                %23 = arith.mulf %22, %5 : f32
+                %24 = arith.addf %23, %6 : f32
                 affine.store %24, %alloc_5[%arg1, %arg2, %arg4, %arg5] : memref<1x64x112x112xf32>
               }
             }
@@ -121,6 +124,7 @@ module attributes {torch.debug_module_name = "ResNet"} {
         }
       }
     }
+    memref.dealloc %alloc_4 : memref<1x64x112x112xf32>
     %alloc_6 = memref.alloc() {alignment = 64 : i64} : memref<1x64x112x112xf32>
     affine.for %arg1 = 0 to 1 {
       affine.for %arg2 = 0 to 64 {
@@ -139,21 +143,21 @@ module attributes {torch.debug_module_name = "ResNet"} {
         }
       }
     }
+    memref.dealloc %alloc_5 : memref<1x64x112x112xf32>
+    memref.dealloc %alloc_6 : memref<1x64x112x112xf32>
     %alloc_7 = memref.alloc() {alignment = 64 : i64} : memref<1x64x114x114xf32>
     affine.for %arg1 = 0 to 1 {
       affine.for %arg2 = 0 to 64 {
         affine.for %arg3 = 0 to 114 step 6 {
-          FDRA.kernel {
             affine.for %arg4 = #map(%arg3) to #map4(%arg3) {
               affine.for %arg5 = 0 to 114 {
                 affine.store %cst_0, %alloc_7[%arg1, %arg2, %arg4, %arg5] : memref<1x64x114x114xf32>
               }
             }
-            FDRA.terminator
-          }
         }
       }
     }
+    memref.dealloc %alloc_7 : memref<1x64x114x114xf32>
     %alloc_8 = memref.alloc() {alignment = 64 : i64} : memref<1x64x114x114xf32>
     memref.copy %alloc_7, %alloc_8 : memref<1x64x114x114xf32> to memref<1x64x114x114xf32>
     %subview_9 = memref.subview %alloc_8[0, 0, 1, 1] [1, 64, 112, 112] [1, 1, 1, 1] : memref<1x64x114x114xf32> to memref<1x64x112x112xf32, strided<[831744, 12996, 114, 1], offset: 115>>
@@ -162,33 +166,34 @@ module attributes {torch.debug_module_name = "ResNet"} {
     affine.for %arg1 = 0 to 1 {
       affine.for %arg2 = 0 to 64 {
         affine.for %arg3 = 0 to 56 step 28 {
-          FDRA.kernel {
             affine.for %arg4 = #map(%arg3) to #map5(%arg3) {
               affine.for %arg5 = 0 to 56 {
                 affine.store %cst_0, %alloc_10[%arg1, %arg2, %arg4, %arg5] : memref<1x64x56x56xf32>
               }
             }
-            FDRA.terminator
-          }
         }
       }
     }
     %alloc_11 = memref.alloc() {alignment = 64 : i64} : memref<1x64x56x56xf32>
     memref.copy %alloc_10, %alloc_11 : memref<1x64x56x56xf32> to memref<1x64x56x56xf32>
+    memref.dealloc %alloc_10 : memref<1x64x56x56xf32>
     affine.for %arg1 = 0 to 1 {
       affine.for %arg2 = 0 to 64 {
         affine.for %arg3 = 0 to 56 step 4 {
           FDRA.kernel {
             affine.for %arg4 = #map(%arg3) to #map6(%arg3) {
               affine.for %arg5 = 0 to 56 {
-                affine.for %arg6 = 0 to 3 {
-                  affine.for %arg7 = 0 to 3 {
-                    %5 = affine.load %alloc_8[%arg1, %arg2, %arg4 * 2 + %arg6, %arg5 * 2 + %arg7] : memref<1x64x114x114xf32>
-                    %6 = affine.load %alloc_11[%arg1, %arg2, %arg4, %arg5] : memref<1x64x56x56xf32>
-                    %7 = arith.maxf %6, %5 : f32
-                    affine.store %7, %alloc_11[%arg1, %arg2, %arg4, %arg5] : memref<1x64x56x56xf32>
+                %5 = affine.load %alloc_11[%arg1, %arg2, %arg4, %arg5] : memref<1x64x56x56xf32>
+                %6 = affine.for %arg6 = 0 to 3 iter_args(%arg7 = %5) -> (f32) {
+                  %7 = affine.for %arg8 = 0 to 3 iter_args(%arg9 = %arg7) -> (f32) {
+                    %8 = affine.load %alloc_8[%arg1, %arg2, %arg4 * 2 + %arg6, %arg5 * 2 + %arg8] : memref<1x64x114x114xf32>
+                    %9 = arith.cmpf ugt, %arg9, %8 : f32
+                    %10 = arith.select %9, %arg9, %8 : f32
+                    affine.yield %10 : f32
                   }
+                  affine.yield %7 : f32
                 }
+                affine.store %6, %alloc_11[%arg1, %arg2, %arg4, %arg5] : memref<1x64x56x56xf32>
               }
             }
             FDRA.terminator
@@ -196,6 +201,7 @@ module attributes {torch.debug_module_name = "ResNet"} {
         }
       }
     }
+    memref.dealloc %alloc_11 : memref<1x64x56x56xf32>
     return %alloc_11 : memref<1x64x56x56xf32>
   }
 }

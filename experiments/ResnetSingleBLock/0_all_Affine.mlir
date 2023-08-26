@@ -24,6 +24,7 @@ module attributes {torch.debug_module_name = "ResNet"} {
         }
       }
     }
+    memref.dealloc %alloc : memref<1x3x230x230xf32>
     %alloc_2 = memref.alloc() {alignment = 64 : i64} : memref<1x3x230x230xf32>
     memref.copy %alloc, %alloc_2 : memref<1x3x230x230xf32> to memref<1x3x230x230xf32>
     %subview = memref.subview %alloc_2[0, 0, 3, 3] [1, 3, 224, 224] [1, 1, 1, 1] : memref<1x3x230x230xf32> to memref<1x3x224x224xf32, strided<[158700, 52900, 230, 1], offset: 693>>
@@ -40,6 +41,7 @@ module attributes {torch.debug_module_name = "ResNet"} {
     }
     %alloc_4 = memref.alloc() {alignment = 64 : i64} : memref<1x64x112x112xf32>
     memref.copy %alloc_3, %alloc_4 : memref<1x64x112x112xf32> to memref<1x64x112x112xf32>
+    memref.dealloc %alloc_3 : memref<1x64x112x112xf32>
     affine.for %arg1 = 0 to 1 {
       affine.for %arg2 = 0 to 64 {
         affine.for %arg3 = 0 to 112 {
@@ -82,6 +84,7 @@ module attributes {torch.debug_module_name = "ResNet"} {
         }
       }
     }
+    memref.dealloc %alloc_4 : memref<1x64x112x112xf32>
     %alloc_6 = memref.alloc() {alignment = 64 : i64} : memref<1x64x112x112xf32>
     affine.for %arg1 = 0 to 1 {
       affine.for %arg2 = 0 to 64 {
@@ -95,6 +98,8 @@ module attributes {torch.debug_module_name = "ResNet"} {
         }
       }
     }
+    memref.dealloc %alloc_5 : memref<1x64x112x112xf32>
+    memref.dealloc %alloc_6 : memref<1x64x112x112xf32>
     %alloc_7 = memref.alloc() {alignment = 64 : i64} : memref<1x64x114x114xf32>
     affine.for %arg1 = 0 to 1 {
       affine.for %arg2 = 0 to 64 {
@@ -105,6 +110,7 @@ module attributes {torch.debug_module_name = "ResNet"} {
         }
       }
     }
+    memref.dealloc %alloc_7 : memref<1x64x114x114xf32>
     %alloc_8 = memref.alloc() {alignment = 64 : i64} : memref<1x64x114x114xf32>
     memref.copy %alloc_7, %alloc_8 : memref<1x64x114x114xf32> to memref<1x64x114x114xf32>
     %subview_9 = memref.subview %alloc_8[0, 0, 1, 1] [1, 64, 112, 112] [1, 1, 1, 1] : memref<1x64x114x114xf32> to memref<1x64x112x112xf32, strided<[831744, 12996, 114, 1], offset: 115>>
@@ -121,6 +127,7 @@ module attributes {torch.debug_module_name = "ResNet"} {
     }
     %alloc_11 = memref.alloc() {alignment = 64 : i64} : memref<1x64x56x56xf32>
     memref.copy %alloc_10, %alloc_11 : memref<1x64x56x56xf32> to memref<1x64x56x56xf32>
+    memref.dealloc %alloc_10 : memref<1x64x56x56xf32>
     affine.for %arg1 = 0 to 1 {
       affine.for %arg2 = 0 to 64 {
         affine.for %arg3 = 0 to 56 {
@@ -137,6 +144,7 @@ module attributes {torch.debug_module_name = "ResNet"} {
         }
       }
     }
+    memref.dealloc %alloc_11 : memref<1x64x56x56xf32>
     return %alloc_11 : memref<1x64x56x56xf32>
   }
 }

@@ -87,7 +87,10 @@ General options:
         --cachesize=<uint>                             - Set a cachesize(Kib) for kernel to be iterated(default to be 512Kib)
         --disable-remainder-block                      - Disable make remainder during loop strip-mining
         --singlearraysize=<uint>                       - Set a cachesize(Kib) constrain for a single array or tensor in a kernel(default to be the same with Cachesize_Kib)
-      --fdra-approximate-math                          -   Approximate math op with a combination of arith ops
+      --fdra-affine-loop-unroll                        -   apply loop unroll to kernel function to achieve highest cgra utilization
+        --cdfg-pass-so=<string>                        - File path: the llvm shared library(.so) of DFG generator(app-compiler)
+        --cgra-adg=<string>                            - File path: target cgra backend ADG(Architecture Description Graph)
+      --fdra-approximate-math                          -   Approximate math op with a combination of simple arith ops
       --fdra-auto-dse                                  -   design space explore for application frontend optimization
         --cdfg-pass-so=<string>                        - File path: the llvm shared library(.so) of DFG generator(app-compiler)
         --cgra-adg=<string>                            - File path: target cgra backend ADG(Architecture Description Graph)
@@ -101,6 +104,11 @@ General options:
       --fdra-loop-dfg-gen                              -   Generate cdfg of FDRA from a for-loop
       --fdra-test-print-nesting                        -   Print op nesting information
         --option-name=<ulong>                          - Description of the option
+      --finalize-memref-to-llvm                        -   Finalize MemRef dialect to LLVM dialect conversion
+        --index-bitwidth=<uint>                        - Bitwidth of the index type, 0 to use size of machine word
+        --use-aligned-alloc                            - Use aligned_alloc in place of malloc for heap allocations
+        --use-generic-functions                        - Use generic allocation and deallocation functions instead of the classic 'malloc', 'aligned_alloc' and 'free' functions
+        --use-opaque-pointers                          - Generate LLVM IR using opaque pointers instead of typed pointers
       --fold-memref-alias-ops                          -   Fold memref alias ops into consumer load/store ops
       --inline                                         -   Inline function calls
         --default-pipeline=<string>                    - The default optimizer pipeline used for callables

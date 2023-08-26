@@ -22,6 +22,7 @@ using namespace llvm;
 
 namespace mlir {
 namespace FDRA {
+using DesignPoint = SmallVector<unsigned,12>;
 
 class ForNode
 {
@@ -102,6 +103,11 @@ public:
 
 };
 
+SmallVector<DesignPoint> ExpandTilingAndUnrollingFactors(ForNode, SmallVector<DesignPoint>);
+SmallVector<unsigned> FindUnrollingFactors(FDRA::ForNode& Node);
+SmallVector<FDRA::ForNode> createAffineForTree(func::FuncOp topfunc);
+FDRA::ForNode* findTargetLoopNode(SmallVector<FDRA::ForNode>& NodeVec, mlir::affine::AffineForOp forop);
+void NestedGenTree(FDRA::ForNode* rootNode, SmallVector<FDRA::ForNode>& NodeVec);
 
 // class ADG : public Graph
 // {

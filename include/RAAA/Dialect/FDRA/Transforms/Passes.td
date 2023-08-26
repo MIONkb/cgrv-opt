@@ -40,6 +40,48 @@ def ExtractAffineForToKernel : Pass<"fdra-extract-affine-for-to-kernel", "func::
 }
 
 //===----------------------------------------------------------------------===//
+// Loop unroll to achieve highest utilization
+//===----------------------------------------------------------------------===//
+def FDRAAffineLoopUnroll : Pass<"fdra-affine-loop-unroll", "ModuleOp"> {
+  let summary = "apply loop unroll to kernel function to achieve highest cgra utilization";
+  let description = [{
+    CGRAOPT applies loop unrolling to the innermost 2-level loop of a kernel function,
+    aiming to achieve enhanced instruction-level parallelism (ILP) and
+    better utilization of hardware resources. To determine the optimal
+    unroll factor (UF) for the kernel, the "-cgra-affine-loop-unroll" pass
+    generates a data-flow graph (DFG) for each available UF. The pass
+    calculates the utilization of these DFGs using the formula:
+    Util = min(#L/S Nodes / #I/O Units, #Computing Nodes / #ALUs)
+    where #L/S Nodes represent the number of Load/Store nodes,
+    #I/O Units represent the number of I/O units, and #Computing Nodes
+    represent the number of computing nodes. #ALUs represent the number
+    of Arithmetic Logic Units.
+    The overall utilization in the formula depends on the smaller value
+    between the utilization of Input/Output blocks and that of ALUs.
+  }];  
+  let constructor = "mlir::FDRA::createFDRAAffineLoopUnrollPass()";
+  let dependentDialects = [
+    "::mlir::FDRA::FDRADialect",
+    "::mlir::affine::AffineDialect"
+  ];
+  let options = [
+    // Option<"outputPath", "output-path", "std::string",
+    //        /*default=*/"\"./\"",
+    //        "File path: the path for dumping the MLIR of pareto design points">,
+    // Option<"csvPath", "csv-path", "std::string",
+    //        /*default=*/"\"./\"",
+    //        "File path: the path for dumping the CSV of design spaces">,
+
+    Option<"CGRAadg", "cgra-adg", "std::string",
+           /*default=*/"\"notdefined\"",
+           "File path: target cgra backend ADG(Architecture Description Graph)">,
+    Option<"llvmCDFGPass", "cdfg-pass-so", "std::string",
+           /*default=*/"\"notdefined\"",
+           "File path: the llvm shared library(.so) of DFG generator(app-compiler)">
+  ];
+}
+
+//===----------------------------------------------------------------------===//
 // Adjust(Partition) Kernel according to a customized Cachesize
 //===----------------------------------------------------------------------===//
 def AdjustKernelMemoryFootprint : Pass<"fdra-adjust-kernel-mem-footprint", "ModuleOp"> {
