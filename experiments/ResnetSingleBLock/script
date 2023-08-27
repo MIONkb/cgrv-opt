@@ -44,9 +44,10 @@ cgra-opt -promote-buffers-to-stack \
    2_after_kernel_lower.mlir -o "3_forward_llvm_test.mlir"  \
    --mlir-print-ir-after-all 2>&1 | cat > "3_intermediate_forward_llvm_test.mlir"
 
-mlir-translate  --mlir-to-llvmir \
- "3_forward_llvm_test.mlir" \
+/home/tianyi/Tools/llvm-18/build/bin/mlir-translate  --mlir-to-llvmir \
+ "3_forward_llvm.mlir" \
  -o "forward.ll"
+
 
 
 

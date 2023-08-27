@@ -114,21 +114,26 @@ cgra-opt -promote-buffers-to-stack --arith-expand --memref-expand  \
  -normalize-memrefs --expand-strided-metadata  -lower-affine \
  --scf-for-loop-canonicalization -convert-scf-to-cf \
  --convert-math-to-llvm --convert-math-to-libm \
- --convert-arith-to-llvm --finalize-memref-to-llvm \
+ --convert-arith-to-llvm \
+ --finalize-memref-to-llvm="use-opaque-pointers use-generic-functions" \
  --fdra-convert-kernelcall-to-llvm \
  -convert-func-to-llvm=use-bare-ptr-memref-call-conv \
- --finalize-memref-to-llvm  --cse --canonicalize \
+ --finalize-memref-to-llvm="use-opaque-pointers use-generic-functions"  \
+ --cse --canonicalize \
  --reconcile-unrealized-casts \
  $rootfolder/2_host.mlir -o $rootfolder/"3_${func_name}_llvm.mlir" \
  --mlir-print-ir-after-all 2>&1 | cat > "3_intermediate_${func_name}_llvm.mlir"
 
-mlir-translate  --mlir-to-llvmir $rootfolder/"3_${func_name}_llvm.mlir" > "$rootfolder/$func_name.ll"
+# mlir-translate  --mlir-to-llvmir $rootfolder/"3_${func_name}_llvm.mlir" > "$rootfolder/$func_name.ll"
 
-
+/home/tianyi/Tools/llvm-18/build/bin/mlir-translate  --mlir-to-llvmir \
+ $rootfolder/"3_${func_name}_llvm.mlir" \
+ -o "$rootfolder/$func_name.ll"
 
 
 # opt -memprof  "$rootfolder/$func_name.ll" -o "$rootfolder/$func_name.bc"
-opt -O3 "$rootfolder/$func_name.ll" -o "$rootfolder/$func_name.bc"
+echo opt -O3 "$rootfolder/$func_name.ll" -o "$rootfolder/$func_name.bc"
+/home/tianyi/Tools/llvm-18/build/bin/opt -O3 "$rootfolder/$func_name.ll" -o "$rootfolder/$func_name.bc"
 
 echo llc -O3 "$rootfolder/$func_name.bc" \
   -I /home/tianyi/chipyard/.conda-env/riscv-tools/riscv64-unknown-elf/include\
@@ -138,7 +143,7 @@ echo llc -O3 "$rootfolder/$func_name.bc" \
   -float-abi=hard \
   -code-model=small \
   -o "$tarfolder/$func_name.s"
-llc -O3 "$rootfolder/$func_name.bc" \
+/home/tianyi/Tools/llvm-18/build/bin/llc -O3 "$rootfolder/$func_name.bc" \
   -I /home/tianyi/chipyard/.conda-env/riscv-tools/riscv64-unknown-elf/include\
   -march=riscv64 -mtriple=riscv64-unknown-elf-gnu -mcpu=rocket-rv64 \
   -mattr=+c,+d,+relax  \

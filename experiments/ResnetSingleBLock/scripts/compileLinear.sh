@@ -16,7 +16,7 @@ rootfolder=$(pwd)
 /home/tianyi/Torchmlir/torch-mlir-main/build/bin/torch-mlir-opt  \
  --convert-tensor-to-linalg  -empty-tensor-to-alloc-tensor \
  --eliminate-empty-tensors  -linalg-bufferize \
- -buffer-deallocation -buffer-results-to-out-params --cse --canonicalize \
+ -buffer-results-to-out-params --cse --canonicalize \
  -linalg-generalize-named-ops \
  -arith-bufferize -func-bufferize  -tensor-bufferize \
  -convert-linalg-to-affine-loops -fold-memref-alias-ops --canonicalize \

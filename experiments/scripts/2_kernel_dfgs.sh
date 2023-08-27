@@ -38,13 +38,14 @@ for file in "$srcfolder"/*.ll; do
     echo "$filename"
     if [[ -f "$file" ]]; then
         # 运行指令，替换下面的 command with your command
-      /home/tianyi/MLIRCGRA/llvm-project/build/bin/opt -O2  --disable-loop-unrolling \
-         $file -S -o "$tempfolder"/"$filename"_Opt.ll
+      /home/tianyi/MLIRCGRA/llvm-project/build/bin/opt -O2 \
+       --disable-loop-unrolling -disable-vector-combine  --slp-max-vf=1 \
+         $file -S -o "$tempfolder"/"$filename"_opt.ll
       # --loop-rotate 
       /home/tianyi/MLIRCGRA/llvm-project/build/bin/opt  -gvn -mem2reg -memdep -memcpyopt -lcssa -loop-simplify \
          -licm -loop-deletion -indvars -simplifycfg\
          -mergereturn -indvars -instnamer \
-         "$tempfolder"/"$filename"_Opt.ll \
+         "$tempfolder"/"$filename"_opt.ll \
          -S -o "$tempfolder"/"$filename"_gvn.ll
 
       /home/tianyi/MLIRCGRA/llvm-project/build/bin/opt  --dot-cfg "$tempfolder"/"$filename"_gvn.ll -S -o "$tempfolder"/"$filename"_cdfg.ll -enable-new-pm=0
