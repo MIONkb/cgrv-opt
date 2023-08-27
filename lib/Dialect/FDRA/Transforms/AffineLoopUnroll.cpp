@@ -101,7 +101,7 @@ SmallVector<DesignPoint> FDRAAffineLoopUnrollPass::
 void FDRAAffineLoopUnrollPass::runOnOperation(){
   ModuleOp topmodule = getOperation();
   MLIRContext* context = topmodule.getContext();
-  auto originmodule = topmodule.getOperation()->clone();
+  // auto originmodule = topmodule.getOperation()->clone();
   int func_cnt = 0;
   for (auto _ : topmodule.getOps<func::FuncOp>()) {
     func_cnt++;
@@ -188,7 +188,7 @@ void FDRAAffineLoopUnrollPass::runOnOperation(){
 
   /** Traverse the whole design space **/
   for(DesignPoint point : AllDesignSpace){
-    topmodule = cast<ModuleOp>(originmodule->clone());
+    topmodule = cast<ModuleOp>(getOperation().getOperation()->clone());
     func::FuncOp func = *(topmodule.getOps<func::FuncOp>().begin());
 
     SmallVector<FDRA::ForNode> ForNodes = createAffineForTree(func);
@@ -230,6 +230,8 @@ void FDRAAffineLoopUnrollPass::runOnOperation(){
     topmodule.dump();
   }
 
+  int max_ALU = 0, max_LSU = 0;
+  std::string final_FilePath="";
 
   for(auto DesignPointFile : DesignSpaceFiles){   
     std::string FilePath = DesignSpacefolderPath.string() 
@@ -237,18 +239,18 @@ void FDRAAffineLoopUnrollPass::runOnOperation(){
     // llvm::errs() << "FilePath:" << FilePath << "\n";
     // llvm::StringRef FileName = DesignPointFile;
     // Set up the input file.
-    std::string errorMessage;
-    auto file = openInputFile(FilePath, &errorMessage);
-    if (!file) {
-      llvm::errs() << errorMessage << "\n";
-      assert(0);
-    }
+    // std::string errorMessage;
+    // auto file = openInputFile(FilePath, &errorMessage);
+    // if (!file) {
+    //   llvm::errs() << errorMessage << "\n";
+    //   assert(0);
+    // }
 
-    llvm::SourceMgr sourceMgr;
-    sourceMgr.AddNewSourceBuffer(std::move(file), SMLoc());
-    mlir::OwningOpRef<mlir::ModuleOp> m = parseSourceFile<ModuleOp>(sourceMgr, context); 
-    mlir::ModuleOp moduleop = m.get();
-    SymbolTable symbolTable(moduleop.getOperation());
+    // llvm::SourceMgr sourceMgr;
+    // sourceMgr.AddNewSourceBuffer(std::move(file), SMLoc());
+    // mlir::OwningOpRef<mlir::ModuleOp> m = parseSourceFile<ModuleOp>(sourceMgr, context); 
+    // mlir::ModuleOp moduleop = m.get();
+    // SymbolTable symbolTable(moduleop.getOperation());
     // func::FuncOp func = *(moduleop.getOps<func::FuncOp>().begin());
     // llvm::errs() << "module:" << moduleop << "\n";
 
@@ -260,8 +262,39 @@ void FDRAAffineLoopUnrollPass::runOnOperation(){
     }
 
     /// Read in DFG from dot
-    FDRA::DFGInfo dfginfo = GetDFGinfo(DFGPath);          
+    FDRA::DFGInfo dfginfo = GetDFGinfo(DFGPath);       
+    if(dfginfo.Num_ALU <= NumGPE && dfginfo.Num_LSU <= NumIOB) 
+    {
+      if(dfginfo.Num_LSU > max_LSU || 
+        (dfginfo.Num_ALU > max_ALU && dfginfo.Num_LSU == max_LSU))
+      {
+        final_FilePath = FilePath;
+        max_LSU = dfginfo.Num_LSU;
+        max_ALU = dfginfo.Num_ALU;
+      }
+    }
   }
+
+  assert(final_FilePath != "" && "Original kernel function cannot be mapped to cgra.");
+
+  std::string errorMessage;
+  auto file = openInputFile(final_FilePath, &errorMessage);
+  if (!file) {
+    llvm::errs() << errorMessage << "\n";
+    assert(0);
+  }
+
+  llvm::SourceMgr sourceMgr;
+  sourceMgr.AddNewSourceBuffer(std::move(file), SMLoc());
+  mlir::OwningOpRef<mlir::ModuleOp> m = parseSourceFile<ModuleOp>(sourceMgr, context); 
+  mlir::ModuleOp moduleop = m.get();
+  SymbolTable symbolTable(moduleop.getOperation());
+
+  topmodule = getOperation();
+  func::FuncOp oldfunc = *(topmodule.getOps<func::FuncOp>().begin());
+  func::FuncOp newfunc = *(moduleop.getOps<func::FuncOp>().begin());
+  newfunc.getOperation()->moveBefore(oldfunc);
+  oldfunc.getOperation()->erase();
 }
 
 

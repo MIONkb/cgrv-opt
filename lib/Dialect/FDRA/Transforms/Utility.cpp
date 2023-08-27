@@ -653,7 +653,8 @@ std::string mlir::FDRA::GenDFGfromAffinewithCMD
   /// Generate optimized LLVM IR
   sys_cmd = \
     "opt \
-      -O2  --disable-loop-unrolling "
+      -O2 --disable-loop-unrolling \
+      -disable-vector-combine -slp-max-vf=1 "
       + KernelsDir + "/" + kernelFnName + ".ll" \
       + " -S -o " 
       + KernelsDir + "/" + kernelFnName + "_opt.ll";
@@ -731,7 +732,7 @@ FDRA::DFGInfo mlir::FDRA::GetDFGinfo(std::string DFGPath)
   std::regex edge_pattern("([a-zA-Z0-9]+) -> ([a-zA-Z0-9]+)\\[operand = ([0-9]+)"); //eg. const1->sub3[operand=0];
   /// read in every line
   while (getline(DFGStrstream, strline)){
-    std::cout << "strline:" << strline << std::endl;
+    // std::cout << "strline:" << strline << std::endl;
     bool found = regex_search(strline, match, node_pattern);
     /**** Found a node ****/
     if(found){ 

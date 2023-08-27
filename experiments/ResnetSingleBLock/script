@@ -18,7 +18,9 @@ cgra-opt -promote-buffers-to-stack --arith-expand --memref-expand  \
  2_host.mlir -o "3_forward_llvm.mlir" \
  --mlir-print-ir-after-all 2>&1 | cat > "3_intermediate_forward_llvm.mlir"
 
-
+cgra-opt \
+ --fdra-affine-loop-unroll="cdfg-pass-so=/home/tianyi/new_fdra/fdra/app-compiler/build/llvm-pass/libCDFGPass.so cgra-adg=/home/tianyi/new_fdra/fdra/cgra-mg/src/main/resources/cgra_adg.json"\
+ forward_kernel_3.mlir -o forward_kernel_3_unrolled.mlir
  
 
 cgra-opt --fdra-convert-kernelcall-to-llvm 2_before_kernel_lower_test.mlir -o 2_after_kernel_lower.mlir
@@ -48,7 +50,8 @@ mlir-translate  --mlir-to-llvmir \
 
 
 
-/home/tianyi/MLIRCGRA/llvm-project/build/bin/opt -O1  --disable-loop-unrolling \
+/home/tianyi/MLIRCGRA/llvm-project/build/bin/opt -O2 \
+    --disable-loop-unrolling -disable-vector-combine  --slp-max-vf=1 \
          forward_kernel_0_1_7_1_1_1_1_1_1.ll -S -o forward_kernel_0_1_7_1_1_1_1_1_1_opt.ll
       # --loop-rotate 
 
@@ -72,15 +75,15 @@ mlir-translate  --mlir-to-llvmir \
    mv ./.forward_kernel_0.dot ./forward_kernel_0_init_cdfg.dot
 
 
-dot /home/tianyi/fdra/app-compiler/cgra-opt/experiments/ResnetSingleBLock/3_dfgs/forward_kernel_3.dot\
+dot forward_kernel_0_1_7_1_1_1_1_1_1.dot\
  -Tdot_json \
- -o /home/tianyi/fdra/app-compiler/cgra-opt/experiments/ResnetSingleBLock/tempfiles/forward_kernel_3.json
+ -o forward_kernel_0_1_7_1_1_1_1_1_1.json
 
 /home/tianyi/chipyard/generators/fdra/cgra-compiler/build/cgra-compiler SPDLOG_LEVEL=off \
 	      -c true -m true -o true -e true -t 3600000 -i 2000 \
 	      -p "/home/tianyi/chipyard/generators/fdra/cgra-mg/src/main/resources/operations.json" \
 	      -a "/home/tianyi/chipyard/generators/fdra/cgra-mg/src/main/resources/cgra_adg.json" \
-	      -d "/home/tianyi/fdra/app-compiler/cgra-opt/experiments/ResnetSingleBLock/tempfiles/forward_kernel_3.json"
+	      -d "forward_kernel_0_1_7_1_1_1_1_1_1.json"
 
 
 
@@ -145,7 +148,7 @@ opt -tbaa -scoped-noalias-aa \
  -inferattrs -ipsccp -called-value-propagation -globalopt -domtree \
  -mem2reg -deadargelim -domtree -basic-aa -aa -loops  \
    -simplifycfg  \
- -globals-aa  -inline -openmp-opt-cgscc -function-attrs -domtree -sroa \
+   -globals-aa  -inline -openmp-opt-cgscc -function-attrs -domtree -sroa \
  -basic-aa -aa -memoryssa -early-cse-memssa -speculative-execution \
  -aa  -jump-threading -correlated-propagation \
  -simplifycfg -domtree -basic-aa -aa -loops  \
@@ -166,7 +169,7 @@ opt -tbaa -scoped-noalias-aa \
  -loop-simplify  -lcssa -aa -scalar-evolution \
    -licm -simplifycfg -domtree \
  -basic-aa -aa -loops   \
-  -instcombine -elim-avail-extern \
+  -elim-avail-extern \
   -rpo-function-attrs -globalopt -globaldce \
   -globals-aa -domtree -float2int \
  -lower-constant-intrinsics -loops -loop-simplify \
@@ -175,21 +178,34 @@ opt -tbaa -scoped-noalias-aa \
   -loop-distribute -postdomtree \
  -branch-prob  -scalar-evolution -basic-aa \
  -aa  -demanded-bits  \
-   -inject-tli-mappings \
- -loop-vectorize -loop-simplify \
+   -inject-tli-mappings -loop-vectorize \
+   -loop-simplify \
  -scalar-evolution -aa  \
    -loop-load-elim \
- -basic-aa -aa   \
-  -instcombine -simplifycfg -domtree \
- -loops -scalar-evolution -basic-aa -aa -demanded-bits \
- -inject-tli-mappings -slp-vectorizer   \
- -instcombine -loop-simplify  -lcssa -scalar-evolution \
+   -basic-aa -aa   \
+  -simplifycfg -domtree \
+  -loops -scalar-evolution \
+    -basic-aa -aa -demanded-bits \
+     -inject-tli-mappings     \
+   forward_kernel_0_1_7_1_1_1_1_1_1.ll -S -o try.ll
+
+
+ 
+ 
+ 
+  
+ 
+
+
+ -loop-simplify  -lcssa -scalar-evolution \
  -loop-unroll    \
  -transform-warning -alignment-from-assumptions -strip-dead-prototypes\
   -globaldce -constmerge -domtree -loops -postdomtree -branch-prob \
    -loop-simplify  -lcssa -basic-aa \
   -aa -scalar-evolution -memoryssa  -loop-sink  \
-    -instsimplify -div-rem-pairs -simplifycfg \
+    -instsimplify -div-rem-pairs -simplifycfg -disable-vector-combine \
   -annotation-remarks -verify forward_kernel_0_1_7_1_1_1_1_1_1.ll -S -o try.ll
 
   -vector-combine
+  -instcombine 
+  -slp-vectorizer
