@@ -1,7 +1,0 @@
-Digraph G {
-Input22[opcode=Input, ref_name="", size="16", offset="0, 0", pattern="4, 1, 4, 4"];
-DIV23[opcode=DIV];
-Output25[opcode=Output, ref_name="", size="16", offset="0, 0", pattern="4, 1, 4, 4"];
-Input22 -> DIV23[operand = 1 ,color = black, style = bold, label = "Op=1"];
-DIV23 -> Output25[operand = 0 ,color = black, style = bold, label = "Op=0"];
-}

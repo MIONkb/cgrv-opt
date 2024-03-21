@@ -1,7 +1,0 @@
-Digraph G {
-load23[label = "load23, ArrayName=, Stride=[ 0, 4; 1, 32; ], Bounds=[ (0, 124)*4; ]", shape = box, color = black];
-fadd24[label = "fadd24", shape = box, color = black];
-store26[label = "store26, ArrayName=, Stride=[ 0, 4; 1, 32; ], Bounds=[ (0, 124)*4; ]", shape = box, color = black];
-load23 -> fadd24[color = black, style = bold, label = "Op=0"];
-fadd24 -> store26[color = black, style = bold, label = "Op=0"];
-}

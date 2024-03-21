@@ -1,5 +1,0 @@
-Digraph G {
-"Input23"[label = "\N\nlat=3"];
-"Output27"[label = "\N\nlat=6"];
-"Input23"->"Output27"[label = "lat=2\nop=0"];
-}

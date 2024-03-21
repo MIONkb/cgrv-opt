@@ -1,8 +1,0 @@
-<?xml version="1.0"?>
-<module>
- <function id="main_kernel">
-  <arg id="P0" interface_type="array" interface_typename="float*" interface_typename_orig="float (*)" size="8" interface_typename_include=""/>
-  <arg id="P1" interface_type="array" interface_typename="float*" interface_typename_orig="float (*)" size="4" interface_typename_include=""/>
-  <arg id="P2" interface_type="array" interface_typename="float*" interface_typename_orig="float (*)" size="8" interface_typename_include=""/>
- </function>
-</module>
