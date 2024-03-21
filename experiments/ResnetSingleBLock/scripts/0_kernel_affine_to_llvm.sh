@@ -23,6 +23,7 @@ fi
 # 遍历文件夹中的所有文件
 cnt=0
 
+cd $srcfolder
 for file in "$srcfolder"/*.mlir; do
     # 检查文件是否为普通文件
     filename=$(basename "$file" .mlir)
@@ -40,10 +41,11 @@ for file in "$srcfolder"/*.mlir; do
         --canonicalize \
         $file -o "$tarfolder"/"$filename"_llvm.mlir \
         -mlir-print-ir-after-all 2>&1 | cat > "$tempfolder"/intermediate_"$filename".mlir
+        # --fdra-affine-loop-unroll="cdfg-pass-so=/home/tianyi/new_fdra/fdra/app-compiler/build/llvm-pass/libCDFGPass.so cgra-adg=/home/tianyi/new_fdra/fdra/cgra-mg/src/main/resources/cgra_adg.json"\
 
       ((cnt++))
       echo $cnt
     fi
 done
 
-
+cd $rootfolder

@@ -1,9 +1,0 @@
-digraph unnamed {
-
-	Node0x56223fcf2010 [shape=record,label="{}"];
-	Node0x56223fcf2010 -> Node0x56223fcf20c0;
-	Node0x56223fcf20c0 [shape=record,label="{}"];
-	Node0x56223fcf20c0 -> Node0x56223fcf20c0;
-	Node0x56223fcf20c0 -> Node0x56223fd80860;
-	Node0x56223fd80860 [shape=record,label="{}"];
-}

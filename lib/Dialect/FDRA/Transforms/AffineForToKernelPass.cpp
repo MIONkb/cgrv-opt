@@ -32,7 +32,24 @@ struct AffineForKernelCaptor: public ExtractAffineForToKernelBase<AffineForKerne
   void runOnOperation() override {
     for (Operation &op : llvm::make_early_inc_range(getOperation().getOps())) {
       if (auto forOp = dyn_cast<AffineForOp>(&op)) {
-        FDRA::SpecifiedAffineFortoKernel(forOp);
+        auto ForWalkResult = forOp.walk([&](Operation *op){ 
+          if(op->getName().getStringRef()== AffineLoadOp::getOperationName() ||
+              op->getName().getStringRef()== AffineStoreOp::getOperationName()||
+              op->getName().getStringRef()== AffineForOp::getOperationName()||
+              op->getName().getStringRef()== AffineIfOp ::getOperationName()||
+              op->getName().getStringRef()== AffinePrefetchOp ::getOperationName()||
+              op->getName().getStringRef()== AffineVectorLoadOp ::getOperationName()||
+              op->getName().getStringRef()== AffineVectorStoreOp ::getOperationName()||
+              op->getName().getStringRef()== AffineYieldOp ::getOperationName())
+          {
+            return WalkResult::advance();
+          }
+          else
+            return WalkResult::interrupt();
+        });
+      
+        if(ForWalkResult.wasInterrupted())
+          FDRA::SpecifiedAffineFortoKernel(forOp);
       }
     }
   }

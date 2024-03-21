@@ -30,20 +30,20 @@ fi
 source /home/tianyi/chipyard/env.sh
 
 # get syscalls.s crt.S
-riscv64-unknown-elf-gcc \
- -DPREALLOCATE=1 -DMULTITHREAD=1 -mcmodel=medany \
- -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf \
- -fno-tree-loop-distribute-patterns -march=rv64gc -Wa,-march=rv64gc12 \
- -lm -lgcc \
- -I/home/tianyi/chipyard/generators/fdra/software/tests//riscv-tests \
- -I/home/tianyi/chipyard/generators/fdra/software/tests//riscv-tests/env \
- -I/home/tianyi/chipyard/generators/fdra/software/tests/ \
- -I/home/tianyi/chipyard/generators/fdra/software/tests//riscv-tests/benchmarks/common \
- -DID_STRING=  -nostdlib -nostartfiles -static \
- -T /home/tianyi/chipyard/generators/fdra/software/tests//riscv-tests/benchmarks/common/test.ld \
- -DBAREMETAL=1 \
- -S -o $tarfolder/syscalls.s \
- /home/tianyi/chipyard/generators/fdra/software/tests//riscv-tests/benchmarks/common/syscalls.c
+# riscv64-unknown-elf-gcc \
+#  -DPREALLOCATE=1 -DMULTITHREAD=1 -mcmodel=medany \
+#  -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf \
+#  -fno-tree-loop-distribute-patterns -march=rv64gc -Wa,-march=rv64gc12 \
+#  -lm -lgcc \
+#  -I/home/tianyi/chipyard/generators/fdra/software/tests//riscv-tests \
+#  -I/home/tianyi/chipyard/generators/fdra/software/tests//riscv-tests/env \
+#  -I/home/tianyi/chipyard/generators/fdra/software/tests/ \
+#  -I/home/tianyi/chipyard/generators/fdra/software/tests//riscv-tests/benchmarks/common \
+#  -DID_STRING=  -nostdlib -nostartfiles -static \
+#  -T /home/tianyi/chipyard/generators/fdra/software/tests//riscv-tests/benchmarks/common/test.ld \
+#  -DBAREMETAL=1 \
+#  -S -o $tarfolder/syscalls.s \
+#  /home/tianyi/chipyard/generators/fdra/software/tests//riscv-tests/benchmarks/common/syscalls.c
 
 cp  /home/tianyi/chipyard/generators/fdra/software/tests/gemm/crt.S $tarfolder/crt.s
 
@@ -115,10 +115,10 @@ cgra-opt -promote-buffers-to-stack --arith-expand --memref-expand  \
  --scf-for-loop-canonicalization -convert-scf-to-cf \
  --convert-math-to-llvm --convert-math-to-libm \
  --convert-arith-to-llvm \
- --finalize-memref-to-llvm="use-opaque-pointers use-generic-functions" \
+ --finalize-memref-to-llvm="use-opaque-pointers" \
  --fdra-convert-kernelcall-to-llvm \
  -convert-func-to-llvm=use-bare-ptr-memref-call-conv \
- --finalize-memref-to-llvm="use-opaque-pointers use-generic-functions"  \
+ --finalize-memref-to-llvm="use-opaque-pointers" \
  --cse --canonicalize \
  --reconcile-unrealized-casts \
  $rootfolder/2_host.mlir -o $rootfolder/"3_${func_name}_llvm.mlir" \
@@ -132,8 +132,13 @@ cgra-opt -promote-buffers-to-stack --arith-expand --memref-expand  \
 
 
 # opt -memprof  "$rootfolder/$func_name.ll" -o "$rootfolder/$func_name.bc"
-echo opt -O3 "$rootfolder/$func_name.ll" -o "$rootfolder/$func_name.bc"
-/home/tianyi/Tools/llvm-18/build/bin/opt -O3 "$rootfolder/$func_name.ll" -o "$rootfolder/$func_name.bc"
+echo /home/tianyi/Tools/llvm-18/build/bin/opt -O3 \
+ --disable-builtin=memset "$rootfolder/$func_name.ll" -o "$rootfolder/$func_name.bc"
+# /home/tianyi/Tools/llvm-18/build/bin/opt -O3 \
+#  --disable-builtin=memset "$rootfolder/$func_name.ll" -o "$rootfolder/$func_name.bc"
+
+/home/tianyi/Tools/llvm-18/build/bin/opt -O3  "$rootfolder/$func_name.ll" -o "$rootfolder/$func_name.bc"
+/home/tianyi/Tools/llvm-18/build/bin/opt -O3  "$rootfolder/$func_name.ll" -S -o "$rootfolder/${func_name}_opt.ll"
 
 echo llc -O3 "$rootfolder/$func_name.bc" \
   -I /home/tianyi/chipyard/.conda-env/riscv-tools/riscv64-unknown-elf/include\

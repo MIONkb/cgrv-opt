@@ -1,0 +1,15 @@
+digraph "CFG for 'forward_kernel_0' function" {
+	label="CFG for 'forward_kernel_0' function";
+
+	Node0x5560fb01c100 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#88abfd70",label="{%2:\l  br label %.preheader, !dbg !7\l}"];
+	Node0x5560fb01c100 -> Node0x5560fb01c190;
+	Node0x5560fb01c190 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#f3c7b170",label="{.preheader:                                       \l  %3 = phi i64 [ 0, %2 ], [ %16, %15 ]\l  %4 = mul nuw nsw i64 %3, 3\l  br label %5, !dbg !9\l}"];
+	Node0x5560fb01c190 -> Node0x5560fb01cd70;
+	Node0x5560fb01cd70 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870",label="{%5:\l5:                                                \l  %6 = phi i64 [ 0, %.preheader ], [ %13, %5 ]\l  %7 = add nuw nsw i64 %6, %4, !dbg !10\l  %8 = getelementptr float, ptr %0, i64 %7, !dbg !11\l  %9 = load float, ptr %8, align 4, !dbg !12\l  %10 = mul nuw nsw i64 %6, 3, !dbg !13\l  %11 = add nuw nsw i64 %10, %3, !dbg !14\l  %12 = getelementptr float, ptr %1, i64 %11, !dbg !15\l  store float %9, ptr %12, align 4, !dbg !16\l  %13 = add nuw nsw i64 %6, 1, !dbg !17\l  %14 = icmp ult i64 %6, 2, !dbg !18\l  br i1 %14, label %5, label %15, !dbg !9\l|{<s0>T|<s1>F}}"];
+	Node0x5560fb01cd70:s0 -> Node0x5560fb01cd70;
+	Node0x5560fb01cd70:s1 -> Node0x5560fb01cb80;
+	Node0x5560fb01cb80 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#f3c7b170",label="{%15:\l15:                                               \l  %16 = add nuw nsw i64 %3, 1, !dbg !19\l  %17 = icmp ult i64 %3, 2, !dbg !20\l  br i1 %17, label %.preheader, label %18, !dbg !7\l|{<s0>T|<s1>F}}"];
+	Node0x5560fb01cb80:s0 -> Node0x5560fb01c190;
+	Node0x5560fb01cb80:s1 -> Node0x5560fb01cd20;
+	Node0x5560fb01cd20 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#88abfd70",label="{%18:\l18:                                               \l  ret void, !dbg !21\l}"];
+}

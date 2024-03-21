@@ -54,35 +54,46 @@ object_files=$(find "$asmfolder" -name "*.s" -type f)
 echo \
 riscv64-unknown-elf-gcc \
  -DPREALLOCATE=1 -DMULTITHREAD=1 -mcmodel=medany \
- -std=gnu99 -O0 -ffast-math -fno-common -fno-builtin-printf \
+  -O2 -ffast-math -fno-common -fno-builtin-printf \
  -fno-tree-loop-distribute-patterns -march=rv64gc -Wa,-march=rv64gc12 \
   -lm -lgcc \
  -I/home/tianyi/chipyard/generators/fdra/software/tests//riscv-tests/benchmarks/common \
  -I/home/tianyi/chipyard/generators/fdra/software/tests/riscv-tests \
- -I/home/tianyi/chipyard/generators/fdra/software/tests/ \
- -T/home/tianyi/chipyard/generators/fdra/software/tests/riscv-tests/benchmarks/common/my_test.ld \
- -DID_STRING= -nostartfiles -static --verbose \
- -DBAREMETAL=1 -DDEFINE_MALLOC -e _start -g  \
- -o /home/tianyi/chipyard/generators/fdra/software/tests/build/bareMetalC/forward-baremetal \
- /home/tianyi/chipyard/generators/fdra/software/tests/riscv-tests/debug/programs/tiny-malloc.c \
- $rootfolder/main.c \
- $object_files
-
-riscv64-unknown-elf-gcc \
- -DPREALLOCATE=1 -DMULTITHREAD=1 -mcmodel=medany \
- -std=gnu99 -O0 -ffast-math -fno-common -fno-builtin-printf \
- -fno-tree-loop-distribute-patterns -march=rv64gc -Wa,-march=rv64gc12 \
-  -lm -lgcc \
- -I/home/tianyi/chipyard/generators/fdra/software/tests//riscv-tests/benchmarks/common \
- -I/home/tianyi/chipyard/generators/fdra/software/tests/riscv-tests \
+ -I/home/tianyi/chipyard/generators/fdra/software/tests//riscv-tests/env \
  -I/home/tianyi/chipyard/generators/fdra/software/tests/ \
  -T/home/tianyi/chipyard/generators/fdra/software/tests/riscv-tests/benchmarks/common/my_test.ld \
  -DID_STRING= -nostartfiles -static  \
  -DBAREMETAL=1 -DDEFINE_MALLOC -e _start -g  \
- -o /home/tianyi/chipyard/generators/fdra/software/tests/build/bareMetalC/forward-baremetal \
- /home/tianyi/chipyard/generators/fdra/software/tests/riscv-tests/debug/programs/tiny-malloc.c \
+ -o /home/tianyi/chipyard/generators/fdra/software/tests/build/bareMetalC/easy-baremetal \
  $rootfolder/main.c \
- $object_files
+ $object_files \
+ /home/tianyi/chipyard/generators/fdra/software/tests//riscv-tests/benchmarks/common/syscalls.c \
+ /home/tianyi/chipyard/generators/fdra/software/tests/UtilSrc/tiny-malloc.c 
+#  /home/tianyi/chipyard/generators/fdra/software/tests/UtilSrc/CRunnerUtils.cpp 
+
+riscv64-unknown-elf-gcc \
+ -DPREALLOCATE=1 -DMULTITHREAD=1 -mcmodel=medany \
+  -O2 -ffast-math -fno-common -fno-builtin-printf \
+ -fno-tree-loop-distribute-patterns -march=rv64gc -Wa,-march=rv64gc12 \
+  -lm -lgcc \
+ -I/home/tianyi/chipyard/generators/fdra/software/tests//riscv-tests/benchmarks/common \
+ -I/home/tianyi/chipyard/generators/fdra/software/tests/riscv-tests \
+ -I/home/tianyi/chipyard/generators/fdra/software/tests//riscv-tests/env \
+ -I/home/tianyi/chipyard/generators/fdra/software/tests/ \
+ -T/home/tianyi/chipyard/generators/fdra/software/tests/riscv-tests/benchmarks/common/my_test.ld \
+ -DID_STRING= -nostartfiles -static  \
+ -DBAREMETAL=1 -DDEFINE_MALLOC -e _start -g  \
+ -o /home/tianyi/chipyard/generators/fdra/software/tests/build/bareMetalC/easy-baremetal \
+ $rootfolder/main.c \
+ $object_files \
+ /home/tianyi/chipyard/generators/fdra/software/tests//riscv-tests/benchmarks/common/syscalls.c \
+ /home/tianyi/chipyard/generators/fdra/software/tests/UtilSrc/tiny-malloc.c 
+#  /home/tianyi/chipyard/generators/fdra/software/tests/UtilSrc/CRunnerUtils.cpp 
+
+#  /home/tianyi/chipyard/generators/fdra/software/tests//riscv-tests/benchmarks/common/syscalls.c \
+#  /home/tianyi/chipyard/generators/fdra/software/tests/gemm/crt.S \
+#  /home/tianyi/chipyard/generators/fdra/software/tests/UtilSrc/CRunnerUtils.cpp
+#  /home/tianyi/chipyard/generators/fdra/software/tests/UtilSrc/tiny-malloc.c 
 
 
 

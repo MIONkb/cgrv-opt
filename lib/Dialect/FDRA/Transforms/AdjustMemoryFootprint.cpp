@@ -260,7 +260,7 @@ uint64_t AdjustMemoryFootprintPass::
   else{
     singleArraySizeBytes = SingleArray_Size * 1024;
   }
-
+  errs()<<" Kernel :" << Kernel << "\n";
   for (mlir::affine::AffineForOp forOp : Kernel.getOps<mlir::affine::AffineForOp>())
   {
     // errs()<<"[Info] Found a forOP:\n"; forOp.dump();
@@ -274,9 +274,14 @@ uint64_t AdjustMemoryFootprintPass::
     }
     else{
       /// get memory footprint of this kernel
+      errs()<<" fp_singleMem :" << forOp << "\n";
       std::optional<int64_t> fp_totalMem = getMemoryFootprintBytes(forOp);
       std::optional<int64_t> fp_singleMem = AdjustMemoryFootprintPass::getSingleMemrefFootprintBytes(forOp);
+      errs()<<" fp_totalMem :" << fp_totalMem << "\n";
+      errs()<<" fp_singleMem :" << fp_singleMem << "\n";
 
+
+      
       excessFactor = std::max(llvm::divideCeil(*fp_totalMem, cacheSizeBytes)
                               ,llvm::divideCeil(*fp_singleMem, singleArraySizeBytes));
     }

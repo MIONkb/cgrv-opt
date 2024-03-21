@@ -301,6 +301,19 @@ def HoistLoadStoreInLoopNest : Pass<"fdra-hoist-loadstore", "func::FuncOp"> {
   ];
 }
 
+//===----------------------------------------------------------------------===//
+// Loop Reorder
+//===----------------------------------------------------------------------===//
+def AffineLoopReorder :
+      Pass<"fdra-loop-reorder", "func::FuncOp"> {
+  let summary = "reorder/interchange affine loop nests";
+  let description = [{
+    This pass aims to reorganize affine loop nests using polyhedral-based dependency analysis. 
+    Its primary goal is to enhance the data locality.
+  }];
+  let constructor = "mlir::FDRA::createAffineLoopReorderPass()";
+}
+
 
 
 //===----------------------------------------------------------------------===//

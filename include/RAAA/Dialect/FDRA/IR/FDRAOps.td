@@ -12,7 +12,6 @@ include "RAAA/Dialect/FDRA/IR/FDRABase.td"
 include "mlir/Pass/PassBase.td"
 include "mlir/IR/EnumAttr.td"
 include "mlir/IR/SymbolInterfaces.td"
-// include "soda/Dialect/Test/IR/TestTypesBase.td"
 include "mlir/Dialect/LLVMIR/LLVMOpBase.td"
 // include "mlir/Dialect/Func/IR/FuncOps.td"
 // include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -39,24 +38,6 @@ def FDRA_KernelOp : FDRA_Op<"kernel">,
   let description = [{
     FDRA.kernel define a region that the body of the rigion
     is a kernel which generated from a affine.for/scf.for/linalg.generic
-
-    Syntax: //To fix
-
-    ```
-    operation ::= `soda.launch` region attr-dict?
-    ssa-reassignment ::= `(` ssa-id `=` ssa-use (`,` ssa-id `=` ssa-use)* `)`
-    ```
-
-    Example: //To fix
-
-    ```mlir 
-    soda.launch {
-      "some_op"(%bx, %tx) : (index, index) -> ()
-      // Assuming %val1 is defined outside the soda.launch region.
-      %42 = load %val1[%bx] : memref<?xf32, 1>
-    }
-    ```
-
   }];
 
   let regions = (region AnyRegion:$body);

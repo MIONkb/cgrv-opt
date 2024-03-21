@@ -577,8 +577,6 @@ func::FuncOp mlir::FDRA::
   }
   KernelOpBody.cloneInto(&KernelFunc.getBody(), mapping);
 
-  // Branch from entry of the soda.func operation to the block that is cloned
-  // from the entry block of the gpu.launch operation
   Block &KernelOpEntry = KernelOpBody.front();
   Block *clonedKernelOpEntry = mapping.lookup(&KernelOpEntry);
   builder.setInsertionPointToEnd(entryBlock);

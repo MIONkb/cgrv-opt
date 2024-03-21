@@ -23,12 +23,13 @@ rootfolder=$(pwd)
  LINALG_TENSOR.mlir -o 0_all_Affine.mlir \
  --mlir-print-ir-after-all 2>&1 | cat > 0_intermediate_before_affine.mlir
 
-cgra-opt --affine-loop-fusion \
+cgra-opt -cse --affine-loop-fusion \
  --fdra-approximate-math \
  --fdra-hoist-loadstore \
  --fdra-extract-affine-for-to-kernel \
- --fdra-adjust-kernel-mem-footprint="cachesize=8 singlearraysize=8 access-pattern disable-remainder-block" \
- 0_all_Affine.mlir -o 1_kernel.mlir
+ --fdra-adjust-kernel-mem-footprint="cachesize=8 singlearraysize=8 disable-remainder-block" \
+ 0_all_Affine.mlir -o 1_kernel.mlir\
+ --mlir-print-ir-after-all 2>&1 | cat > 1_intermediate_before_kernel.mlir
 
 cgra-opt  --arith-expand --memref-expand -reconcile-unrealized-casts \
  --fdra-extract-kernel-to-function="kernel-gen-dir=$rootfolder kernel-explicit-datablock-trans=true" \

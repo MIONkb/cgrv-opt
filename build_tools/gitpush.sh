@@ -6,9 +6,9 @@ ssh -T git@github.com
 
 # git init
 git add .
-git commit -m "run an initial version of loop unroll pass"
+git commit -m "update readme"
 git branch -M new
-git remote add origin git@github.com:segmentKOBE/cgra-opt.git
+git remote add origin git@github.com:MIONkb/cgrv-opt.git
 git push -u origin new
 
 

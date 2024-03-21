@@ -58,22 +58,12 @@ LogicalResult KernelOp::verify() {
   //     return op.emitOpError("unexpected number of region arguments");
   // }
 
-  // Block terminators without successors are expected to exit the kernel region
-  // and must be `soda.terminator`.
   /// To Fix
   for (Block &block : getBody()) {
     if (block.empty())
       continue;
     if (block.back().getNumSuccessors() != 0)
       continue;
-    // if (!isa<soda::TerminatorOp>(&block.back())) {
-    //   return block.back()
-    //       .emitError()
-    //       .append("expected '", soda::TerminatorOp::getOperationName(),
-    //               "' or a terminator with successors")
-    //       .attachNote(getLoc())
-    //       .append("in '", LaunchOp::getOperationName(), "' body region");
-    // }
   }
   
   Region& knRegion = getBody();

@@ -15,7 +15,6 @@ namespace arith {
 class ArithmeticDialect;
 class AffineDialect;
 } // namespace Tensor
-// #include "soda/Dialect/MyTest/IR/MyTest.h"
 #define GEN_PASS_CLASSES
 #include "RAAA/Dialect/FDRA/Transforms/Passes.h.inc"
 

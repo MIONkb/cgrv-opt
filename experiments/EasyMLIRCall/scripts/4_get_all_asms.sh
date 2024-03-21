@@ -30,20 +30,20 @@ fi
 source /home/tianyi/chipyard/env.sh
 
 # get syscalls.s crt.S
-riscv64-unknown-elf-gcc \
- -DPREALLOCATE=1 -DMULTITHREAD=1 -mcmodel=medany \
- -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf \
- -fno-tree-loop-distribute-patterns -march=rv64gc -Wa,-march=rv64gc12 \
- -lm -lgcc \
- -I/home/tianyi/chipyard/generators/fdra/software/tests//riscv-tests \
- -I/home/tianyi/chipyard/generators/fdra/software/tests//riscv-tests/env \
- -I/home/tianyi/chipyard/generators/fdra/software/tests/ \
- -I/home/tianyi/chipyard/generators/fdra/software/tests//riscv-tests/benchmarks/common \
- -DID_STRING=  -nostdlib -nostartfiles -static \
- -T /home/tianyi/chipyard/generators/fdra/software/tests//riscv-tests/benchmarks/common/test.ld \
- -DBAREMETAL=1 \
- -S -o $tarfolder/syscalls.s \
- /home/tianyi/chipyard/generators/fdra/software/tests//riscv-tests/benchmarks/common/syscalls.c
+# riscv64-unknown-elf-gcc \
+#  -DPREALLOCATE=1 -DMULTITHREAD=1 -mcmodel=medany \
+#  -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf \
+#  -fno-tree-loop-distribute-patterns -march=rv64gc -Wa,-march=rv64gc12 \
+#  -lm -lgcc \
+#  -I/home/tianyi/chipyard/generators/fdra/software/tests//riscv-tests \
+#  -I/home/tianyi/chipyard/generators/fdra/software/tests//riscv-tests/env \
+#  -I/home/tianyi/chipyard/generators/fdra/software/tests/ \
+#  -I/home/tianyi/chipyard/generators/fdra/software/tests//riscv-tests/benchmarks/common \
+#  -DID_STRING=  -nostdlib -nostartfiles -static \
+#  -T /home/tianyi/chipyard/generators/fdra/software/tests//riscv-tests/benchmarks/common/test.ld \
+#  -DBAREMETAL=1 \
+#  -S -o $tarfolder/syscalls.s \
+#  /home/tianyi/chipyard/generators/fdra/software/tests//riscv-tests/benchmarks/common/syscalls.c
 
 cp  /home/tianyi/chipyard/generators/fdra/software/tests/gemm/crt.S $tarfolder/crt.s
 
@@ -111,22 +111,29 @@ cnt=0
 ###
 # lowering only host to llvm
 cgra-opt -promote-buffers-to-stack --arith-expand --memref-expand  \
- -normalize-memrefs --affine-simplify-structures \
- -lower-affine --scf-for-loop-canonicalization  -convert-scf-to-cf\
- --convert-math-to-llvm --convert-math-to-libm\
+ -normalize-memrefs --expand-strided-metadata  -lower-affine \
+ --scf-for-loop-canonicalization -convert-scf-to-cf \
+ --convert-math-to-llvm --convert-math-to-libm \
  --convert-arith-to-llvm \
+ --finalize-memref-to-llvm="use-opaque-pointers" \
  --fdra-convert-kernelcall-to-llvm \
  -convert-func-to-llvm=use-bare-ptr-memref-call-conv \
- -convert-memref-to-llvm \
+ --finalize-memref-to-llvm="use-opaque-pointers" \
+ --cse --canonicalize \
  --reconcile-unrealized-casts \
  $rootfolder/2_host.mlir -o $rootfolder/"3_${func_name}_llvm.mlir" \
  --mlir-print-ir-after-all 2>&1 | cat > "3_intermediate_${func_name}_llvm.mlir"
 
-mlir-translate  --mlir-to-llvmir $rootfolder/"3_${func_name}_llvm.mlir" > "$rootfolder/$func_name.ll"
+# mlir-translate  --mlir-to-llvmir $rootfolder/"3_${func_name}_llvm.mlir" > "$rootfolder/$func_name.ll"
+
+/home/tianyi/Tools/llvm-18/build/bin/mlir-translate  --mlir-to-llvmir \
+ $rootfolder/"3_${func_name}_llvm.mlir" \
+ -o "$rootfolder/$func_name.ll"
 
 
 # opt -memprof  "$rootfolder/$func_name.ll" -o "$rootfolder/$func_name.bc"
-opt -O3 "$rootfolder/$func_name.ll" -o "$rootfolder/$func_name.bc"
+echo opt -O3 "$rootfolder/$func_name.ll" -o "$rootfolder/$func_name.bc"
+/home/tianyi/Tools/llvm-18/build/bin/opt -O3 "$rootfolder/$func_name.ll" -o "$rootfolder/$func_name.bc"
 
 echo llc -O3 "$rootfolder/$func_name.bc" \
   -I /home/tianyi/chipyard/.conda-env/riscv-tools/riscv64-unknown-elf/include\
@@ -136,7 +143,7 @@ echo llc -O3 "$rootfolder/$func_name.bc" \
   -float-abi=hard \
   -code-model=small \
   -o "$tarfolder/$func_name.s"
-llc -O3 "$rootfolder/$func_name.bc" \
+/home/tianyi/Tools/llvm-18/build/bin/llc -O3 "$rootfolder/$func_name.bc" \
   -I /home/tianyi/chipyard/.conda-env/riscv-tools/riscv64-unknown-elf/include\
   -march=riscv64 -mtriple=riscv64-unknown-elf-gnu -mcpu=rocket-rv64 \
   -mattr=+c,+d,+relax  \

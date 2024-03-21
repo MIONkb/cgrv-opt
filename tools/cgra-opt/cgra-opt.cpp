@@ -1,6 +1,3 @@
-//===- soda-opt.cpp ---------------------------------------------*- C++ -*-===//
-//===----------------------------------------------------------------------===//
-
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/InitAllDialects.h"
@@ -20,23 +17,6 @@
 #include "RAAA/Dialect/FDRA/Lowering/LowerPasses.h"
 #include "RAAA/Misc/Passes.h"
 
-// #include "soda/Conversion/Passes.h"
-// #include "soda/Dialect/SNN/IR/SNN.h"
-// #include "soda/Dialect/SNN/Transforms/Passes.h"
-// #include "soda/Dialect/SODA/Passes.h"
-// #include "soda/Dialect/SODA/SODADialect.h"
-
-// // my add
-// #include "soda/Dialect/ComplexOP/IR/ComplexOP.h"
-// #include "soda/Dialect/ComplexOP/Transforms/Passes.h"
-// #include "soda/Dialect/MyTest/IR/MyTest.h"
-// #include "soda/Dialect/MyTest/Transforms/Passes.h"
-// // #include "soda/Dialect/ComplexOP/IR/ComplexOP.h.inc"
-// // #include "soda/Dialect/ComplexOP/IR/ComplexOPDialect.h.inc"
-
-// #include "soda/Misc/Passes.h"
-// #include "soda/Misc/Pipelines.h"
-
 #include "mlir/Dialect/Arith/Transforms/Passes.h"
 #include "mlir/Dialect/Func/Transforms/Passes.h"
 
@@ -48,12 +28,6 @@ namespace test {
 int registerTestLinalgCodegenStrategy();
 } // namespace test
 } // namespace mlir
-
-// Register important linalg passes
-inline void registerLinalgPassesForSoda() {
-
-  mlir::registerLinalgPasses();
-}
 
 // Register important affine passes
 inline void registerAffinePassesForFDRA() {
@@ -86,8 +60,8 @@ int main(int argc, char **argv) {
   mlir::registerInlinerPass();
   mlir::registerCanonicalizerPass();
   mlir::registerCSEPass();
+  mlir::registerLinalgPasses();
 
-  registerLinalgPassesForSoda();
   registerAffinePassesForFDRA();
   mlir::bufferization::registerPromoteBuffersToStackPass();
 
@@ -130,21 +104,11 @@ int main(int argc, char **argv) {
                   mlir::tensor::TensorDialect,
                   mlir::bufferization::BufferizationDialect>();
   // clang-format on
-  // mlir::registerAllDialects(registry);
-
-  //===--------------------------------------------------------------------===//
-  // Register SODA dialects and passes
-  //===--------------------------------------------------------------------===//
 
   // Dialects
-  // registry.insert<mlir::soda::SODADialect>();
-  // registry.insert<mlir::snn::SNNDialect>();
-  // registry.insert<mlir::mytest::MyTestDialect>();
   registry.insert<mlir::FDRA::FDRADialect>();
-  // registry.insert<mlir::ComplexOP::ComplexOPDialect>();
 
   // ----- My Dialect -----
-  // mlir::mytest::registerGetMACPass();
   mlir::FDRA::registerFDRALoopCdfgGenPass();
   mlir::FDRA::registerExtractAffineForToKernelPass();
   mlir::FDRA::registerAdjustKernelMemoryFootprintPass();
@@ -153,6 +117,7 @@ int main(int argc, char **argv) {
   mlir::FDRA::registerTestPrintOpNestingPass();
   mlir::FDRA::registerHoistLoadStoreInLoopNestPass();
   mlir::FDRA::registerFDRAAffineLoopUnroll();
+  mlir::FDRA::registerAffineLoopReorder();
 
   mlir::FDRA::registerConvertKernelCallToLLVMPass();
   mlir::FDRA::registerConvertFDRAToSCFPass();
@@ -160,42 +125,7 @@ int main(int argc, char **argv) {
 
   mlir::registerSCFForLoopCanonicalizationPass();
   
-  // ----- SODA -----
-  // Misc passes
-  // mlir::soda::registerTestPrintOpNestingPass();
-  // mlir::soda::registerTestArgumentsToXMLPass();
-  // mlir::soda::registerEraseMemrefDeallocPass();
-  // mlir::soda::registerForwardMemrefAllocPass();
-  // mlir::soda::registerForwardLinalgFillPass();
-  // mlir::soda::registerForwardMemrefCopyPass();
-
-  // // SODA Passes
-  // mlir::soda::registerSodaKernelOutliningPass();
-  // mlir::soda::registerSodaKernelGenerationPass();
-  // mlir::soda::registerSodaHostGenerationPass();
-  // mlir::soda::registerSodaAsyncRegionPassPass();
-
-  // // Outlining passes
-  // mlir::soda::registerConvertAllToSODAPass();
-  // mlir::soda::registerConvertOperationToSODAPass();
-  // mlir::soda::registerConvertAffineForToSODAPass();
-  // mlir::soda::registerConvertSCFForToSODAPass();
-  // mlir::soda::registerConvertLinalgDotToSODAPass();
-  // mlir::soda::registerConvertLinalgMatmulToSODAPass();
-  // mlir::soda::registerConvertLinalgConvToSODAPass();
-  // mlir::soda::registerConvertLinalgGenericToSODAPass();
-
-  // // Optimization passes
-  // mlir::soda::registerPassManagerMiscPass();
-  // mlir::soda::registerSimpleLoweringPass();
-  // mlir::soda::registerOptimizedForBambuPass();
-  // mlir::soda::registerOptimizedForVitisHLSPass();
-
-  // // Conversion passes
-
-  // // ----- SNN -----
-  // mlir::snn::registerSNNPrintPass();
 
   return failed(
-      mlir::MlirOptMain(argc, argv, "SODA optimizer driver\n", registry));
+      mlir::MlirOptMain(argc, argv, "Fail\n", registry));
 }

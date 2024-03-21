@@ -4,25 +4,18 @@ cgra-opt : MLIR project for FDRA (TRAM SoC)
 
 Directories:
 
-1. tools: cpp of forward-opt
+1. tools: cpp of cgra-opt
 
-2. include/lib: c++ header/source for forwar-opt 
+2. include/lib: c++ header/source for cgra-opt 
 
 ## Build 
 
-Change your llvm install path in build_forwardopt.sh and CMakeList.txt, and run build_forwardopt.sh (recommemd to run it through ctrl+C/ctrl+v line-by-line).
+Change your llvm install path in build_forwardopt.sh and CMakeList.txt, and run build_cgraopt.sh (recommemd to run it through ctrl+C/ctrl+v line-by-line).
 
-## Run
-
-Change your llvm install path in env.sh, and source env.sh.
-
-Then run the model transforming following scripts in ./models.(eg. ./models/simplr/scripts.sh). 
-
-Pytorch to mlir needs torch-mlir python package.
 
 ### Dependencies
-##### LLVM-17
-Maybe we need a new version of llvm. Commit: 4553dc46a05ec6f1e2aebcde1ce185772a26780b
+##### LLVM-18
+Maybe we need a new version of llvm. Cunrrent LLVM version Commit: 4553dc46a05ec6f1e2aebcde1ce185772a26780b
 
 Please download it from
 
@@ -38,3 +31,10 @@ Please download it from
 
 https://github.com/segmentKOBE/torch-mlir-forward
 
+
+##### FDRA project:
+To run a model on CPU + CGRA SoC with VERILATOR or VCS, install chipyard and fdra. 
+Please follow: https://github.com/MIONkb/FDRA
+
+
+Pytorch to mlir needs torch-mlir python package.

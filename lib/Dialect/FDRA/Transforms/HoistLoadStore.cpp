@@ -226,8 +226,8 @@ void HoistLoadStoreInLoopNestPass::runOnOperation()
       /// If so, this load-store pair 
       /// should be hoisted while construct a loop-carried variable.
       for(AffineStoreOp storeop : ToHoistStores_copy){
-        // llvm::errs() << "[info] loadop: " << loadop << "\n";   
-        // llvm::errs() << "[info] storeop: " << storeop << "\n";    
+        llvm::errs() << "[info] loadop: " << loadop << "\n";   
+        llvm::errs() << "[info] storeop: " << storeop << "\n";    
         if(LoadStoreSameMemAddr(loadop, storeop)){
           AffineLoadOp* it_ld;
           AffineStoreOp* it_st;   
@@ -239,6 +239,7 @@ void HoistLoadStoreInLoopNestPass::runOnOperation()
           {
             // Loadop and store op are in same level so 
             // both should be hoisted.
+            NoChange = 0;
 
             /// Get value to be yielded
             Value toYield = storeop.getValue();

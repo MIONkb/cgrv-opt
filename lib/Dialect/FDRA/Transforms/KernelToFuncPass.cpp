@@ -629,9 +629,16 @@ void KernelToFuncPass::runOnOperation()
           return WalkResult::advance();
         }
         llvm::errs() << "Kernel:"  << kernelFnName << "\n";
+
+        // ModuleOp new_m = builder.create<ModuleOp>(NewKernelFunc.getLoc(), kernelFnName);
+        // new_m.push_back(NewKernelFunc.clone());
+
         NewKernelFunc.dump();
+        file << NewKernelFunc;
+        // new_m.dump();
         // NewKernelFunc.print(llvm::errs());
-        NewKernelFunc.print(file);
+        // file << new_m;
+        // new_m.erase();
       }
       /// Convert FDRA.Kernel{ ... } to func.call
       OpBuilder builder(op);

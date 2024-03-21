@@ -42,16 +42,9 @@ include_directories(${PROJECT_BINARY_DIR}/include)
 link_directories(${LLVM_BUILD_LIBRARY_DIR})
 add_definitions(${LLVM_DEFINITIONS})
 
-# if(MLIR_ENABLE_BINDINGS_PYTHON)
-#   message(STATUS "Enabling SODA-OPT Python API")
-#   add_subdirectory(python)
-# else()
-#   message(STATUS "SODA-OPT Python bindings are disabled.")
-# endif()
 
 add_subdirectory(include/RAAA)
 add_subdirectory(lib)
 # add_subdirectory(test)
 add_subdirectory(tools)
-# add_subdirectory(llvm_plugins/lib)
 

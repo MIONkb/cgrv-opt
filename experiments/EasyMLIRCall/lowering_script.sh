@@ -46,3 +46,21 @@ riscv64-unknown-elf-gcc \
 cgra-opt --affine-loop-fusion  --arith-expand --memref-expand -reconcile-unrealized-casts \
  --fdra-extract-kernel-to-function='/home/tianyi/fdra/app-compiler/cgra-opt/experiments/EasyMLIRCall kernel-explicit-datablock-trans=false' \
  easy_affine.mlir > 2_host.mlir
+
+
+
+
+riscv64-unknown-elf-gcc \
+ -DPREALLOCATE=1 -DMULTITHREAD=1 -mcmodel=medany \
+  -O2 -ffast-math -fno-common -fno-builtin-printf \
+ -fno-tree-loop-distribute-patterns -march=rv64gc -Wa,-march=rv64gc12 \
+  -lm -lgcc \
+ -I/home/tianyi/chipyard/generators/fdra/software/tests//riscv-tests/benchmarks/common \
+ -I/home/tianyi/chipyard/generators/fdra/software/tests/riscv-tests \
+ -I/home/tianyi/chipyard/generators/fdra/software/tests//riscv-tests/env \
+ -I/home/tianyi/chipyard/generators/fdra/software/tests/ \
+ -T/home/tianyi/chipyard/generators/fdra/software/tests/riscv-tests/benchmarks/common/my_test.ld \
+ -DID_STRING= -nostartfiles -static  \
+ -DBAREMETAL=1 -DDEFINE_MALLOC -e _start -g  \
+ -S -o ./main.s \
+ ./main.c

@@ -12,7 +12,6 @@
 
 namespace mlir {
 // namespace FDRA {
-// #include "soda/Dialect/MyTest/IR/MyTest.h"
 #define GEN_PASS_CLASSES
 #include "RAAA/Dialect/FDRA/Lowering/LowerPasses.h.inc"
 // }
