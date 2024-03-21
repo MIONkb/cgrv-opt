@@ -6,10 +6,10 @@ ssh -T git@github.com
 
 # git init
 git add .
-git commit -m "update readme"
-git branch -M new
+git commit -m "update readme again"
+git branch -M main
 git remote add origin git@github.com:MIONkb/cgrv-opt.git
-git push -u origin new
+git push -u origin main
 
 
 
