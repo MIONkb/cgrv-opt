@@ -1,3 +1,5 @@
+# Please refer to the newest version : [adora-compiler](https://github.com/MIONkb/adora-compiler)
+
 ## cgra-opt : MLIR project for FDRA (TRAM SoC)
 
 =======================
