@@ -1,3 +1,3 @@
-[submodule "/home/jhlou/CGRVOPT/cgrv-opt/adora-compiler"]
-	path = /home/jhlou/CGRVOPT/cgrv-opt/adora-compiler
+[submodule "adora-compiler"]
+	path = adora-compiler
 	url = https://github.com/MIONkb/adora-compiler
